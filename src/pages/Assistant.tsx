@@ -6,7 +6,13 @@ import { GoogleGenAI } from "@google/genai";
 import ReactMarkdown from "react-markdown";
 import { cn } from "../lib/utils";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
+let aiInstance: GoogleGenAI | null = null;
+const getAi = () => {
+  if (!aiInstance) {
+    aiInstance = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string || "DUMMY_KEY_TO_PREVENT_CRASH" });
+  }
+  return aiInstance;
+};
 
 export default function Assistant() {
   const { user } = useAuth();
@@ -33,6 +39,7 @@ export default function Assistant() {
     setLoading(true);
 
     try {
+      const ai = getAi();
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: [

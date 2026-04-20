@@ -1,8 +1,15 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
+let aiInstance: GoogleGenAI | null = null;
+const getAi = () => {
+  if (!aiInstance) {
+    aiInstance = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string || "DUMMY_KEY_TO_PREVENT_CRASH" });
+  }
+  return aiInstance;
+};
 
 export const generateDevotional = async (userProfile: any) => {
+  const ai = getAi();
   const prompt = `Gere um devocional cristão personalizado para hoje.
   Dados do Usuário:
   - Nome: ${userProfile.displayName}

@@ -7,7 +7,7 @@ export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
     plugins: [react(), tailwindcss()],
-    base: './', // Permite que funcione em subpastas no Github Pages
+    base: '/pertodedeus/', // Caminho absoluto para funcionamento perfeito no GitHub Pages
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
     },
