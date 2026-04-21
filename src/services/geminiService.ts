@@ -18,25 +18,32 @@ const getAi = () => {
   return aiInstance;
 };
 
-export const generateDevotional = async (userProfile: any) => {
+export const generateDevotional = async (userProfile: any, passage?: string, simplify?: boolean) => {
   const ai = getAi();
-  const prompt = `Gere um devocional cristão personalizado para hoje.
+  const baseInstructions = `Gere um devocional cristão personalizado para hoje.
   Dados do Usuário:
   - Nome: ${userProfile.displayName}
   - Denominação: ${userProfile.denomination}
   - Anos de fé: ${userProfile.yearsAsChristian}
   - Desafios atuais: ${userProfile.challenges?.join(", ")}
-  - Nível espiritual: ${userProfile.spiritualLevel}
+  - Nível espiritual: ${userProfile.spiritualLevel}`;
+
+  const prompt = `${baseInstructions}
+  
+  Instruções de Conteúdo:
+  ${passage ? `- TEMA CENTRAL OBRIGATÓRIO: Baseie este devocional EXCLUSIVAMENTE na seguinte passagem/texto: "${passage}".
+  - NOTA SOBRE INTERVALOS: Se o tema for um intervalo de capítulos (ex: "Capítulos 1 ao 5"), sua reflexão DEVE abranger o contexto geral desse conjunto de capítulos. No campo "verse", você pode escolher um versículo chave DESTE intervalo para destacar, mas a reflexão deve ser sobre todo o texto solicitado.` : '- Use uma passagem bíblica aleatória relevante para os desafios do usuário.'}
+  ${simplify ? '- MODO COMPREENSÃO FACILITADA OBRIGATÓRIO: Você DEVE usar palavras muito simples e comuns. Seja extremamente direto e evite qualquer "enrolação" ou textos longos demais. Explique como se estivesse falando com alguém que nunca leu a Bíblia. FOCO EM CLAREZA TOTAL.' : '- Use um tom profundo e reflexivo.'}
 
   O devocional deve ter a seguinte estrutura JSON:
-  - title (string): Título inspirador.
+  - title (string): Título inspirador e simples.
   - verse (string): Referência bíblica + texto (NVI ou ARA).
-  - reflection (string): Texto de reflexão (300-500 palavras).
-  - question (string): Uma pergunta para auto-exame.
-  - practicalAction (string): Uma ação concreta para o dia.
-  - suggestedPrayer (string): Uma oração curta.
+  - explanation (string): Uma explicação ultra-direta e simples do versículo (obrigatório em modo facilitado, caso contrário "").
+  - reflection (string): Texto de reflexão (${simplify ? 'Máximo 150 palavras, muito direto e sem palavras difíceis' : '300-500 palavras'}).
+  - question (string): Uma pergunta simples para pensar.
+  - practicalAction (string): Uma ação curta e fácil de fazer.
+  - suggestedPrayer (string): Uma oração curta e direta.
 
-  Use um tom ${userProfile.spiritualLevel === 'Semente' ? 'acolhedor e didático' : 'profundo e teológico'}.
   Sempre baseie-se estritamente na Bíblia.`;
 
   try {
@@ -50,12 +57,13 @@ export const generateDevotional = async (userProfile: any) => {
           properties: {
             title: { type: Type.STRING },
             verse: { type: Type.STRING },
+            explanation: { type: Type.STRING },
             reflection: { type: Type.STRING },
             question: { type: Type.STRING },
             practicalAction: { type: Type.STRING },
             suggestedPrayer: { type: Type.STRING },
           },
-          required: ["title", "verse", "reflection", "question", "practicalAction", "suggestedPrayer"]
+          required: ["title", "verse", "explanation", "reflection", "question", "practicalAction", "suggestedPrayer"]
         },
       },
     });

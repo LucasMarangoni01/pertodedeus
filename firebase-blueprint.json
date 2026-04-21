@@ -12,7 +12,8 @@
         "spiritualLevel": { "type": "string", "enum": ["Semente", "Raiz", "Árvore", "Fruto", "Luz"], "description": "Gamified spiritual level" },
         "streak": { "type": "integer", "description": "Consecutive days of activity" },
         "lastCheckIn": { "type": "string", "format": "date-time", "description": "Last activity timestamp" },
-        "bio": { "type": "string", "description": "Short bio or favorite verse" }
+        "bio": { "type": "string", "description": "Short bio or favorite verse" },
+        "fcmTokens": { "type": "array", "items": { "type": "string" }, "description": "List of FCM tokens for push notifications" }
       },
       "required": ["displayName", "spiritualLevel", "streak"]
     },
@@ -45,8 +46,12 @@
         "mood": { "type": "string", "description": "Grato, Em paz, etc." },
         "learning": { "type": "string", "description": "What I learned" },
         "godSpoke": { "type": "string", "description": "How God spoke to me" },
+        "ledToThis": { "type": "string", "description": "Context what led to feelings" },
+        "doDifferently": { "type": "string", "description": "Plans for change" },
+        "audioUrl": { "type": "string", "description": "URL to recorded audio file" },
         "tags": { "type": "array", "items": { "type": "string" } },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "date", "createdAt"]
     },
@@ -66,6 +71,58 @@
         "isFavorite": { "type": "boolean" }
       },
       "required": ["userId", "date", "title"]
+    },
+    "ChatMessage": {
+      "title": "Global Chat Message",
+      "description": "Message in the global community chat",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "userName", "text", "createdAt"]
+    },
+    "Testimonial": {
+      "title": "Community Testimonial",
+      "description": "Public testimonials of faith",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "likes": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "userName", "content", "likes", "createdAt"]
+    },
+    "ReadingPlan": {
+      "title": "Custom Reading Plan",
+      "description": "User-defined custom reading plans",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "durationDays": { "type": "integer" },
+        "items": { 
+          "type": "array", 
+          "items": { 
+            "type": "object",
+            "properties": {
+              "day": { "type": "integer" },
+              "passage": { "type": "string" },
+              "isCompleted": { "type": "boolean" }
+            }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "totalItems": { "type": "integer" },
+        "completedItems": { "type": "integer" }
+      },
+      "required": ["userId", "title", "createdAt", "items"]
     }
   },
   "firestore": {
@@ -84,6 +141,18 @@
     "/users/{userId}/devotionals/{devotionalId}": {
       "schema": "Devotional",
       "description": "Personalized daily devotionals"
+    },
+    "/global_chat/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Real-time global chat messages"
+    },
+    "/testimonials/{testimonyId}": {
+      "schema": "Testimonial",
+      "description": "Public testimonials shared by users"
+    },
+    "/users/{userId}/custom_plans/{planId}": {
+      "schema": "ReadingPlan",
+      "description": "Custom reading plans created by the user"
     }
   }
 }

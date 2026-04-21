@@ -39,7 +39,7 @@ export const bibleBooks: BibleBook[] = [
   { name: "Joel", chapters: 3, testament: 'Velho', bollsId: 29 },
   { name: "Amós", chapters: 9, testament: 'Velho', bollsId: 30 },
   { name: "Obadias", chapters: 1, testament: 'Velho', bollsId: 31 },
-  { name: "Jn", chapters: 4, testament: 'Velho', bollsId: 32 },
+  { name: "Jonas", chapters: 4, testament: 'Velho', bollsId: 32 },
   { name: "Miqueias", chapters: 7, testament: 'Velho', bollsId: 33 },
   { name: "Naum", chapters: 3, testament: 'Velho', bollsId: 34 },
   { name: "Habacuque", chapters: 3, testament: 'Velho', bollsId: 35 },

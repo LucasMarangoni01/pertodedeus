@@ -16,6 +16,7 @@ const translations = [
 export default function Bible() {
   const { user } = useAuth();
   const [selectedBook, setSelectedBook] = useState<string | null>(null);
+  const [selectedBookId, setSelectedBookId] = useState<number | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
 
@@ -33,77 +34,87 @@ export default function Bible() {
   const [searchQuery, setSearchQuery] = useState("");
   const [fontSize, setFontSize] = useState(18);
   const [audioSpeed, setAudioSpeed] = useState(1);
-  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const [selectedVoiceURI, setSelectedVoiceURI] = useState<string>("");
   const [selectedVerses, setSelectedVerses] = useState<number[]>([]);
   const [selectedVersion, setSelectedVersion] = useState("ARA");
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
-  const synthRef = useRef<SpeechSynthesis | null>(null);
+  const [nativeVoices, setNativeVoices] = useState<{id: string, name: string}[]>([]);
+  const [selectedVoice, setSelectedVoice] = useState<string>("pt-BR");
+  const [audioStatus, setAudioStatus] = useState<"stopped" | "loading" | "playing">("stopped");
 
-  const loadVoices = () => {
-    if (!window.speechSynthesis) return;
-    const voices = window.speechSynthesis.getVoices().filter(v => v.lang.includes("pt-BR") || v.lang.includes("pt_BR") || v.lang === "pt");
-    setAvailableVoices(voices);
-    
-    if (voices.length > 0 && !selectedVoiceURI) {
-      // Tenta encontrar uma voz humanizada online nativa como default
-      const preferredKeywords = ["natural", "online", "premium", "luciana", "google português do brasil", "antonio", "francisca"];
-      let defaultVoice = voices[0];
-      for (const keyword of preferredKeywords) {
-        const match = voices.find(v => v.name.toLowerCase().includes(keyword));
-        if (match) {
-          defaultVoice = match;
-          break;
-        }
-      }
-      setSelectedVoiceURI(defaultVoice.voiceURI);
-    }
-  };
+  const sequenceIdRef = useRef<number>(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    synthRef.current = window.speechSynthesis;
-    // Force load voices in the background so they are ready when the user clicks
-    loadVoices();
-    if (speechSynthesis.onvoiceschanged !== undefined) {
-      speechSynthesis.onvoiceschanged = loadVoices;
-    }
+    // Load native voices
+    import("../services/audioService").then(m => {
+      m.getAvailableNativeVoices().then(voices => {
+        const mapped = voices.map(v => ({ id: v.voiceURI, name: v.name }));
+        setNativeVoices(mapped);
+        if (mapped.length > 0) setSelectedVoice(mapped[0].id);
+      }).catch(console.error);
+    });
+
     return () => {
-      if (synthRef.current) {
-        synthRef.current.cancel();
-      }
+      import("../services/audioService").then(m => m.stopNativeTTS());
     };
   }, []);
 
-  const toggleAudio = () => {
-    if (!synthRef.current) return;
-    
-    if (isPlayingAudio) {
-      synthRef.current.cancel();
-      setIsPlayingAudio(false);
-    } else {
-      if (verses.length === 0) return;
-      const textToRead = verses.map(v => v.t).join(". ");
-      const utterance = new SpeechSynthesisUtterance(textToRead);
-      utterance.lang = "pt-BR";
-      utterance.rate = audioSpeed;
-      
-      if (selectedVoiceURI) {
-        const voiceToUse = availableVoices.find(v => v.voiceURI === selectedVoiceURI);
-        if (voiceToUse) {
-          utterance.voice = voiceToUse;
-        }
-      }
-      
-      utterance.onend = () => setIsPlayingAudio(false);
-      utterance.onerror = () => {
-        setIsPlayingAudio(false);
-        showNotification("Erro ao reproduzir áudio.");
-      };
-      
-      synthRef.current.speak(utterance);
-      setIsPlayingAudio(true);
+  const toggleAudio = async () => {
+    if (audioStatus !== "stopped") {
+      import("../services/audioService").then(m => m.stopNativeTTS());
+      setAudioStatus("stopped");
+      sequenceIdRef.current++; // Cancela a sequência anterior
+      return;
     }
+    
+    if (verses.length === 0) return;
+    
+    setAudioStatus("loading");
+    const currentSeqId = ++sequenceIdRef.current;
+    
+    // Chunking text into phrases. NativeTTS works best with shorter passages up to a few hundred chars.
+    let currentChunk = "Iniciando leitura deste capítulo. ";
+    const chunks: string[] = [];
+    for (const v of verses) {
+       const sentence = `Versículo ${v.v}. ${v.t} `;
+       if (currentChunk.length + sentence.length > 250) {
+           chunks.push(currentChunk);
+           currentChunk = sentence;
+       } else {
+           currentChunk += sentence;
+       }
+    }
+    if (currentChunk) chunks.push(currentChunk);
+
+    const playSequence = async (index: number) => {
+       if (currentSeqId !== sequenceIdRef.current) return; // Sequence cancelled
+       if (index >= chunks.length) {
+          setAudioStatus("stopped");
+          return;
+       }
+       
+       try {
+          if (index > 0) setAudioStatus("playing");
+          
+          await import("../services/audioService").then(m => {
+            if (currentSeqId !== sequenceIdRef.current) return;
+            setAudioStatus("playing");
+            return m.playNativeTTS(
+              chunks[index], 
+              selectedVoice, 
+              audioSpeed, 
+              () => playSequence(index + 1), // OnEnd cb
+              () => setAudioStatus("stopped") // OnError cb
+            );
+          });
+       } catch (e: any) {
+          console.error("Audio sequence error:", e);
+          showNotification(e.message || "Falha na leitura vocal. Tente novamente.");
+          setAudioStatus("stopped");
+       }
+    };
+
+    playSequence(0);
   };
 
   // Busca lista de livros dinâmica da API
@@ -135,17 +146,42 @@ export default function Bible() {
     }));
   }, [dynamicBooks]);
 
-  // Fallback de compatibilidade ao trocar de versão
+  // Fallback de compatibilidade ao trocar de versão (Preservar livro/capítulo)
   useEffect(() => {
-    if (selectedBook && books.length > 0) {
-      const bookExists = books.some(b => b.name === selectedBook);
-      if (!bookExists) {
-        setSelectedBook(books[0]?.name || "Gênesis");
-        setSelectedChapter(1);
-        showNotification("Este livro não existe na versão selecionada.");
+    if (books.length > 0) {
+      if (selectedBookId) {
+        const bookByPk = books.find(b => b.bollsId === selectedBookId);
+        if (bookByPk) {
+           // Sincroniza nome se mudou (ex: Gênesis vs Genesis)
+           if (bookByPk.name !== selectedBook) {
+              setSelectedBook(bookByPk.name);
+           }
+           // Valida capítulo
+           if (selectedChapter && selectedChapter > bookByPk.chapters) {
+              setSelectedChapter(bookByPk.chapters);
+              showNotification(`Este livro tem ${bookByPk.chapters} capítulos nesta versão.`);
+           }
+        } else if (selectedBook) {
+           // Tenta por nome se ID falhar (raro)
+           const bookByName = books.find(b => b.name === selectedBook);
+           if (bookByName) {
+              setSelectedBookId(bookByName.bollsId);
+           } else {
+              setSelectedBook(books[0]?.name || "Gênesis");
+              setSelectedBookId(books[0]?.bollsId || 1);
+              setSelectedChapter(1);
+              showNotification("Livro indisponível nesta versão.");
+           }
+        }
+      } else if (selectedBook) {
+        // Se temos nome mas não ID, sincroniza ID
+        const bookByName = books.find(b => b.name === selectedBook);
+        if (bookByName) {
+          setSelectedBookId(bookByName.bollsId);
+        }
       }
     }
-  }, [selectedVersion, books, selectedBook]);
+  }, [selectedVersion, books]);
 
   const currentVersionName = useMemo(() => {
     return translations.find(v => v.id === selectedVersion)?.name || "Almeida";
@@ -245,7 +281,10 @@ export default function Bible() {
             {books.filter(b => b.name.toLowerCase().includes(searchQuery.toLowerCase())).map(book => (
               <button 
                 key={book.name}
-                onClick={() => setSelectedBook(book.name)}
+                onClick={() => {
+                  setSelectedBook(book.name);
+                  setSelectedBookId(book.bollsId);
+                }}
                 className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-white/5 text-left group"
               >
                 <div className="flex items-center gap-3">
@@ -259,7 +298,7 @@ export default function Bible() {
         ) : (
           <div className="space-y-6">
             <button 
-              onClick={() => { setSelectedBook(null); setSelectedChapter(null); }}
+              onClick={() => { setSelectedBook(null); setSelectedBookId(null); setSelectedChapter(null); }}
               className="text-amber text-xs font-bold uppercase flex items-center gap-2"
             >
                <ArrowBack className="w-4 h-4" /> Voltar
@@ -312,10 +351,12 @@ export default function Bible() {
                     onClick={toggleAudio}
                     className={cn(
                       "p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold mr-2",
-                      isPlayingAudio ? "bg-amber text-navy hover:bg-amber/80" : "hover:bg-white/5 text-pearl/60"
+                      audioStatus !== "stopped" ? "bg-amber text-navy hover:bg-amber/80" : "hover:bg-white/5 text-pearl/60"
                     )}
                  >
-                    {isPlayingAudio ? (
+                    {audioStatus === "loading" ? (
+                      <><div className="w-4 h-4 border-2 border-navy border-t-transparent rounded-full animate-spin" /> Gerando...</>
+                    ) : audioStatus === "playing" ? (
                       <><Square className="w-4 h-4 fill-navy" /> Parar</>
                     ) : (
                       <><Volume2 className="w-4 h-4" /> Ouvir</>
@@ -360,31 +401,26 @@ export default function Bible() {
                             </div>
 
                             <div className="pt-4 border-t border-white/5">
-                               <label className="text-[10px] text-pearl/40 uppercase font-bold tracking-widest block mb-2">Voz da Narração</label>
+                               <label className="text-[10px] text-pearl/40 uppercase font-bold tracking-widest block mb-2">Voz da Narração HD</label>
                                <select 
-                                 value={selectedVoiceURI} 
+                                 value={selectedVoice} 
                                  onChange={(e) => {
-                                   setSelectedVoiceURI(e.target.value);
-                                   if (isPlayingAudio && synthRef.current) {
-                                     synthRef.current.cancel();
-                                     setIsPlayingAudio(false);
-                                     showNotification("Voz alterada. Clique em Ouvir novamente.");
+                                   setSelectedVoice(e.target.value as any);
+                                   if (audioStatus !== "stopped") {
+                                      toggleAudio(); // stops
+                                      showNotification("Voz alterada. Clique em Ouvir novamente.");
                                    }
                                  }}
                                  className="w-full bg-white/5 border border-amber/10 rounded-lg px-3 py-2 text-xs text-pearl focus:border-amber outline-none appearance-none"
                                >
-                                 {availableVoices.length === 0 && <option value="">Carregando vozes...</option>}
-                                 {availableVoices.map(v => (
-                                   <option key={v.voiceURI} value={v.voiceURI} className="bg-navy text-pearl">
+                                 {nativeVoices.length > 0 ? nativeVoices.map(v => (
+                                   <option key={v.id} value={v.id} className="bg-navy text-pearl">
                                      {v.name}
                                    </option>
-                                 ))}
+                                 )) : (
+                                   <option value="pt-BR" className="bg-navy text-pearl">Voz do Sistema</option>
+                                 )}
                                </select>
-                               {availableVoices.length <= 1 && (
-                                 <p className="text-[9px] text-pearl/30 mt-2 leading-tight">
-                                   Seu celular só possui essa voz instalada. Procure por "Vozes" ou "Acessibilidade" nas configurações do seu aparelho para adicionar pacotes novos.
-                                 </p>
-                               )}
                             </div>
 
                             <div className="pt-4 border-t border-white/5">
@@ -412,11 +448,10 @@ export default function Bible() {
                                    step="0.25"
                                    value={audioSpeed} 
                                    onChange={(e) => {
-                                      setAudioSpeed(parseFloat(e.target.value));
-                                      if (isPlayingAudio && synthRef.current) {
-                                         synthRef.current.cancel();
-                                         setIsPlayingAudio(false);
-                                         showNotification("Velocidade alterada. Clique em Ouvir novamente.");
+                                      const newSpeed = parseFloat(e.target.value);
+                                      setAudioSpeed(newSpeed);
+                                      if (audioRef.current) {
+                                         audioRef.current.playbackRate = newSpeed;
                                       }
                                    }}
                                    className="flex-1 accent-amber"

@@ -1,59 +1,36 @@
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
+import { tts } from "edge-tts";
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  // Simple In-Memory Cache to speed up subsequent requests perfectly!
-  const cache = new Map<string, any>();
+  // Add JSON body parser for TTS endpoint
+  app.use(express.json());
 
-  // ----- BIBLE CACHE PROXY ENDPOINTS -----
-  
-  // Endpoint to get chapters/verses
-  app.get("/api/bible/chapter/:version/:bookId/:chapter", async (req, res) => {
-    const { version, bookId, chapter } = req.params;
-    const cacheKey = `chapter-${version}-${bookId}-${chapter}`;
-    
-    if (cache.has(cacheKey)) {
-      return res.json(cache.get(cacheKey));
-    }
-
+  // ----- EDGE TTS API (FREE AZURE NEURAL) -----
+  app.post("/api/tts", async (req, res) => {
     try {
-      const bollsUrl = `https://bolls.life/get-chapter/${version}/${bookId}/${chapter}/`;
-      const response = await fetch(bollsUrl);
-      if (!response.ok) throw new Error("Bolls API failed");
-      const data = await response.json();
+      const { text, voice = "pt-BR-FranciscaNeural", rate = "+0%" } = req.body;
       
-      cache.set(cacheKey, data);
-      res.json(data);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Failed to fetch remote Bible API" });
-    }
-  });
+      if (!text) {
+        return res.status(400).json({ error: "Texto ausente" });
+      }
 
-  // Endpoint to get books metadata
-  app.get("/api/bible/books/:version", async (req, res) => {
-    const { version } = req.params;
-    const cacheKey = `books-${version}`;
-    
-    if (cache.has(cacheKey)) {
-      return res.json(cache.get(cacheKey));
-    }
+      // 'tts' gives a native Promise<Buffer>
+      const audioBuffer = await tts(text, {
+          voice: voice,
+          rate: rate
+      });
 
-    try {
-      const bollsUrl = `https://bolls.life/get-books/${version}/`;
-      const response = await fetch(bollsUrl);
-      if (!response.ok) throw new Error("Bolls API failed");
-      const data = await response.json();
+      res.setHeader("Content-Type", "audio/mpeg");
+      res.send(audioBuffer);
       
-      cache.set(cacheKey, data);
-      res.json(data);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Failed to fetch books list" });
+      console.error("Erro no Edge TTS Backend:", error);
+      res.status(500).json({ error: "Falha na sintese de voz." });
     }
   });
 

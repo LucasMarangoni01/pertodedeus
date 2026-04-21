@@ -1,6 +1,8 @@
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
-import { Home, BookOpen, MessageSquare, Heart, User, LogOut, Search, PenTool, GraduationCap, Users, Music, Bot, MapPin, HelpCircle, ShieldAlert, Calculator } from "lucide-react";
+import { Home, BookOpen, MessageSquare, Heart, User, LogOut, Search, PenTool, GraduationCap, Users, Bot, MapPin, HelpCircle, ShieldAlert, Calculator } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { NotificationManager } from "../NotificationManager";
+import { useNotificationTriggers } from "../../hooks/useNotificationTriggers";
 import { motion } from "motion/react";
 import { cn } from "../../lib/utils";
 
@@ -15,9 +17,8 @@ const navItems = [
   { path: "/churches", icon: MapPin, label: "Igrejas" },
   { path: "/study", icon: GraduationCap, label: "Estudos" },
   { path: "/community", icon: Users, label: "Mural" },
-  { path: "/worship", icon: Music, label: "Louvor" },
   { path: "/assistant", icon: Bot, label: "AI" },
-  { path: "/devotional", icon: Heart, label: "Devocional" },
+  { path: "/devotional", icon: Heart, label: "Devocional com IA" },
   { path: "/profile", icon: User, label: "Perfil" },
   { path: "/guide", icon: HelpCircle, label: "Guia" },
 ];
@@ -25,6 +26,7 @@ const navItems = [
 export default function MainLayout() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  useNotificationTriggers();
 
   const handleLogout = async () => {
     await signOut();
@@ -91,6 +93,7 @@ export default function MainLayout() {
         <div className="container mx-auto px-4 py-6 md:py-10 max-w-5xl pb-24 md:pb-10">
           <Outlet />
         </div>
+        <NotificationManager />
       </main>
 
       {/* Mobile Bottom Navigation */}

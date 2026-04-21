@@ -11,7 +11,6 @@ import Diary from "./pages/Diary";
 import Study from "./pages/Study";
 import FindChurches from "./pages/FindChurches";
 import Community from "./pages/Community";
-import Worship from "./pages/Worship";
 import Assistant from "./pages/Assistant";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
@@ -37,7 +36,6 @@ export default function App() {
               <Route path="prayer" element={<Prayer />} />
               <Route path="diary" element={<Diary />} />
               <Route path="churches" element={<FindChurches />} />
-              <Route path="worship" element={<Worship />} />
               <Route path="study" element={<Study />} />
               <Route path="community" element={<Community />} />
               <Route path="assistant" element={<Assistant />} />

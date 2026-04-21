@@ -5,20 +5,24 @@ import { cn } from "../lib/utils";
 
 const faqs = [
   {
-    q: "Como faço para receber notificações?",
-    a: "Você pode ativar notificações no seu perfil. Elas servem para lembrá-lo do seu devocional diário e avisar quando orações forem respondidas."
+    q: "Como faço para editar ou apagar minhas mensagens no Chat?",
+    a: "No Mural (Chat Geral), basta passar o mouse ou tocar na sua mensagem. Ícones de lápis (editar) e lixeira (apagar) aparecerão. Para apagar, uma confirmação aparecerá diretamente no chat para sua segurança."
+  },
+  {
+    q: "Posso alterar um Testemunho já publicado?",
+    a: "Sim! Na aba de Testemunhos, você encontrará as opções de editar e excluir nas suas publicações. As edições são sinalizadas com um rótulo '(editado)' para manter a transparência na comunidade."
+  },
+  {
+    q: "Como seleciono vários capítulos de uma vez na Bíblia?",
+    a: "Na página da Bíblia, agora você pode selecionar um intervalo de capítulos (ex: João 1 até João 4) de uma forma simples e intuitiva, facilitando maratonas de leitura."
+  },
+  {
+    q: "A IA pode ser mais direta nas respostas?",
+    a: "Com certeza. Implementamos a opção 'Linguagem simples e direta' em nossas ferramentas de IA. Basta selecionar essa preferência para receber respostas objetivas e sem enrolação."
   },
   {
     q: "Onde encontro os estudos diários?",
-    a: "Na página inicial (Dashboard), você sempre terá o 'Devocional de Hoje'. Para mais conteúdos, explore a aba 'Devocional' no menu lateral."
-  },
-  {
-    q: "Posso compartilhar meus registros do Diário?",
-    a: "O Diário é um espaço íntimo e privado entre você e Deus. No entanto, se quiser compartilhar algo edificante, sugerimos usar o Mural da Comunidade."
-  },
-  {
-    q: "Como utilizar a Assistente de Fé (AI)?",
-    a: "Nossa assistente está disponível na aba AI. Você pode pedir ajuda para interpretar versículos, encontrar passagens por tema ou apenas conversar sobre sua jornada."
+    a: "No Dashboard, você tem o 'Devocional de Hoje'. Para estudos mais profundos ou gerados por IA, explore as abas 'Devocional' e 'Estudos' no menu lateral."
   }
 ];
 
@@ -57,9 +61,9 @@ export default function Guide() {
           <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mb-6 group-hover:bg-amber/20 transition-colors">
             <BookOpen className="text-amber w-6 h-6" />
           </div>
-          <h3 className="text-xl font-bold mb-3 text-amber font-display">Estudos e Mensagens</h3>
+          <h3 className="text-xl font-bold mb-3 text-amber font-display">Leitura e Estudo</h3>
           <p className="text-pearl/50 text-sm leading-relaxed">
-            Navegue pela aba de <span className="text-amber/60 italic font-bold">Bíblia</span> ou <span className="text-amber/60 italic font-bold">Estudos</span> para encontrar palavras que fortalecerão sua fé. Use a busca para temas específicos.
+            Navegue pela <span className="text-amber/60 italic font-bold">Bíblia</span> com seleção de múltiplos capítulos ou use a <span className="text-amber/60 italic font-bold">IA de Estudos</span> para obter explicações diretas e profundas sobre qualquer tema.
           </p>
         </motion.div>
 
@@ -74,9 +78,9 @@ export default function Guide() {
           <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mb-6 group-hover:bg-amber/20 transition-colors">
             <Users className="text-amber w-6 h-6" />
           </div>
-          <h3 className="text-xl font-bold mb-3 text-amber font-display">Comunidade e Oração</h3>
+          <h3 className="text-xl font-bold mb-3 text-amber font-display">Comunidade Viva</h3>
           <p className="text-pearl/50 text-sm leading-relaxed">
-            No <span className="text-amber/60 italic font-bold">Mural</span>, você pode compartilhar testemunhos. Na aba <span className="text-amber/60 italic font-bold">Oração</span>, peça apoio ou ore pelos irmãos.
+            No <span className="text-amber/60 italic font-bold">Chat Geral</span>, interaja em tempo real. Publique <span className="text-amber/60 italic font-bold">Testemunhos</span> e tenha controle total para editar ou apagar suas postagens quando desejar.
           </p>
         </motion.div>
 
@@ -91,9 +95,9 @@ export default function Guide() {
           <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mb-6 group-hover:bg-amber/20 transition-colors">
             <Mail className="text-amber w-6 h-6" />
           </div>
-          <h3 className="text-xl font-bold mb-3 text-amber font-display">Suporte e Feedback</h3>
+          <h3 className="text-xl font-bold mb-3 text-amber font-display">Personalização</h3>
           <p className="text-pearl/50 text-sm leading-relaxed">
-            Se encontrar dificuldades técnicas ou tiver sugestões para o <span className="text-amber/60 italic font-bold">Perto de Deus</span>, nossa equipe de moderadores está à disposição.
+            Configure sua <span className="text-amber/60 italic font-bold">Experiência com IA</span> para usar linguagem simples. Ajuste o tamanho da fonte e velocidade do áudio na Bíblia para um estudo sob medida.
           </p>
         </motion.div>
       </section>

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Sparkles, Save, Share2, RefreshCw, Bookmark, BookmarkCheck, Send, CheckCircle, Heart } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { generateDevotional } from "../services/geminiService";
+import { DevocionalGenerator } from "../components/devotional/DevocionalGenerator";
 import { db } from "../lib/firebase";
 import { collection, query, where, orderBy, limit, onSnapshot, addDoc, serverTimestamp, updateDoc, doc } from "firebase/firestore";
 import ReactMarkdown from "react-markdown";
@@ -16,6 +17,7 @@ export default function Devotional() {
   const [userResponse, setUserResponse] = useState("");
   const [isSaved, setIsSaved] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [showGenerator, setShowGenerator] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -24,6 +26,7 @@ export default function Devotional() {
     const q = query(
       collection(db, "users", user.uid, "devotionals"),
       where("date", "==", todayStr),
+      orderBy("createdAt", "desc"),
       limit(1)
     );
 
@@ -31,22 +34,43 @@ export default function Devotional() {
       if (!snapshot.empty) {
         setDevotional({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() });
         setUserResponse(snapshot.docs[0].data().userResponse || "");
+        setShowGenerator(false); // Esconde o gerador quando um novo devocional chega
         setLoading(false);
         setErrorMsg(null);
       } else {
         handleNewDevotional();
+      }
+    }, (err) => {
+      console.error("Firestore error:", err);
+      // Se der erro de índice, tentamos sem o orderBy para não quebrar o app
+      if (err.code === "failed-precondition") {
+        const fallbackQ = query(
+            collection(db, "users", user.uid, "devotionals"),
+            where("date", "==", todayStr),
+            limit(1)
+        );
+        onSnapshot(fallbackQ, (snapshot) => {
+            if (!snapshot.empty) {
+                setDevotional({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() });
+                setUserResponse(snapshot.docs[0].data().userResponse || "");
+                setShowGenerator(false);
+                setLoading(false);
+            } else {
+                handleNewDevotional();
+            }
+        });
       }
     });
 
     return () => unsubscribe();
   }, [user]);
 
-  const handleNewDevotional = async () => {
+  const handleNewDevotional = async (passage?: string, simplify?: boolean) => {
     if (!user) return;
     setLoading(true);
     setErrorMsg(null);
     try {
-      const data = await generateDevotional(user);
+      const data = await generateDevotional(user, passage, simplify);
       const todayStr = new Date().toISOString().split('T')[0];
       await addDoc(collection(db, "users", user.uid, "devotionals"), {
         userId: user.uid,
@@ -54,11 +78,11 @@ export default function Devotional() {
         ...data,
         createdAt: serverTimestamp(),
       });
+      // O onSnapshot cuidará de setar o devotional e esconder o loading/gerador
     } catch (error: any) {
       console.error("Error generating devotional:", error);
       setErrorMsg(error.message || "Erro desconhecido ao gerar devocional.");
-    } finally {
-      setLoading(false);
+      setLoading(false); // Importante: se falhar, para o loading para mostrar o erro
     }
   };
 
@@ -75,6 +99,33 @@ export default function Devotional() {
     }
   };
 
+  const handleShare = async () => {
+    if (!devotional) return;
+    
+    const shareText = `📖 Devocional de Hoje: ${devotional.title}\n\n"${devotional.verse}"\n\nReflexão: ${devotional.reflection.substring(0, 500)}...\n\nLeia mais no app Devocional com IA!`;
+    const shareUrl = window.location.href;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: devotional.title,
+          text: shareText,
+          url: shareUrl,
+        });
+      } catch (err) {
+        console.log("Share cancelled or failed", err);
+      }
+    } else {
+      // Fallback: Copy to clipboard
+      try {
+        await navigator.clipboard.writeText(`${shareText}\n\n${shareUrl}`);
+        alert("Conteúdo copiado para a área de transferência!");
+      } catch (err) {
+        console.error("Failed to copy", err);
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center text-center space-y-6">
@@ -86,37 +137,94 @@ export default function Devotional() {
           <Sparkles className="w-8 h-8" />
         </motion.div>
         <div className="space-y-2">
-          <h2 className="text-2xl font-display font-bold text-amber">Preparando o seu Pão Diário</h2>
+          <h2 className="text-2xl font-display font-bold text-amber">Iniciando seu Devocional com IA</h2>
           <p className="text-pearl/40 italic">O Senhor tem uma palavra específica para você hoje...</p>
         </div>
       </div>
     );
   }
 
-  if (!devotional) {
+  if (!devotional || showGenerator) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center space-y-6">
-        <div className="w-16 h-16 bg-grape/10 rounded-full flex items-center justify-center text-pearl">
-          <RefreshCw className="w-8 h-8" />
+      <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-500">
+        <header className="space-y-4 text-center">
+          <div className="w-16 h-16 bg-amber/10 rounded-full flex items-center justify-center text-amber mx-auto mb-4">
+            <Sparkles className="w-8 h-8" />
+          </div>
+          <h1 className="text-4xl font-display font-bold text-amber">Devocional com IA</h1>
+          <p className="text-pearl/60 text-lg">Sobre o que o Senhor quer falar com você hoje?</p>
+        </header>
+
+        {errorMsg && (
+          <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-sm text-center">
+            {errorMsg}
+          </div>
+        )}
+
+        <div className="glow-card p-6 md:p-8">
+          <DevocionalGenerator onSubmit={(passage, simplify) => handleNewDevotional(passage, simplify)} />
         </div>
-        <div className="space-y-2">
-          <h2 className="text-2xl font-display font-bold">Infelizmente a conexão falhou</h2>
-          <p className="text-pearl/60 max-w-md mx-auto">
-            {errorMsg || "Não conseguimos gerar o seu devocional hoje. Verifique se as configurações da sua API estão corretas e tente novamente."}
-          </p>
-        </div>
-        <button 
-          onClick={handleNewDevotional}
-          className="bg-amber text-navy px-8 py-3 rounded-xl font-bold hover:bg-amber/90 transition-colors shadow-xl"
-        >
-          Tentar Novamente
-        </button>
+
+        {/* Botão para voltar se já existir um devotional mas o usuário clicou em gerar novo sem querer */}
+        {devotional && (
+          <button 
+            onClick={() => setShowGenerator(false)}
+            className="w-full text-pearl/40 text-sm hover:text-amber transition-colors"
+          >
+            Voltar para o devocional de hoje
+          </button>
+        )}
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-12">
+    <div className="max-w-3xl mx-auto space-y-12 pb-24">
+      {/* Banner de Geração Novo com IA - Centralizado e Animado */}
+      <div className="flex justify-center w-full px-4">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ 
+            opacity: 1, 
+            scale: 1,
+            rotate: [0, 0.5, -0.5, 0],
+          }}
+          transition={{
+            rotate: {
+              duration: 5,
+              repeat: Infinity,
+              ease: "easeInOut"
+            },
+            opacity: { duration: 0.5 },
+            scale: { duration: 0.5 }
+          }}
+          whileHover={{ scale: 1.02, rotate: 0 }}
+          className="w-full max-w-2xl bg-gradient-to-b from-amber/15 to-navy border border-amber/20 p-10 rounded-[2.5rem] flex flex-col items-center justify-center text-center gap-8 shadow-[0_30px_60px_rgba(0,0,0,0.4)] relative overflow-hidden group"
+        >
+          {/* Luzes de fundo decorativas */}
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,rgba(201,168,76,0.15),transparent_70%)]" />
+          
+          <div className="space-y-3 relative z-10">
+            <div className="w-12 h-12 bg-amber/20 rounded-full flex items-center justify-center mx-auto mb-2 text-amber animate-pulse">
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <h3 className="text-2xl font-display font-bold text-amber tracking-tight">Quer estudar outra passagem hoje?</h3>
+            <p className="text-pearl/60 text-base max-w-sm mx-auto leading-relaxed">A inteligência artificial está pronta para simplificar qualquer versículo para você agora mesmo.</p>
+          </div>
+
+          <button 
+            onClick={() => {
+              setShowGenerator(true);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }} 
+            className="relative z-10 flex items-center gap-3 bg-amber text-navy font-black px-12 py-5 rounded-2xl shadow-[0_15px_30px_rgba(201,168,76,0.25)] hover:shadow-amber/40 hover:bg-white transition-all active:scale-95 group/btn"
+          >
+            <RefreshCw className="w-5 h-5 group-hover:rotate-180 transition-transform duration-500" /> 
+            GERAR NOVO COM IA
+          </button>
+        </motion.div>
+      </div>
+
       <AnimatePresence mode="wait">
         <motion.article 
           key="content"
@@ -125,12 +233,21 @@ export default function Devotional() {
           className="space-y-10"
         >
           {/* Header */}
-          <header className="space-y-6 text-center">
-            <div className="flex items-center justify-center gap-2 text-amber text-xs font-bold tracking-widest uppercase">
+          <header className="space-y-6 text-center relative group">
+            <div className="flex items-center justify-center gap-2 text-amber text-xs font-bold tracking-widest uppercase group">
               <Sparkles className="w-4 h-4" /> 
-              Devocional Personalizado
+              Voz da Inteligência Artificial
             </div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-amber leading-tight">
+            
+            <button 
+              onClick={handleShare}
+              className="absolute top-0 right-0 p-3 bg-white/5 border border-amber/10 rounded-xl text-amber hover:bg-amber hover:text-navy transition-all shadow-lg active:scale-95"
+              title="Compartilhar Devocional"
+            >
+              <Share2 className="w-5 h-5" />
+            </button>
+
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-amber leading-tight px-12">
               {devotional.title}
             </h1>
             <div className="bg-white/5 border border-amber/10 p-8 rounded-[2rem] paper-texture relative">
@@ -141,11 +258,32 @@ export default function Devotional() {
                  "{devotional.verse}"
                </p>
             </div>
+
+            {/* AI Explanation / Study Help */}
+            {devotional.explanation && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-amber/10 border-l-4 border-amber p-6 rounded-r-2xl space-y-2 text-left"
+              >
+                <div className="flex items-center gap-2 text-amber font-bold text-sm tracking-widest uppercase">
+                  <CheckCircle className="w-4 h-4" /> Entendendo a Mensagem (IA)
+                </div>
+                <p className="text-pearl/80 leading-relaxed italic">
+                  {devotional.explanation}
+                </p>
+              </motion.div>
+            )}
           </header>
 
-          {/* Reflection Body */}
-          <div className="prose prose-invert prose-amber max-w-none prose-p:font-serif prose-p:text-lg prose-p:leading-relaxed prose-p:text-pearl/80">
-             <ReactMarkdown>{devotional.reflection}</ReactMarkdown>
+          {/* Reflection Body (THE AI CORE CONTENT) */}
+          <div className="space-y-6">
+             <div className="flex items-center gap-2 text-amber font-bold text-xs uppercase tracking-widest mb-2">
+                <RefreshCw className="w-3 h-3" /> Reflexão Gerada pela IA
+             </div>
+             <div className="prose prose-invert prose-amber max-w-none prose-p:font-serif prose-p:text-lg prose-p:leading-relaxed prose-p:text-pearl/90 prose-strong:text-amber">
+                <ReactMarkdown>{devotional.reflection}</ReactMarkdown>
+             </div>
           </div>
 
           {/* Practical Action Card */}

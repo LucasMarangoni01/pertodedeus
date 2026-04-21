@@ -1,11 +1,18 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
+import { getMessaging, onMessage } from 'firebase/messaging';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId);
+export const storage = getStorage(app);
+
+// Messaging is only supported in some environments (e.g. not in all browser iframes)
+export const messaging = typeof window !== 'undefined' ? getMessaging(app) : null;
+export { onMessage };
 
 // Connection test as per instructions
 async function testConnection() {

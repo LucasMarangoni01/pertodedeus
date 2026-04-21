@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../lib/firebase";
-import { collection, query, where, limit, onSnapshot, orderBy, updateDoc, doc, increment, addDoc, serverTimestamp } from "firebase/firestore";
-import { Heart, MessageSquare, Share2, Plus, Users, User, ChevronRight, Send, X, BookOpen } from "lucide-react";
+import { collection, query, where, limit, onSnapshot, orderBy, updateDoc, doc, increment, addDoc, serverTimestamp, deleteDoc } from "firebase/firestore";
+import { Heart, MessageSquare, Share2, Plus, Users, User, ChevronRight, Send, X, BookOpen, Trash2, Edit2, Search, SlidersHorizontal } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "../lib/utils";
@@ -14,14 +14,24 @@ export default function Community() {
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [testimonials, setTestimonials] = useState<any[]>([]);
   const [chatInput, setChatInput] = useState("");
+  const [editingChatId, setEditingChatId] = useState<string | null>(null);
+  const [editingChatText, setEditingChatText] = useState("");
+  const [deletingChatId, setDeletingChatId] = useState<string | null>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState("pedidos");
   const [notification, setNotification] = useState<string | null>(null);
+  
+  // Search and Filter States
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("Todos");
+  const categories = ["Todos", "Família", "Saúde", "Trabalho", "Finanças", "Cura Emocional", "Intercessão", "Ministério", "Outros"];
 
   // States para o modal de testemunho
   const [isTestimonyModalOpen, setIsTestimonyModalOpen] = useState(false);
   const [testimonyTitle, setTestimonyTitle] = useState("");
   const [testimonyContent, setTestimonyContent] = useState("");
+  const [editingTestimonyId, setEditingTestimonyId] = useState<string | null>(null);
+  const [deletingTestimonyId, setDeletingTestimonyId] = useState<string | null>(null);
 
   const handlePublishTestimony = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +61,42 @@ export default function Community() {
       console.error(error);
       setNotification("Erro ao publicar testemunho.");
       setTimeout(() => setNotification(null), 3000);
+    }
+  };
+
+  const handleDeleteTestimony = async (id: string) => {
+    if (!user) return;
+    try {
+      await deleteDoc(doc(db, "testimonials", id));
+      setNotification("Testemunho removido.");
+      setDeletingTestimonyId(null);
+      setTimeout(() => setNotification(null), 3000);
+    } catch (err: any) {
+      console.error(err);
+      setNotification(`Erro ao deletar: ${err.message || "Sem permissão"}`);
+      setTimeout(() => setNotification(null), 5000);
+    }
+  };
+
+  const handleUpdateTestimony = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !editingTestimonyId || !testimonyContent.trim()) return;
+    try {
+      await updateDoc(doc(db, "testimonials", editingTestimonyId), {
+        title: testimonyTitle.trim() || "Testemunho",
+        content: testimonyContent.trim(),
+        updatedAt: serverTimestamp()
+      });
+      setIsTestimonyModalOpen(false);
+      setEditingTestimonyId(null);
+      setTestimonyTitle("");
+      setTestimonyContent("");
+      setNotification("Testemunho atualizado com sucesso!");
+      setTimeout(() => setNotification(null), 3000);
+    } catch (err: any) {
+      console.error(err);
+      setNotification(`Erro ao atualizar: ${err.message || "Sem permissão"}`);
+      setTimeout(() => setNotification(null), 5000);
     }
   };
 
@@ -138,6 +184,51 @@ export default function Community() {
     }
   };
 
+  const handleDeleteChat = async (id: string) => {
+    if (!user) return;
+    try {
+      await deleteDoc(doc(db, "global_chat", id));
+      setNotification("Mensagem removida.");
+      setDeletingChatId(null);
+      setTimeout(() => setNotification(null), 3000);
+    } catch (err: any) {
+      console.error("Erro ao deletar:", err);
+      setNotification(`Erro ao deletar: ${err.message || "Sem permissão"}`);
+      setTimeout(() => setNotification(null), 5000);
+    }
+  };
+
+  const handleUpdateChat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !editingChatId || !editingChatText.trim()) return;
+    try {
+      await updateDoc(doc(db, "global_chat", editingChatId), {
+        text: editingChatText.trim(),
+        updatedAt: serverTimestamp()
+      });
+      setEditingChatId(null);
+      setEditingChatText("");
+      setNotification("Mensagem editada com sucesso.");
+      setTimeout(() => setNotification(null), 3000);
+    } catch (err: any) {
+      console.error("Erro ao editar:", err);
+      setNotification(`Erro ao editar: ${err.message || "Sem permissão"}`);
+      setTimeout(() => setNotification(null), 5000);
+    }
+  };
+
+  const filteredRequests = publicRequests.filter(req => {
+    const matchesSearch = 
+      (req.title || "")?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (req.description || "")?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesCategory = 
+      selectedCategory === "Todos" || 
+      req.category === selectedCategory;
+
+    return matchesSearch && matchesCategory;
+  });
+
   return (
     <div className="space-y-10 relative">
       <AnimatePresence>
@@ -174,7 +265,14 @@ export default function Community() {
             Testemunhos
           </button>
           <button 
-            onClick={() => setActiveTab("chat")}
+            onClick={() => {
+              setActiveTab("chat");
+              setTimeout(() => {
+                if (chatScrollRef.current) {
+                  chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+                }
+              }, 100);
+            }}
             className={cn("px-6 py-2 rounded-xl text-sm font-medium transition-all", activeTab === "chat" ? "bg-amber text-navy shadow-lg" : "text-pearl/60 hover:text-pearl")}
           >
             Chat Geral
@@ -185,7 +283,40 @@ export default function Community() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Feed */}
         <div className="lg:col-span-2 space-y-6">
-           {activeTab === "pedidos" && publicRequests.map((req) => (
+           {activeTab === "pedidos" && (
+             <div className="flex flex-col md:flex-row gap-4 mb-8">
+                <div className="relative flex-1 group">
+                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-pearl/20 group-focus-within:text-amber transition-colors" />
+                   <input 
+                     type="text"
+                     placeholder="Buscar pedidos de oração..."
+                     value={searchTerm}
+                     onChange={(e) => setSearchTerm(e.target.value)}
+                     className="w-full bg-white/5 border border-amber/10 rounded-2xl pl-11 pr-4 py-3 outline-none focus:border-amber transition-all text-sm"
+                   />
+                </div>
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
+                   <div className="flex items-center gap-2 bg-white/5 border border-amber/10 p-1 rounded-2xl">
+                      {categories.map((cat) => (
+                        <button
+                          key={cat}
+                          onClick={() => setSelectedCategory(cat)}
+                          className={cn(
+                            "px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap",
+                            selectedCategory === cat 
+                              ? "bg-amber text-navy shadow-lg" 
+                              : "text-pearl/40 hover:text-pearl"
+                          )}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                   </div>
+                </div>
+             </div>
+           )}
+
+           {activeTab === "pedidos" && filteredRequests.map((req) => (
              <motion.div 
                key={req.id}
                initial={{ opacity: 0, y: 10 }}
@@ -235,10 +366,24 @@ export default function Community() {
              </motion.div>
            ))}
 
-           {activeTab === "pedidos" && publicRequests.length === 0 && (
-             <div className="py-24 text-center opacity-20">
-                <Users className="w-20 h-20 mx-auto mb-4" />
-                <p className="font-display text-2xl italic">"Onde dois ou três estiverem reunidos..."</p>
+           {activeTab === "pedidos" && filteredRequests.length === 0 && (
+             <div className="py-24 text-center">
+                <div className="opacity-20 space-y-4">
+                  <Users className="w-20 h-20 mx-auto mb-4" />
+                  {searchTerm || selectedCategory !== "Todos" ? (
+                    <>
+                      <p className="font-display text-2xl italic">"Nenhum pedido encontrado com esses filtros."</p>
+                      <button 
+                        onClick={() => { setSearchTerm(""); setSelectedCategory("Todos"); }}
+                        className="text-amber font-bold hover:underline"
+                      >
+                        Limpar filtros
+                      </button>
+                    </>
+                  ) : (
+                    <p className="font-display text-2xl italic">"Onde dois ou três estiverem reunidos..."</p>
+                  )}
+                </div>
              </div>
            )}
 
@@ -256,9 +401,47 @@ export default function Community() {
                       </div>
                       <div>
                          <p className="text-xs font-bold uppercase tracking-widest text-amber">{t.userName}</p>
-                         <p className="text-[10px] text-pearl/40">Há {format(t.createdAt?.toDate ? t.createdAt.toDate() : new Date(), "HH'h' mm'min'", { locale: ptBR })}</p>
+                         <p className="text-[10px] text-pearl/40">Há {format(t.createdAt?.toDate ? t.createdAt.toDate() : new Date(), "HH'h' mm'min'", { locale: ptBR })}{t.updatedAt && " (editado)"}</p>
                       </div>
                    </div>
+
+                   {t.userId === user?.uid && (
+                      <div className="flex items-center gap-2">
+                        {deletingTestimonyId === t.id ? (
+                           <div className="flex items-center gap-2 bg-red-500/10 px-2 py-1 rounded-lg">
+                             <span className="text-[9px] font-bold text-red-400">APAGAR?</span>
+                             <button onClick={() => handleDeleteTestimony(t.id)} className="text-red-400 hover:text-white font-bold text-[9px]">SIM</button>
+                             <button onClick={() => setDeletingTestimonyId(null)} className="text-pearl/40 hover:text-white font-bold text-[9px]">NÃO</button>
+                           </div>
+                        ) : (
+                          <div className="flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
+                            <button 
+                              onClick={() => {
+                                setEditingTestimonyId(t.id);
+                                setTestimonyTitle(t.title);
+                                setTestimonyContent(t.content);
+                                setIsTestimonyModalOpen(true);
+                                setDeletingTestimonyId(null);
+                              }}
+                              className="p-1.5 hover:text-amber transition-colors bg-white/5 rounded-lg"
+                              title="Editar"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button 
+                              onClick={() => {
+                                setDeletingTestimonyId(t.id);
+                                setEditingTestimonyId(null);
+                              }}
+                              className="p-1.5 hover:text-red-400 transition-colors bg-white/5 rounded-lg"
+                              title="Deletar"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                   )}
                 </div>
 
                 <div className="space-y-3">
@@ -285,17 +468,98 @@ export default function Community() {
                  ) : (
                    chatMessages.map(msg => {
                      const isMine = msg.userId === user?.uid;
+                     const isEditing = editingChatId === msg.id;
+
                      return (
-                       <div key={msg.id} className={cn("flex flex-col max-w-[85%]", isMine ? "ml-auto origin-top-right" : "mr-auto origin-top-left")}>
-                         <span className={cn("text-[10px] font-bold tracking-widest uppercase mb-1 opacity-40", isMine ? "text-right" : "text-left")}>
-                           {isMine ? "Você" : msg.userName}
-                         </span>
-                         <div className={cn(
-                           "p-4 rounded-3xl text-sm leading-relaxed shadow-sm",
-                           isMine ? "bg-amber text-navy rounded-tr-none font-medium" : "bg-white/5 border border-amber/10 text-pearl/90 rounded-tl-none"
-                         )}>
-                           {msg.text}
+                       <div key={msg.id} className={cn("flex flex-col max-w-[85%] group", isMine ? "ml-auto origin-top-right" : "mr-auto origin-top-left")}>
+                         <div className={cn("flex items-center gap-2 mb-1", isMine ? "justify-end" : "justify-start")}>
+                            <span className="text-[10px] font-bold tracking-widest uppercase opacity-40">
+                              {isMine ? "Você" : msg.userName}
+                            </span>
+                            {isMine && !isEditing && (
+                              <div className="flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
+                                {deletingChatId === msg.id ? (
+                                  <div className="flex items-center gap-2 bg-red-500/20 px-2 py-1 rounded-lg">
+                                    <span className="text-[9px] font-bold text-red-400">APAGAR?</span>
+                                    <button 
+                                      onClick={() => handleDeleteChat(msg.id)}
+                                      className="text-red-400 hover:text-white font-bold text-[9px]"
+                                    >
+                                      SIM
+                                    </button>
+                                    <button 
+                                      onClick={() => setDeletingChatId(null)}
+                                      className="text-pearl/40 hover:text-white font-bold text-[9px]"
+                                    >
+                                      NÃO
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <button 
+                                      onClick={() => {
+                                        setEditingChatId(msg.id);
+                                        setEditingChatText(msg.text);
+                                        setDeletingChatId(null);
+                                      }}
+                                      className="p-1 hover:text-amber transition-colors"
+                                      title="Editar"
+                                    >
+                                      <Edit2 className="w-3 h-3" />
+                                    </button>
+                                    <button 
+                                      onClick={() => setDeletingChatId(msg.id)}
+                                      className="p-1 hover:text-red-400 transition-colors"
+                                      title="Deletar"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            )}
                          </div>
+
+                         {isEditing ? (
+                            <form onSubmit={handleUpdateChat} className="space-y-2">
+                              <textarea 
+                                value={editingChatText}
+                                onChange={e => setEditingChatText(e.target.value)}
+                                className="w-full bg-white/10 border border-amber/40 rounded-2xl p-3 text-sm focus:outline-none focus:border-amber min-h-[80px] resize-none text-pearl"
+                                autoFocus
+                              />
+                              <div className="flex justify-end gap-2 text-[10px] font-bold">
+                                <button 
+                                  type="button" 
+                                  onClick={() => setEditingChatId(null)}
+                                  className="px-3 py-1 text-pearl/40 hover:text-pearl"
+                                >
+                                  CANCELAR
+                                </button>
+                                <button 
+                                  type="submit"
+                                  className="px-3 py-1 bg-amber text-navy rounded-lg"
+                                >
+                                  SALVAR
+                                </button>
+                              </div>
+                            </form>
+                         ) : (
+                            <div className={cn(
+                              "p-4 rounded-3xl text-sm leading-relaxed shadow-sm relative",
+                              isMine ? "bg-amber text-navy rounded-tr-none font-medium" : "bg-white/5 border border-amber/10 text-pearl/90 rounded-tl-none"
+                            )}>
+                              {msg.text}
+                              {msg.updatedAt && (
+                                <span className={cn(
+                                  "absolute bottom-1 right-3 text-[8px] opacity-40 font-bold",
+                                  isMine ? "text-navy" : "text-pearl/40"
+                                )}>
+                                  (editado)
+                                </span>
+                              )}
+                            </div>
+                         )}
                        </div>
                      );
                    })
@@ -329,7 +593,12 @@ export default function Community() {
               <h3 className="text-xl font-display font-bold leading-tight">Compartilhe sua jornada</h3>
               <p className="text-sm text-pearl/60">Seu testemunho pode ser a luz na vida de alguém hoje.</p>
               <button 
-                onClick={() => setIsTestimonyModalOpen(true)}
+                onClick={() => {
+                  setEditingTestimonyId(null);
+                  setTestimonyTitle("");
+                  setTestimonyContent("");
+                  setIsTestimonyModalOpen(true);
+                }}
                 className="w-full bg-amber text-navy font-bold py-3 rounded-xl shadow-lg hover:scale-[1.02] transition-transform"
               >
                  Publicar Testemunho
@@ -389,11 +658,13 @@ export default function Community() {
               </button>
               
               <div className="mb-6 space-y-2 pr-8">
-                <h3 className="text-2xl font-display font-bold">Conte seu Testemunho</h3>
+                <h3 className="text-2xl font-display font-bold">
+                  {editingTestimonyId ? "Editar Testemunho" : "Conte seu Testemunho"}
+                </h3>
                 <p className="text-sm text-pearl/60">Edifique a igreja compartilhando o que Deus fez na sua vida.</p>
               </div>
 
-              <form onSubmit={handlePublishTestimony} className="space-y-5">
+              <form onSubmit={editingTestimonyId ? handleUpdateTestimony : handlePublishTestimony} className="space-y-5">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold uppercase tracking-widest text-amber">Título (Opcional)</label>
                   <input 
@@ -409,7 +680,7 @@ export default function Community() {
                   <textarea 
                     value={testimonyContent}
                     onChange={e => setTestimonyContent(e.target.value)}
-                    placeholder="Escreva como foi sua experiência, testifique os milagres..."
+                    placeholder="Escreva como foi sua experiencía, testifique os milagres..."
                     rows={5}
                     className="w-full bg-white/5 border border-amber/10 rounded-xl px-4 py-3 outline-none focus:border-amber transition-colors resize-none text-sm leading-relaxed"
                     required
@@ -422,7 +693,7 @@ export default function Community() {
                     disabled={!testimonyContent.trim()}
                     className="w-full bg-amber text-navy font-bold py-3.5 rounded-xl shadow-lg hover:scale-[1.02] transition-transform disabled:opacity-50"
                   >
-                    Publicar
+                    {editingTestimonyId ? "Atualizar" : "Publicar"}
                   </button>
                 </div>
               </form>

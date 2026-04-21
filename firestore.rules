@@ -49,12 +49,15 @@ service cloud.firestore {
           return data.userId == userId 
             && data.date is string 
             && data.content is string && data.content.size() <= 50000
-            && (data.mood == null || (data.mood is string && data.mood.size() <= 50));
+            && (data.mood == null || (data.mood is string && data.mood.size() <= 50))
+            && (data.audioUrl == null || (data.audioUrl is string && data.audioUrl.size() <= 2048))
+            && (data.ledToThis == null || (data.ledToThis is string && data.ledToThis.size() <= 10000))
+            && (data.doDifferently == null || (data.doDifferently is string && data.doDifferently.size() <= 10000));
         }
 
         allow create: if isOwner(userId) && isValidJournal(incoming()) && incoming().createdAt == request.time;
         allow update: if isOwner(userId) && isValidJournal(incoming()) && (
-          incoming().diff(existing()).affectedKeys().hasOnly(['content', 'mood', 'learning', 'godSpoke', 'tags'])
+          incoming().diff(existing()).affectedKeys().hasOnly(['content', 'mood', 'learning', 'godSpoke', 'tags', 'ledToThis', 'doDifferently', 'audioUrl', 'updatedAt'])
         );
       }
 
@@ -64,6 +67,28 @@ service cloud.firestore {
         // Devotionals are created by the system/user interaction
         allow create: if isOwner(userId) && incoming().userId == userId && incoming().date is string;
         allow update: if isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['userResponse', 'isFavorite']);
+      }
+
+      // --- Custom Reading Plans ---
+      match /custom_plans/{planId} {
+        allow read, write: if isOwner(userId);
+        
+        allow create: if isOwner(userId) 
+          && isValidReadingPlan(incoming()) 
+          && incoming().createdAt == request.time;
+          
+        allow update: if isOwner(userId) 
+          && isValidReadingPlan(incoming())
+          && (
+            incoming().diff(existing()).affectedKeys().hasOnly(['items', 'completedItems', 'title', 'description', 'updatedAt'])
+          );
+
+        function isValidReadingPlan(data) {
+          return data.userId == userId
+            && data.title is string && data.title.size() > 0 && data.title.size() <= 200
+            && (data.description == null || (data.description is string && data.description.size() <= 1000))
+            && data.items is list && data.items.size() <= 366;
+        }
       }
     }
 
@@ -106,12 +131,16 @@ service cloud.firestore {
 
     // --- Global Testimonials (Mural) ---
     match /testimonials/{testimonyId} {
-      allow read: if true;
+      allow read: if isSignedIn();
       allow create: if isSignedIn() && isOwner(incoming().userId) && isValidTestimony(incoming());
       allow update: if isSignedIn() && (
         // Permitir atualização de likes
-        incoming().diff(existing()).affectedKeys().hasOnly(['likes']) &&
-        incoming().likes == existing().likes + 1
+        (incoming().diff(existing()).affectedKeys().hasOnly(['likes']) &&
+        incoming().likes == existing().likes + 1) ||
+        // Permitir edição pelo dono
+        (isOwner(existing().userId) &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'content', 'updatedAt']) &&
+         incoming().updatedAt == request.time)
       );
       allow delete: if isOwner(existing().userId);
 
@@ -119,9 +148,31 @@ service cloud.firestore {
         return data.userId is string
           && data.userName is string && data.userName.size() > 0 && data.userName.size() <= 100
           && data.title is string && data.title.size() <= 200
-          && data.content is string && data.content.size() > 0 && data.content.size() <= 20000
-          && data.likes is int
-          && data.createdAt == request.time;
+          && data.content is string && data.content.size() > 0 && data.content.size() <= 20000;
+      }
+    }
+
+    // --- Global Chat (Real-time) ---
+    match /global_chat/{messageId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() 
+                    && isOwner(incoming().userId)
+                    && isValidChatMessage(incoming())
+                    && incoming().createdAt == request.time;
+      
+      allow update: if isOwner(existing().userId) 
+                    && incoming().updatedAt == request.time
+                    && incoming().text is string && incoming().text.size() > 0 && incoming().text.size() <= 2000
+                    && (
+                      incoming().diff(existing()).affectedKeys().hasOnly(['text', 'updatedAt'])
+                    );
+                    
+      allow delete: if isOwner(existing().userId);
+
+      function isValidChatMessage(data) {
+        return data.userId is string
+          && data.userName is string && data.userName.size() > 0 && data.userName.size() <= 100
+          && data.text is string && data.text.size() > 0 && data.text.size() <= 2000;
       }
     }
   }

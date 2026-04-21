@@ -31,6 +31,7 @@ export default function Assistant() {
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [simplify, setSimplify] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -50,18 +51,22 @@ export default function Assistant() {
 
     try {
       const ai = getAi();
+      
+      const systemInstruction = `Você é um assistente bíblico sábio, acolhedor e profundo.
+      Responda a perguntas com base estritamente na Bíblia e teologia cristã protestante/evangélica equilibrada.
+      Sempre inclua referências bíblicas (Livro Capítulo:Versículo).
+      ${simplify ? "MODO LINGUAGEM SIMPLES: Você DEVE ser extremamente direto, curto e usar palavras muito simples. Evite termos técnicos, palavras difíceis ou textos longos. Resuma o máximo possível para facilitar o entendimento imediato sem 'enrolação'." : ""}
+      Se o usuário expressar tristeza profunda, depressão ou pensamentos suicidas, responda com extrema compaixão e recomende imediatamente que procurem um pastor ou profissional de saúde mental cristão.
+      Não dê conselhos médicos ou financeiros complexos, foque na sabedoria espiritual.
+      Use Markdown para formatar as citações bíblicas.`;
+
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: [
           { role: "user", parts: [{ text: userMessage }] }
         ],
         config: {
-          systemInstruction: `Você é um assistente bíblico sábio, acolhedor e profundo.
-          Responda a perguntas com base estritamente na Bíblia e teologia cristã protestante/evangélica equilibrada.
-          Sempre inclua referências bíblicas (Livro Capítulo:Versículo).
-          Se o usuário expressar tristeza profunda, depressão ou pensamentos suicidas, responda com extrema compaixão e recomende imediatamente que procurem um pastor ou profissional de saúde mental cristão.
-          Não dê conselhos médicos ou financeiros complexos, foque na sabedoria espiritual.
-          Use Markdown para formatar as citações bíblicas.`,
+          systemInstruction,
         }
       });
 
@@ -157,22 +162,50 @@ export default function Assistant() {
       </div>
 
       {/* Input Area */}
-      <form onSubmit={handleSend} className="relative group">
-        <div className="absolute inset-0 bg-amber/20 blur-2xl rounded-full opacity-0 group-focus-within:opacity-30 transition-opacity" />
-        <div className="relative flex items-center gap-3 bg-navy border border-amber/20 rounded-[2rem] p-2 pl-6 shadow-xl">
-           <input 
-             value={input}
-             onChange={e => setInput(e.target.value)}
-             placeholder="Pergunte sobre fé, dúvida ou versículo..."
-             className="flex-1 bg-transparent py-4 outline-none text-pearl font-serif text-lg"
-           />
-           <button 
-             type="submit"
-             disabled={!input.trim() || loading}
-             className="w-14 h-14 bg-amber text-navy rounded-full flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+      <form onSubmit={handleSend} className="relative group space-y-4">
+        {/* Toggle para Linguagem Simples */}
+        <div className="flex justify-center">
+           <label 
+             className="flex items-center gap-2 cursor-pointer bg-white/5 border border-amber/10 px-4 py-2 rounded-full hover:bg-white/10 transition-colors"
            >
-              <Send className="w-6 h-6 -rotate-12" />
-           </button>
+             <input 
+               type="checkbox"
+               checked={simplify}
+               onChange={e => setSimplify(e.target.checked)}
+               className="w-4 h-4 rounded border-amber/20 bg-navy text-amber focus:ring-amber focus:ring-offset-navy hidden"
+             />
+             <div className={cn(
+               "w-4 h-4 rounded border flex items-center justify-center transition-all",
+               simplify ? "bg-amber border-amber text-navy" : "border-white/20"
+             )}>
+                {simplify && <Send className="w-2 h-2 fill-navy" />}
+             </div>
+             <span className={cn(
+               "text-[10px] font-bold uppercase tracking-widest transition-colors",
+               simplify ? "text-amber" : "text-pearl/40"
+             )}>
+               Linguagem direta (Sem enrolação)
+             </span>
+           </label>
+        </div>
+
+        <div className="relative group">
+          <div className="absolute inset-0 bg-amber/20 blur-2xl rounded-full opacity-0 group-focus-within:opacity-30 transition-opacity" />
+          <div className="relative flex items-center gap-3 bg-navy border border-amber/20 rounded-[2rem] p-2 pl-6 shadow-xl">
+             <input 
+               value={input}
+               onChange={e => setInput(e.target.value)}
+               placeholder="Pergunte sobre fé, dúvida ou versículo..."
+               className="flex-1 bg-transparent py-4 outline-none text-pearl font-serif text-lg"
+             />
+             <button 
+               type="submit"
+               disabled={!input.trim() || loading}
+               className="w-14 h-14 bg-amber text-navy rounded-full flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+             >
+                <Send className="w-6 h-6 -rotate-12" />
+             </button>
+          </div>
         </div>
         <div className="mt-3 flex items-center justify-center gap-4 text-[10px] text-pearl/20 uppercase font-bold tracking-widest">
            <span className="flex items-center gap-1"><Info className="w-3 h-3" /> O histórico é salvo localmente</span>

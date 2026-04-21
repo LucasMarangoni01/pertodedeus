@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { PenTool, Calendar, Plus, Save, Hash, Smile, Search, ChevronLeft, ChevronRight, Trash2, BookOpen } from "lucide-react";
+import { PenTool, Calendar, Plus, Save, Hash, Smile, Search, ChevronLeft, ChevronRight, Trash2, BookOpen, Mic } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../lib/firebase";
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { cn } from "../lib/utils";
+import { storage } from "../lib/firebase";
+import { AudioRecorder } from "../components/diary/AudioRecorder";
+import { AudioPreview } from "../components/diary/AudioPreview";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -33,6 +37,8 @@ export default function Diary() {
   const [learning, setLearning] = useState("");
   const [ledToThis, setLedToThis] = useState("");
   const [doDifferently, setDoDifferently] = useState("");
+  const [audioUrl, setAudioUrl] = useState<string>("");
+  const [isUploadingAudio, setIsUploadingAudio] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -54,19 +60,31 @@ export default function Diary() {
     try {
       const today = new Date().toISOString().split('T')[0];
       if (selectedEntry?.id) {
+        // If audio was deleted, cleanup in background
+        if (selectedEntry.audioUrl && !audioUrl) {
+           const oldRef = ref(storage, selectedEntry.audioUrl);
+           deleteObject(oldRef).catch(e => console.warn("Background cleanup failed", e));
+        }
+
         await updateDoc(doc(db, "users", user.uid, "journal", selectedEntry.id), {
-          content, mood, godSpoke, learning, ledToThis, doDifferently, updatedAt: serverTimestamp()
+          content, mood, godSpoke, learning, ledToThis, doDifferently, 
+          audioUrl: audioUrl,
+          updatedAt: serverTimestamp()
         });
       } else {
         await addDoc(collection(db, "users", user.uid, "journal"), {
           userId: user.uid,
           date: today,
           content, mood, godSpoke, learning, ledToThis, doDifferently,
+          audioUrl: audioUrl,
           createdAt: serverTimestamp()
         });
       }
       setIsEditing(false);
       resetForm();
+    } catch (error) {
+      console.error("Error saving entry:", error);
+      alert("Erro ao salvar entrada. Verifique sua conexão.");
     } finally {
       setLoading(false);
     }
@@ -79,6 +97,7 @@ export default function Diary() {
     setLearning("");
     setLedToThis("");
     setDoDifferently("");
+    setAudioUrl("");
     setSelectedEntry(null);
   };
 
@@ -90,6 +109,7 @@ export default function Diary() {
     setLearning(entry.learning || "");
     setLedToThis(entry.ledToThis || "");
     setDoDifferently(entry.doDifferently || "");
+    setAudioUrl(entry.audioUrl || "");
     setIsEditing(true);
   };
 
@@ -177,6 +197,14 @@ export default function Diary() {
                         <span key={tag} className="text-[10px] text-amber/60 bg-amber/5 px-2 py-0.5 rounded border border-amber/10">#{tag}</span>
                       ))}
                       {entry.godSpoke && <span className="text-[10px] text-grape/60 bg-grape/5 px-2 py-0.5 rounded border border-grape/10 font-bold">DEUS FALOU</span>}
+                      {entry.audioUrl && (
+                        <div className="flex items-center gap-2">
+                           <span className="text-[10px] text-amber/60 bg-amber/5 px-2 py-0.5 rounded border border-amber/10 flex items-center gap-1">
+                             <Mic className="w-2 h-2" /> VIVA VOZ
+                           </span>
+                           <AudioPreview url={entry.audioUrl} />
+                        </div>
+                      )}
                    </div>
                 </div>
 
@@ -292,6 +320,16 @@ export default function Diary() {
                              className="w-full bg-white/5 border border-amber/10 rounded-3xl p-6 font-serif text-lg focus:border-amber outline-none transition-colors min-h-[160px] resize-none"
                            />
                         </div>
+
+                        <div className="space-y-4 md:col-span-2 pt-4">
+                           <AudioRecorder 
+                             userId={user.uid}
+                             onAudioUploaded={(url) => setAudioUrl(url || "")} 
+                             onUploadingChange={setIsUploadingAudio}
+                             existingAudioUrl={audioUrl}
+                             onDeleteExisting={() => setAudioUrl("")}
+                           />
+                        </div>
                       </div>
                    </div>
                 </div>
@@ -309,10 +347,10 @@ export default function Diary() {
                    
                    <button 
                      onClick={handleSave}
-                     disabled={loading || !content.trim()}
+                     disabled={loading || isUploadingAudio || !content.trim()}
                      className="flex items-center gap-3 bg-amber text-navy font-bold px-10 py-4 rounded-2xl shadow-xl hover:scale-105 transition-all disabled:opacity-50"
                    >
-                     {loading ? "Consagrando..." : <><Save className="w-6 h-6" /> Guardar no Coração</>}
+                     {loading ? "Consagrando..." : isUploadingAudio ? "Subindo áudio..." : <><Save className="w-6 h-6" /> Guardar no Coração</>}
                    </button>
                 </footer>
              </motion.div>
