@@ -2,8 +2,10 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 let aiInstance: GoogleGenAI | null = null;
 const getAi = () => {
-  if (!aiInstance) {
-    const key = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY || "DUMMY_KEY_TO_PREVENT_CRASH";
+  const localKey = localStorage.getItem("USER_GEMINI_KEY");
+  const key = localKey || import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY || "DUMMY_KEY_TO_PREVENT_CRASH";
+  
+  if (!aiInstance || aiInstance.apiKey !== key) {
     aiInstance = new GoogleGenAI({ apiKey: key });
   }
   return aiInstance;
@@ -31,7 +33,7 @@ export const generateDevotional = async (userProfile: any) => {
   Sempre baseie-se estritamente na Bíblia.`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-2.5-flash",
     contents: prompt,
     config: {
       responseMimeType: "application/json",

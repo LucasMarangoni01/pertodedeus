@@ -8,8 +8,11 @@ import { cn } from "../lib/utils";
 
 let aiInstance: GoogleGenAI | null = null;
 const getAi = () => {
-  if (!aiInstance) {
-    const key = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY || "DUMMY_KEY_TO_PREVENT_CRASH";
+  const localKey = localStorage.getItem("USER_GEMINI_KEY");
+  const key = localKey || import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY || "DUMMY_KEY_TO_PREVENT_CRASH";
+  
+  // Reinstantiate if key changed from storage
+  if (!aiInstance || aiInstance.apiKey !== key) {
     aiInstance = new GoogleGenAI({ apiKey: key });
   }
   return aiInstance;
@@ -42,7 +45,7 @@ export default function Assistant() {
     try {
       const ai = getAi();
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-2.5-flash",
         contents: [
           { role: "user", parts: [{ text: userMessage }] }
         ],
@@ -57,9 +60,9 @@ export default function Assistant() {
       });
 
       setMessages(prev => [...prev, { role: "assistant", content: response.text }]);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error in assistant chat:", error);
-      setMessages(prev => [...prev, { role: "assistant", content: "Desculpe, tive um problema ao buscar essa resposta. Vamos tentar novamente?" }]);
+      setMessages(prev => [...prev, { role: "assistant", content: `Erro na IA: ${error.message || "Desconhecido"}. Verifique se a sua chave no menu Configurações está correta.` }]);
     } finally {
       setLoading(false);
     }

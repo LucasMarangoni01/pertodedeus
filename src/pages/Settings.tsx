@@ -172,6 +172,32 @@ export default function Settings() {
                       </div>
                       <ChevronRight className="w-4 h-4 text-pearl/20" />
                    </div>
+                   
+                   <div className="p-4 bg-white/5 rounded-2xl border border-white/5 space-y-4">
+                      <div className="flex items-center gap-4">
+                         <div className="w-10 h-10 rounded-xl bg-amber/10 flex items-center justify-center text-amber">
+                            <Lock className="w-5 h-5" />
+                         </div>
+                         <div>
+                            <p className="text-sm font-bold">Acesso Seguro IA (Opcional)</p>
+                            <p className="text-[10px] text-pearl/40 font-bold uppercase">Sua própria API Key do Gemini</p>
+                         </div>
+                      </div>
+                      <input 
+                         type="password"
+                         placeholder="Cole sua chave AIzaSy... aqui"
+                         defaultValue={localStorage.getItem("USER_GEMINI_KEY") || ""}
+                         onChange={(e) => {
+                            if(e.target.value.trim()){
+                               localStorage.setItem("USER_GEMINI_KEY", e.target.value.trim());
+                            } else {
+                               localStorage.removeItem("USER_GEMINI_KEY");
+                            }
+                         }}
+                         className="w-full bg-navy/50 border border-amber/10 rounded-xl px-4 py-3 outline-none focus:border-amber transition-colors text-xs font-mono"
+                      />
+                      <p className="text-[10px] text-amber/60">Configure isso caso a Nuvem Oficial da IA da igreja esteja bloqueando o seu acesso ao Assistente Bíblico e aos Devocionais no seu aplicativo.</p>
+                   </div>
                 </div>
              </div>
 
