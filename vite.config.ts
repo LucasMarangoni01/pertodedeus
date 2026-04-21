@@ -8,7 +8,7 @@ export default defineConfig(({mode}) => {
   const apiKey = process.env.GEMINI_API_KEY || env.GEMINI_API_KEY || '';
   return {
     plugins: [react(), tailwindcss()],
-    base: '/pertodedeus/',
+    base: '/',
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(apiKey),
     },
