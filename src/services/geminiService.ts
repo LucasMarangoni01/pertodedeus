@@ -3,7 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 let aiInstance: GoogleGenAI | null = null;
 const getAi = () => {
   const localKey = localStorage.getItem("USER_GEMINI_KEY");
-  const key = localKey || import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY || "DUMMY_KEY_TO_PREVENT_CRASH";
+  const key = localKey || import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY || "AIzaSyCIphL2465bVZN0fNpw-oe6PsDA2caLjIE";
   
   if (!aiInstance || aiInstance.apiKey !== key) {
     aiInstance = new GoogleGenAI({ apiKey: key });

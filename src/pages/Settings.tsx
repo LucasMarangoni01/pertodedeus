@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../lib/firebase";
-import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { Save, User, Bell, Lock, Globe, LogOut, ChevronRight, Moon, Sun, Languages } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useTheme } from "../context/ThemeContext";
@@ -27,10 +27,10 @@ export default function Settings() {
     setLoading(true);
     setSuccess(false);
     try {
-      await updateDoc(doc(db, "users", user.uid), {
+      await setDoc(doc(db, "users", user.uid), {
         ...formData,
         updatedAt: serverTimestamp(),
-      });
+      }, { merge: true });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (error) {
