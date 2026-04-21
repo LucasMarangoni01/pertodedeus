@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Lora:ital,wght@0,400..700;1,400..700&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
 @import "tailwindcss";
 
+/* Force CSS Cache Invalidations */
 @theme {
   --font-display: "Playfair Display", serif;
   --font-serif: "Lora", serif;
@@ -14,7 +15,12 @@
 
 @layer base {
   body {
-    @apply bg-navy text-pearl font-sans selection:bg-amber/30;
+    @apply bg-navy text-pearl font-sans;
+  }
+
+  ::selection {
+    background-color: #C9A84C;
+    color: #0D1B2A;
   }
 }
 

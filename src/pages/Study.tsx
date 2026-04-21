@@ -123,7 +123,7 @@ export default function Study() {
                          className={cn(
                            "flex items-center gap-3 p-3 rounded-xl cursor-pointer text-sm transition-all",
                            activeLesson === idx ? "bg-amber/10 border border-amber/30 text-amber font-bold" : "text-pearl/60 hover:bg-white/5",
-                           done && activeLesson !== idx && "text-emerald-400"
+                           done && activeLesson !== idx && "text-amber"
                          )}
                        >
                          {done ? <CheckCircle2 className="w-4 h-4" /> : <Play className="w-4 h-4" />}
@@ -165,7 +165,7 @@ export default function Study() {
                       className={cn(
                         "flex justify-center items-center gap-2 px-8 py-4 rounded-xl font-bold w-full sm:w-auto transition-all",
                         isCompleted 
-                          ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30" 
+                          ? "bg-grape/30 text-grape border border-grape" 
                           : "bg-amber text-navy hover:scale-105 shadow-xl"
                       )}
                     >
@@ -210,7 +210,7 @@ export default function Study() {
                <div className="absolute inset-0 bg-gradient-to-t from-navy to-transparent" />
                <div className="absolute bottom-4 left-4 flex gap-2">
                   <span className="px-3 py-1 rounded-full bg-amber text-navy text-[10px] font-bold uppercase tracking-wider">{course.level}</span>
-                  {progress > 0 && <span className="px-3 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-bold uppercase tracking-wider">{progress}% Concluído</span>}
+                  {progress > 0 && <span className="px-3 py-1 rounded-full bg-amber text-white text-[10px] font-bold uppercase tracking-wider">{progress}% Concluído</span>}
                </div>
             </div>
             
@@ -231,10 +231,10 @@ export default function Study() {
         )})}
       </div>
 
-      <section className="glow-card border-none bg-gradient-to-br from-indigo-900/40 to-navy p-10 flex flex-col md:grid md:grid-cols-2 gap-10 items-center overflow-hidden relative">
+      <section className="glow-card border-none bg-gradient-to-br from-grape/40 to-navy p-10 flex flex-col md:grid md:grid-cols-2 gap-10 items-center overflow-hidden relative">
          <div className="absolute top-0 right-0 w-64 h-64 bg-amber/10 blur-[100px] rounded-full pointer-events-none" />
          <div className="space-y-4 relative z-10 w-full">
-            <div className="flex items-center gap-2 text-indigo-300 font-bold text-xs uppercase tracking-widest mb-4">
+            <div className="flex items-center gap-2 text-amber font-bold text-xs uppercase tracking-widest mb-4">
                <Star className="w-4 h-4" /> Recomendado
             </div>
             <h2 className="text-3xl font-display font-bold text-white">Bíblia e Contexto Histórico</h2>
@@ -244,7 +244,7 @@ export default function Study() {
          </div>
          <div className="w-full relative z-10">
             <div className="aspect-video rounded-2xl bg-black/50 border border-white/10 flex flex-col items-center justify-center p-6 text-center">
-                <GraduationCap className="w-16 h-16 text-indigo-400 mb-4 opacity-50" />
+                <GraduationCap className="w-16 h-16 text-pearl/20 mb-4 opacity-50" />
                 <p className="text-white/60 text-sm uppercase tracking-widest font-bold">Conteúdo Restrito</p>
                 <p className="text-white/40 text-xs mt-2">Módulo em desenvolvimento pelos teólogos</p>
             </div>

@@ -5,6 +5,8 @@ import { cn } from "../lib/utils";
 import { useAuth } from "../context/AuthContext";
 import { bibleBooks } from "../constants/bibleData";
 
+import { getBibleBooks, getBibleChapter } from "../lib/bibleApi";
+
 const translations = [
   { id: "ARA", name: "Almeida Revista e Atualizada (ARA)" },
   { id: "NTLH", name: "Nova Tradução na Linguagem de Hoje (NTLH)" },
@@ -109,30 +111,11 @@ export default function Bible() {
     const fetchBooks = async () => {
       setLoadingBooks(true);
       try {
-        const bollsUrl = `https://bolls.life/get-books/${selectedVersion}/`;
-        // Tentativa de carregar via proxy robusto
-        const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(bollsUrl)}`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("Célula de dados indisponível");
-        const data = await res.json();
+        const data = await getBibleBooks(selectedVersion);
         setDynamicBooks(data);
       } catch (e) {
         console.error("Erro ao buscar livros dinâmicos:", e);
-        // Tentar um segundo proxy se o primeiro falhar
-        try {
-          const bollsUrl = `https://bolls.life/get-books/${selectedVersion}/`;
-          const url = `https://corsproxy.io/?${encodeURIComponent(bollsUrl)}`;
-          const res = await fetch(url);
-          if (res.ok) {
-            const data = await res.json();
-            setDynamicBooks(data);
-            return;
-          }
-        } catch (e2) {
-          console.error("Segundo proxy falhou:", e2);
-        }
-
-        // Fallback para lista estática se a API falhar
+        // Fallback para lista estática se a API falhar miseravelmente
         setDynamicBooks(bibleBooks.filter(b => 
           (selectedVersion === "VC" || selectedVersion === "BJPT") ? true : !b.isDeuterocanonical
         ).map(b => ({ bookid: b.bollsId, name: b.name, chapters: b.chapters })));
@@ -183,22 +166,7 @@ export default function Bible() {
           const bookData = books.find(b => b.name === selectedBook);
           if (!bookData) throw new Error("Livro não encontrado.");
 
-          const bollsUrl = `https://bolls.life/get-chapter/${selectedVersion}/${bookData.bollsId}/${selectedChapter}/`;
-          
-          let data;
-          try {
-            // Tenta primeiro o AllOrigins
-            const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(bollsUrl)}`;
-            const res = await fetch(url);
-            if (!res.ok) throw new Error("Indisponível no proxy principal");
-            data = await res.json();
-          } catch (err) {
-            // Tenta o CorsProxy.io como fallback
-            const url = `https://corsproxy.io/?${encodeURIComponent(bollsUrl)}`;
-            const res = await fetch(url);
-            if (!res.ok) throw new Error("Indisponível em todos os servidores");
-            data = await res.json();
-          }
+          const data = await getBibleChapter(selectedVersion, bookData.bollsId, selectedChapter);
           
           if (!Array.isArray(data) || data.length === 0) {
             throw new Error("Não foram encontrados versículos para esta seleção.");
@@ -243,7 +211,7 @@ export default function Bible() {
 
       <aside className={cn(
         "bg-navy/50 border border-amber/10 rounded-3xl p-6 transition-all duration-500 overflow-y-auto",
-        selectedBook ? "hidden md:flex flex-col w-64" : "flex flex-col w-full"
+        selectedChapter ? "hidden md:flex flex-col w-64" : "flex flex-col w-full"
       )}>
         <div className="relative mb-6">
            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-pearl/40 w-4 h-4" />
@@ -332,7 +300,7 @@ export default function Bible() {
                    onClick={() => setSelectedChapter(null)}
                    className="md:hidden p-2 -ml-2 rounded-lg text-pearl/60 hover:text-amber hover:bg-white/5 transition-colors"
                  >
-                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                   <ArrowBack className="w-5 h-5" />
                  </button>
                  <div>
                    <h2 className="text-xl md:text-2xl font-display font-bold">{selectedBook} {selectedChapter}</h2>
@@ -462,9 +430,6 @@ export default function Bible() {
                    </AnimatePresence>
                  </div>
                  
-                 <button onClick={() => setSelectedChapter(null)} className="p-2 hover:bg-white/5 rounded-lg text-pearl/60 md:hidden">
-                   <X className="w-4 h-4" />
-                 </button>
                </div>
             </header>
 

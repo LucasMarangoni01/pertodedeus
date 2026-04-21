@@ -103,5 +103,26 @@ service cloud.firestore {
           && data.urgency in ['Baixa', 'Média', 'Alta'];
       }
     }
+
+    // --- Global Testimonials (Mural) ---
+    match /testimonials/{testimonyId} {
+      allow read: if true;
+      allow create: if isSignedIn() && isOwner(incoming().userId) && isValidTestimony(incoming());
+      allow update: if isSignedIn() && (
+        // Permitir atualização de likes
+        incoming().diff(existing()).affectedKeys().hasOnly(['likes']) &&
+        incoming().likes == existing().likes + 1
+      );
+      allow delete: if isOwner(existing().userId);
+
+      function isValidTestimony(data) {
+        return data.userId is string
+          && data.userName is string && data.userName.size() > 0 && data.userName.size() <= 100
+          && data.title is string && data.title.size() <= 200
+          && data.content is string && data.content.size() > 0 && data.content.size() <= 20000
+          && data.likes is int
+          && data.createdAt == request.time;
+      }
+    }
   }
 }

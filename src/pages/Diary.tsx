@@ -187,7 +187,7 @@ export default function Diary() {
                      <button 
                        onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(entry.id); }}
                        disabled={deletingId === entry.id}
-                       className="p-2 text-pearl/40 hover:text-red-400 transition-all md:opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                       className="p-2 text-pearl/40 hover:text-pearl transition-all md:opacity-0 group-hover:opacity-100 disabled:opacity-50"
                        title="Excluir"
                      >
                        <Trash2 className={cn("w-5 h-5", deletingId === entry.id && "animate-pulse")} />
@@ -247,7 +247,7 @@ export default function Diary() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="space-y-4">
                           <label className="text-xs font-bold text-pearl/40 uppercase tracking-widest flex items-center gap-2">
-                             <Smile className="w-4 h-4 text-emerald-400" /> O que estou sentindo?
+                             <Smile className="w-4 h-4 text-amber" /> O que estou sentindo?
                           </label>
                           <textarea 
                             value={content}
@@ -283,13 +283,13 @@ export default function Diary() {
 
                         <div className="space-y-4">
                            <label className="text-xs font-bold text-pearl/40 uppercase tracking-widest flex items-center gap-2">
-                              <ChevronRight className="w-4 h-4 text-sky-400" /> O que vou fazer diferente?
+                              <ChevronRight className="w-4 h-4 text-pearl" /> O que vou fazer diferente?
                            </label>
                            <textarea 
                              value={doDifferently}
                              onChange={e => setDoDifferently(e.target.value)}
                              placeholder="Qual a sua ação prática de mudança amanhã?"
-                             className="w-full bg-white/5 border border-amber/10 rounded-3xl p-6 font-serif text-lg focus:border-sky-400 outline-none transition-colors min-h-[160px] resize-none"
+                             className="w-full bg-white/5 border border-amber/10 rounded-3xl p-6 font-serif text-lg focus:border-amber outline-none transition-colors min-h-[160px] resize-none"
                            />
                         </div>
                       </div>
@@ -300,7 +300,7 @@ export default function Diary() {
                    {selectedEntry ? (
                      <button 
                        onClick={() => setConfirmDeleteId(selectedEntry.id)}
-                       className="flex items-center gap-2 text-red-400 hover:bg-red-500/10 px-4 py-3 rounded-xl transition-all font-bold"
+                       className="flex items-center gap-2 text-grape hover:bg-grape/10 px-4 py-3 rounded-xl transition-all font-bold"
                      >
                        <Trash2 className="w-5 h-5" />
                        <span className="hidden md:inline">Excluir Página</span>
@@ -326,9 +326,9 @@ export default function Diary() {
            <motion.div 
              initial={{ opacity: 0, scale: 0.9 }}
              animate={{ opacity: 1, scale: 1 }}
-             className="bg-navy border border-red-500/30 w-full max-w-sm rounded-[2rem] p-8 space-y-6 text-center"
+             className="bg-navy border border-grape/50 w-full max-w-sm rounded-[2rem] p-8 space-y-6 text-center"
            >
-              <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mx-auto mb-4">
+              <div className="w-16 h-16 bg-grape/10 rounded-full flex items-center justify-center text-grape mx-auto mb-4">
                 <Trash2 className="w-8 h-8" />
               </div>
               <div className="space-y-2">
@@ -340,7 +340,7 @@ export default function Diary() {
                 <button 
                   disabled={deletingId !== null}
                   onClick={() => handleDeleteEntry()}
-                  className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-2xl shadow-xl transition-all"
+                  className="w-full bg-grape hover:bg-grape/80 text-white font-bold py-4 rounded-2xl shadow-xl transition-all"
                 >
                   {deletingId ? "Excluindo..." : "Sim, Excluir Registro"}
                 </button>

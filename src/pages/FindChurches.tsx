@@ -298,10 +298,10 @@ export default function FindChurches() {
               key="error"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="glow-card border-red-500/20 bg-red-500/5 p-8 text-center space-y-4"
+              className="glow-card border-grape/20 bg-grape/10 p-8 text-center space-y-4"
             >
-               <Info className="w-10 h-10 text-red-400 mx-auto" />
-               <p className="text-red-400 font-medium">{error}</p>
+               <Info className="w-10 h-10 text-pearl mx-auto" />
+               <p className="text-grape font-medium">{error}</p>
             </motion.div>
           ) : searched && filteredChurches.length === 0 ? (
             <motion.div 
@@ -356,11 +356,11 @@ export default function FindChurches() {
                         <Church className="w-4 h-4" />
                       </div>
                       {church.isRealPhoto ? (
-                        <div className="bg-emerald-500/80 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-lg uppercase tracking-tight">
+                        <div className="bg-grape/80 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-lg uppercase tracking-tight">
                            Foto Real
                         </div>
                       ) : (
-                        <div className="bg-blue-500/80 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-lg uppercase tracking-tight">
+                        <div className="bg-amber/80 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-lg uppercase tracking-tight">
                            Satélite Real
                         </div>
                       )}

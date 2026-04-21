@@ -32,7 +32,7 @@ export default function MainLayout() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-navy selection:bg-amber/30 text-pearl selection:text-navy">
+    <div className="min-h-screen flex flex-col md:flex-row bg-navy text-pearl">
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-64 bg-navy/80 border-r border-amber/10 p-6 sticky top-0 h-screen">
         <div className="flex items-center gap-3 mb-10 group cursor-pointer" onClick={() => navigate("/")}>
@@ -67,7 +67,7 @@ export default function MainLayout() {
         <div className="mt-auto pt-6 border-t border-amber/10">
           <button 
             onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-pearl/40 hover:text-red-400 hover:bg-red-400/5 transition-all duration-300"
+            className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-pearl/40 hover:text-grape hover:bg-grape/20 transition-all duration-300"
           >
             <LogOut className="w-5 h-5" />
             <span className="font-medium">Sair</span>

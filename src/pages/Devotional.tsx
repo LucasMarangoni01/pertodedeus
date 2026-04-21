@@ -12,6 +12,7 @@ export default function Devotional() {
   const { user } = useAuth();
   const [devotional, setDevotional] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [userResponse, setUserResponse] = useState("");
   const [isSaved, setIsSaved] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
@@ -31,6 +32,7 @@ export default function Devotional() {
         setDevotional({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() });
         setUserResponse(snapshot.docs[0].data().userResponse || "");
         setLoading(false);
+        setErrorMsg(null);
       } else {
         handleNewDevotional();
       }
@@ -42,6 +44,7 @@ export default function Devotional() {
   const handleNewDevotional = async () => {
     if (!user) return;
     setLoading(true);
+    setErrorMsg(null);
     try {
       const data = await generateDevotional(user);
       const todayStr = new Date().toISOString().split('T')[0];
@@ -51,8 +54,9 @@ export default function Devotional() {
         ...data,
         createdAt: serverTimestamp(),
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating devotional:", error);
+      setErrorMsg(error.message || "Erro desconhecido ao gerar devocional.");
     } finally {
       setLoading(false);
     }
@@ -85,6 +89,28 @@ export default function Devotional() {
           <h2 className="text-2xl font-display font-bold text-amber">Preparando o seu Pão Diário</h2>
           <p className="text-pearl/40 italic">O Senhor tem uma palavra específica para você hoje...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (!devotional) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center space-y-6">
+        <div className="w-16 h-16 bg-grape/10 rounded-full flex items-center justify-center text-pearl">
+          <RefreshCw className="w-8 h-8" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-display font-bold">Infelizmente a conexão falhou</h2>
+          <p className="text-pearl/60 max-w-md mx-auto">
+            {errorMsg || "Não conseguimos gerar o seu devocional hoje. Verifique se as configurações da sua API estão corretas e tente novamente."}
+          </p>
+        </div>
+        <button 
+          onClick={handleNewDevotional}
+          className="bg-amber text-navy px-8 py-3 rounded-xl font-bold hover:bg-amber/90 transition-colors shadow-xl"
+        >
+          Tentar Novamente
+        </button>
       </div>
     );
   }

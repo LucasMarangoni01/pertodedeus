@@ -174,10 +174,10 @@ export default function Dashboard() {
         {/* Action Shortcuts */}
         <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-4">
            {[
-             { label: "Bíblia", icon: BookOpen, path: "/bible", color: "bg-blue-500/10 text-blue-400" },
-             { label: "Diário", icon: Heart, path: "/diary", color: "bg-rose-500/10 text-rose-400" },
+             { label: "Bíblia", icon: BookOpen, path: "/bible", color: "bg-grape/20 text-grape" },
+             { label: "Diário", icon: Heart, path: "/diary", color: "bg-grape/10 text-pearl/80" },
              { label: "Oração", icon: MessageSquare, path: "/prayer", color: "bg-amber/10 text-amber" },
-             { label: "Igrejas", icon: MapPin, path: "/churches", color: "bg-emerald-500/10 text-emerald-400" },
+             { label: "Igrejas", icon: MapPin, path: "/churches", color: "bg-grape/20 text-grape" },
            ].map((item, i) => (
              <button 
                key={i}

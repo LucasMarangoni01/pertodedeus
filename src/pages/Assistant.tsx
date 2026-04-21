@@ -7,13 +7,19 @@ import ReactMarkdown from "react-markdown";
 import { cn } from "../lib/utils";
 
 let aiInstance: GoogleGenAI | null = null;
+let currentKey: string | null = null;
+
 const getAi = () => {
   const localKey = localStorage.getItem("USER_GEMINI_KEY");
-  const key = localKey || import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY || "AIzaSyCIphL2465bVZN0fNpw-oe6PsDA2caLjIE";
+  const fallbackKey = "AIzaSyCIphL2465bVZN0fNpw-oe6PsDA2caLjIE"; // Placeholder key
+  const envKey = typeof process !== 'undefined' && process.env ? process.env.GEMINI_API_KEY : null;
+  const importedMetaKey = (import.meta as any).env ? (import.meta as any).env.VITE_GEMINI_API_KEY : null;
   
-  // Reinstantiate if key changed from storage
-  if (!aiInstance || aiInstance.apiKey !== key) {
+  const key = localKey || importedMetaKey || envKey || fallbackKey;
+  
+  if (!aiInstance || currentKey !== key) {
     aiInstance = new GoogleGenAI({ apiKey: key });
+    currentKey = key;
   }
   return aiInstance;
 };
@@ -45,7 +51,7 @@ export default function Assistant() {
     try {
       const ai = getAi();
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3-flash-preview",
         contents: [
           { role: "user", parts: [{ text: userMessage }] }
         ],
@@ -60,10 +66,30 @@ export default function Assistant() {
       });
 
       setMessages(prev => [...prev, { role: "assistant", content: response.text }]);
-    } catch (error: any) {
-      console.error("Error in assistant chat:", error);
-      setMessages(prev => [...prev, { role: "assistant", content: `Erro na IA: ${error.message || "Desconhecido"}. Verifique se a sua chave no menu Configurações está correta.` }]);
-    } finally {
+      } catch (error: any) {
+        console.error("Error in assistant chat:", error);
+        
+        let errorMessage = error.message || "Desconhecido";
+        
+        // Handle Gemini stringified JSON error
+        try {
+           if (errorMessage.includes('{"error":')) {
+             const parsed = JSON.parse(errorMessage.substring(errorMessage.indexOf('{')));
+             errorMessage = parsed?.error?.message || errorMessage;
+             if (parsed?.error?.status === "NOT_FOUND" || parsed?.error?.code === 404) {
+               errorMessage = "O modelo de IA não foi encontrado. Isso geralmente ocorre se a chave for inválida ou modelo estiver em atualização. Tente adicionar sua própria chave.";
+             } else if (parsed?.error?.status === "RESOURCE_EXHAUSTED" || parsed?.error?.code === 429) {
+               errorMessage = "A inteligência artificial atingiu o limite de acessos. Por favor, aguarde alguns minutos ou adicione sua própria Chave API.";
+             }
+           }
+        } catch (e) {}
+
+        if (error?.status === 429 || errorMessage.includes("RESOURCE_EXHAUSTED") || errorMessage.includes("429")) {
+          errorMessage = "A inteligência artificial atingiu o limite de acessos gratuitos simultâneos. Por favor, aguarde alguns minutos ou adicione sua própria Chave API nas configurações do aplicativo.";
+        }
+        
+        setMessages(prev => [...prev, { role: "assistant", content: `Erro: ${errorMessage}` }]);
+      } finally {
       setLoading(false);
     }
   };

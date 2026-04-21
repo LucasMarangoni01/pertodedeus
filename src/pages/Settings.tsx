@@ -73,7 +73,7 @@ export default function Settings() {
           
           <button 
             onClick={() => signOut()}
-            className="w-full flex items-center gap-3 p-4 rounded-2xl text-red-400 hover:bg-red-500/10 transition-all font-bold text-sm mt-8 border border-red-500/20"
+            className="w-full flex items-center gap-3 p-4 rounded-2xl text-amber hover:bg-grape/40 transition-all font-bold text-sm mt-8 border border-grape"
           >
              <LogOut className="w-5 h-5" /> Sair da Conta
           </button>
@@ -203,7 +203,7 @@ export default function Settings() {
 
              <footer className="pt-6 flex items-center justify-between">
                 <div className={cn(
-                   "text-xs font-bold text-green-400 transition-opacity",
+                   "text-xs font-bold text-amber transition-opacity",
                    success ? "opacity-100" : "opacity-0"
                 )}>
                    Alterações salvas com sucesso!

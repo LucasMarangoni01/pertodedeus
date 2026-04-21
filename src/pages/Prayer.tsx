@@ -149,7 +149,7 @@ export default function Prayer() {
                     <div className="flex items-center justify-between mb-4">
                       <span className={cn(
                         "px-3 py-1 rounded-full text-[10px] font-bold uppercase",
-                        request.urgency === "Alta" ? "bg-red-500/20 text-red-400" : "bg-amber/20 text-amber"
+                        request.urgency === "Alta" ? "bg-grape/20 text-pearl" : "bg-amber/20 text-amber"
                       )}>
                         {request.category} • {request.urgency}
                       </span>
@@ -171,7 +171,7 @@ export default function Prayer() {
                     <button 
                       onClick={() => setConfirmDeleteId(request.id)}
                       disabled={deletingId === request.id}
-                      className="p-2 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white rounded-xl transition-all disabled:opacity-50"
+                      className="p-2 bg-grape/10 text-grape hover:bg-grape hover:text-white rounded-xl transition-all disabled:opacity-50"
                       title="Excluir"
                     >
                       <Trash2 className={cn("w-4 h-4", deletingId === request.id && "animate-pulse")} />
@@ -219,7 +219,7 @@ export default function Prayer() {
                     <button 
                       onClick={() => setConfirmDeleteId(request.id)}
                       disabled={deletingId === request.id}
-                      className="absolute top-4 right-4 p-2 text-pearl/20 hover:text-red-400 transition-all opacity-100 md:opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                      className="absolute top-4 right-4 p-2 text-pearl/20 hover:text-grape transition-all opacity-100 md:opacity-0 group-hover:opacity-100 disabled:opacity-50"
                       title="Excluir"
                     >
                        <Trash2 className={cn("w-4 h-4", deletingId === request.id && "animate-pulse")} />
@@ -382,9 +382,9 @@ export default function Prayer() {
            <motion.div 
              initial={{ opacity: 0, scale: 0.9 }}
              animate={{ opacity: 1, scale: 1 }}
-             className="bg-navy border border-red-500/30 w-full max-w-sm rounded-[2rem] p-8 space-y-6 text-center"
+             className="bg-navy border border-grape/50 w-full max-w-sm rounded-[2rem] p-8 space-y-6 text-center"
            >
-              <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mx-auto mb-4">
+              <div className="w-16 h-16 bg-grape/10 rounded-full flex items-center justify-center text-grape mx-auto mb-4">
                 <Trash2 className="w-8 h-8" />
               </div>
               <div className="space-y-2">
@@ -396,7 +396,7 @@ export default function Prayer() {
                 <button 
                   disabled={deletingId !== null}
                   onClick={handleDeleteRequest}
-                  className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-2xl shadow-xl transition-all"
+                  className="w-full bg-grape hover:bg-grape/80 text-white font-bold py-4 rounded-2xl shadow-xl transition-all"
                 >
                   {deletingId ? "Excluindo..." : "Sim, Excluir permanentemente"}
                 </button>

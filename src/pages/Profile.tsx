@@ -6,7 +6,7 @@ import { cn } from "../lib/utils";
 import { useNavigate } from "react-router-dom";
 
 const levelInfo = {
-  "Semente": { icon: "🌱", color: "text-green-400" },
+  "Semente": { icon: "🌱", color: "text-amber" },
   "Raiz": { icon: "🪵", color: "text-amber-700" },
   "Árvore": { icon: "🌳", color: "text-amber-600" },
   "Fruto": { icon: "🍎", color: "text-amber-500" },

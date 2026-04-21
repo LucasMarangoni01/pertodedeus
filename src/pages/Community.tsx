@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../lib/firebase";
 import { collection, query, where, limit, onSnapshot, orderBy, updateDoc, doc, increment, addDoc, serverTimestamp } from "firebase/firestore";
-import { Heart, MessageSquare, Share2, Plus, Users, User, ChevronRight, Send } from "lucide-react";
+import { Heart, MessageSquare, Share2, Plus, Users, User, ChevronRight, Send, X, BookOpen } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "../lib/utils";
@@ -12,10 +12,47 @@ export default function Community() {
   const { user } = useAuth();
   const [publicRequests, setPublicRequests] = useState<any[]>([]);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [testimonials, setTestimonials] = useState<any[]>([]);
   const [chatInput, setChatInput] = useState("");
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState("pedidos");
   const [notification, setNotification] = useState<string | null>(null);
+
+  // States para o modal de testemunho
+  const [isTestimonyModalOpen, setIsTestimonyModalOpen] = useState(false);
+  const [testimonyTitle, setTestimonyTitle] = useState("");
+  const [testimonyContent, setTestimonyContent] = useState("");
+
+  const handlePublishTestimony = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      setNotification("Você precisa estar logado para publicar.");
+      setTimeout(() => setNotification(null), 3000);
+      return;
+    }
+    if (!testimonyContent.trim()) return;
+
+    try {
+      await addDoc(collection(db, "testimonials"), {
+        userId: user.uid,
+        userName: user.displayName || "Irmão(ã)",
+        title: testimonyTitle.trim() || "Testemunho",
+        content: testimonyContent.trim(),
+        likes: 0,
+        createdAt: serverTimestamp()
+      });
+      setIsTestimonyModalOpen(false);
+      setTestimonyTitle("");
+      setTestimonyContent("");
+      setActiveTab("testemunhos");
+      setNotification("Testemunho publicado com sucesso! Aleluia!");
+      setTimeout(() => setNotification(null), 3000);
+    } catch (error) {
+      console.error(error);
+      setNotification("Erro ao publicar testemunho.");
+      setTimeout(() => setNotification(null), 3000);
+    }
+  };
 
   const handleAmen = async (requestId: string) => {
     if (!user) {
@@ -67,9 +104,19 @@ export default function Community() {
       }, 100);
     });
 
+    const qTestimonials = query(
+      collection(db, "testimonials"),
+      orderBy("createdAt", "desc"),
+      limit(50)
+    );
+    const unsubscribeTestimonials = onSnapshot(qTestimonials, (snapshot) => {
+      setTestimonials(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
     return () => {
       unsubscribe();
       unsubscribeChat();
+      unsubscribeTestimonials();
     };
   }, []);
 
@@ -121,7 +168,7 @@ export default function Community() {
             Pedidos
           </button>
           <button 
-            onClick={() => { setActiveTab("testemunhos"); showWipAlert("Mural de Testemunhos"); }}
+            onClick={() => setActiveTab("testemunhos")}
             className={cn("px-6 py-2 rounded-xl text-sm font-medium transition-all", activeTab === "testemunhos" ? "bg-amber text-navy shadow-lg" : "text-pearl/60 hover:text-pearl")}
           >
             Testemunhos
@@ -195,6 +242,38 @@ export default function Community() {
              </div>
            )}
 
+           {activeTab === "testemunhos" && testimonials.map((t) => (
+             <motion.div 
+               key={t.id}
+               initial={{ opacity: 0, y: 10 }}
+               animate={{ opacity: 1, y: 0 }}
+               className="glow-card space-y-6 group"
+             >
+                <div className="flex items-center justify-between">
+                   <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-white/5 border border-amber/10 flex items-center justify-center text-amber">
+                         <User className="w-5 h-5" />
+                      </div>
+                      <div>
+                         <p className="text-xs font-bold uppercase tracking-widest text-amber">{t.userName}</p>
+                         <p className="text-[10px] text-pearl/40">Há {format(t.createdAt?.toDate ? t.createdAt.toDate() : new Date(), "HH'h' mm'min'", { locale: ptBR })}</p>
+                      </div>
+                   </div>
+                </div>
+
+                <div className="space-y-3">
+                   <h3 className="text-xl font-display font-bold">{t.title}</h3>
+                   <p className="text-pearl/80 leading-relaxed font-serif text-lg">"{t.content}"</p>
+                </div>
+             </motion.div>
+           ))}
+           {activeTab === "testemunhos" && testimonials.length === 0 && (
+             <div className="py-24 text-center opacity-20">
+                <BookOpen className="w-20 h-20 mx-auto mb-4" />
+                <p className="font-display text-2xl italic">"Seja o primeiro a contar as maravilhas de Deus."</p>
+             </div>
+           )}
+
            {activeTab === "chat" && (
              <motion.div 
                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
@@ -250,7 +329,7 @@ export default function Community() {
               <h3 className="text-xl font-display font-bold leading-tight">Compartilhe sua jornada</h3>
               <p className="text-sm text-pearl/60">Seu testemunho pode ser a luz na vida de alguém hoje.</p>
               <button 
-                onClick={() => showWipAlert("Publicação de Testemunho")}
+                onClick={() => setIsTestimonyModalOpen(true)}
                 className="w-full bg-amber text-navy font-bold py-3 rounded-xl shadow-lg hover:scale-[1.02] transition-transform"
               >
                  Publicar Testemunho
@@ -292,6 +371,65 @@ export default function Community() {
            </div>
         </aside>
       </div>
+
+      <AnimatePresence>
+        {isTestimonyModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-navy/80 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="glow-card w-full max-w-lg relative bg-navy border border-amber/20 shadow-2xl"
+            >
+              <button 
+                onClick={() => setIsTestimonyModalOpen(false)}
+                className="absolute top-4 right-4 p-2 text-pearl/40 hover:text-white transition-colors rounded-full hover:bg-white/5"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              
+              <div className="mb-6 space-y-2 pr-8">
+                <h3 className="text-2xl font-display font-bold">Conte seu Testemunho</h3>
+                <p className="text-sm text-pearl/60">Edifique a igreja compartilhando o que Deus fez na sua vida.</p>
+              </div>
+
+              <form onSubmit={handlePublishTestimony} className="space-y-5">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-widest text-amber">Título (Opcional)</label>
+                  <input 
+                    type="text"
+                    value={testimonyTitle}
+                    onChange={e => setTestimonyTitle(e.target.value)}
+                    placeholder="Ex: A Cura que Deus me Prometeu"
+                    className="w-full bg-white/5 border border-amber/10 rounded-xl px-4 py-3 outline-none focus:border-amber transition-colors text-sm"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-widest text-amber">O que Deus Fez?</label>
+                  <textarea 
+                    value={testimonyContent}
+                    onChange={e => setTestimonyContent(e.target.value)}
+                    placeholder="Escreva como foi sua experiência, testifique os milagres..."
+                    rows={5}
+                    className="w-full bg-white/5 border border-amber/10 rounded-xl px-4 py-3 outline-none focus:border-amber transition-colors resize-none text-sm leading-relaxed"
+                    required
+                  ></textarea>
+                </div>
+                
+                <div className="pt-2">
+                  <button 
+                    type="submit"
+                    disabled={!testimonyContent.trim()}
+                    className="w-full bg-amber text-navy font-bold py-3.5 rounded-xl shadow-lg hover:scale-[1.02] transition-transform disabled:opacity-50"
+                  >
+                    Publicar
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
