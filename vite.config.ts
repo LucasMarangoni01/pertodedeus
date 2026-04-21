@@ -4,14 +4,9 @@ import path from 'path';
 import {defineConfig, loadEnv} from 'vite';
 
 export default defineConfig(({mode}) => {
-  const env = loadEnv(mode, '.', '');
-  const apiKey = process.env.GEMINI_API_KEY || env.GEMINI_API_KEY || '';
   return {
     plugins: [react(), tailwindcss()],
     base: '/',
-    define: {
-      'process.env.GEMINI_API_KEY': JSON.stringify(apiKey),
-    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
