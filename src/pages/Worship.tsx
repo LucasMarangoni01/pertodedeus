@@ -1,179 +1,151 @@
-import { motion, AnimatePresence } from "motion/react";
-import { Play, Pause, SkipForward, SkipBack, Volume2, Music, Youtube, ListMusic, Heart, Star } from "lucide-react";
+import { motion } from "motion/react";
+import { Play, Music, Youtube, Pause, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { cn } from "../lib/utils";
 
-const playlists = [
-  { title: "Manhã com Deus", desc: "Louvores suaves para começar o dia.", icon: "🌅" },
-  { title: "Intercessão Profunda", desc: "Instrumentais para momentos de clamor.", icon: "🙏" },
-  { title: "Gratidão e Celebração", desc: "Ritmos vibrantes de agradecimento.", icon: "🙌" },
-  { title: "Soaking Worship", desc: "Música contemplativa para meditação.", icon: "🌊" },
+const tracks = [
+  { 
+    id: "J3_R_u1t-r0", 
+    title: "Vim Para Adorar-te", 
+    artist: "Adoração & Adoradores", 
+    type: "Adoração Clássica",
+    thumb: "https://img.youtube.com/vi/J3_R_u1t-r0/mqdefault.jpg"
+  },
+  { 
+    id: "gNpw27-eK7k", 
+    title: "Lindo És + Só Quero Ver Você", 
+    artist: "Juliano Son e Livres", 
+    type: "Ao Vivo",
+    thumb: "https://img.youtube.com/vi/gNpw27-eK7k/mqdefault.jpg"
+  },
+  { 
+    id: "1Jt1iEIfUcg", 
+    title: "Lugar Secreto", 
+    artist: "Gabriela Rocha", 
+    type: "Adoração",
+    thumb: "https://img.youtube.com/vi/1Jt1iEIfUcg/mqdefault.jpg"
+  },
+  { 
+    id: "Z7l2x8aVnEo", 
+    title: "Ousado Amor (Reckless Love)", 
+    artist: "Isaías Saad", 
+    type: "Acústico",
+    thumb: "https://img.youtube.com/vi/Z7l2x8aVnEo/mqdefault.jpg"
+  },
+  { 
+    id: "S8wP4fTigE0", 
+    title: "Ninguém Explica Deus", 
+    artist: "Preto no Branco", 
+    type: "Contemplação",
+    thumb: "https://img.youtube.com/vi/S8wP4fTigE0/mqdefault.jpg"
+  },
+  { 
+    id: "tBqA1lJw1B4", 
+    title: "É Tudo Sobre Você", 
+    artist: "Morada", 
+    type: "Espontâneo",
+    thumb: "https://img.youtube.com/vi/tBqA1lJw1B4/mqdefault.jpg"
+  }
 ];
 
 export default function Worship() {
+  const [currentTrack, setCurrentTrack] = useState(tracks[0]);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [notification, setNotification] = useState<string | null>(null);
-  const [currentTrack, setCurrentTrack] = useState({
-    title: "Vim Para Adorar-te",
-    artist: "Adoração & Adoradores",
-    cover: "https://picsum.photos/seed/worship/400/400"
-  });
-
-  const showWipAlert = (feature: string) => {
-    setNotification(`${feature} disponível em breve!`);
-    setTimeout(() => setNotification(null), 3000);
-  };
-
-  const handleNext = () => {
-    showWipAlert("Próxima música");
-  };
-
-  const handlePrev = () => {
-    showWipAlert("Música anterior");
-  };
 
   return (
     <div className="space-y-10 relative">
-      <AnimatePresence>
-        {notification && (
-          <motion.div 
-            initial={{ opacity: 0, y: 50, x: "-50%" }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] bg-amber text-navy px-6 py-3 rounded-xl font-bold shadow-2xl flex items-center gap-3 border border-white/20 whitespace-nowrap"
-          >
-            <Star className="w-5 h-5" />
-            {notification}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       <header className="space-y-2">
         <p className="text-amber font-medium tracking-widest uppercase text-xs">Louvor</p>
         <h1 className="text-4xl md:text-5xl font-display font-bold">Adoração</h1>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Player */}
-        <div className="lg:col-span-2 space-y-8">
-           <div className="glow-card p-10 bg-gradient-to-br from-navy to-grape/20 border-none relative overflow-hidden flex flex-col items-center text-center space-y-8">
-              <div className="absolute top-0 right-0 p-8 opacity-10">
-                 <Music className="w-32 h-32" />
+        {/* Main Player Area */}
+        <div className="lg:col-span-2 space-y-6">
+           <div className="glow-card p-4 md:p-8 border-none bg-gradient-to-br from-navy to-black/80 flex flex-col items-center">
+              <div className="w-full aspect-video rounded-2xl overflow-hidden shadow-2xl relative bg-black flex items-center justify-center">
+                 {!isPlaying ? (
+                    <div className="absolute inset-0 group cursor-pointer" onClick={() => setIsPlaying(true)}>
+                       <img src={currentTrack.thumb} alt={currentTrack.title} className="w-full h-full object-cover opacity-50 transition-opacity group-hover:opacity-40" />
+                       <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-20 h-20 bg-amber/90 rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(201,168,76,0.6)] group-hover:scale-110 transition-transform">
+                             <Play className="w-8 h-8 text-navy ml-1" fill="currentColor" />
+                          </div>
+                       </div>
+                    </div>
+                 ) : (
+                    <iframe 
+                      className="w-full h-full border-0"
+                      src={`https://www.youtube.com/embed/${currentTrack.id}?autoplay=1&rel=0`} 
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                      allowFullScreen
+                      title={currentTrack.title}
+                    />
+                 )}
               </div>
 
-              <motion.div 
-                animate={isPlaying ? { rotate: 360 } : {}}
-                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                className="w-48 h-48 md:w-64 md:h-64 rounded-full border-4 border-amber/20 p-2 shadow-2xl relative z-10"
-              >
-                 <img src={currentTrack.cover} alt="Cover" className="w-full h-full rounded-full object-cover" />
-              </motion.div>
-
-              <div className="space-y-2 z-10">
-                 <h2 className="text-3xl font-display font-bold text-amber">{currentTrack.title}</h2>
-                 <p className="text-pearl/60 font-medium tracking-wide">{currentTrack.artist}</p>
-              </div>
-
-              <div className="w-full max-w-md space-y-4 z-10">
-                 <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full bg-amber w-1/3 shadow-[0_0_10px_#C9A84C]" />
+              <div className="w-full mt-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                 <div className="space-y-1">
+                    <p className="text-amber text-[10px] font-bold uppercase tracking-widest">{currentTrack.type}</p>
+                    <h2 className="text-2xl md:text-3xl font-display font-bold">{currentTrack.title}</h2>
+                    <p className="text-pearl/60">{currentTrack.artist}</p>
                  </div>
-                 <div className="flex justify-between text-[10px] font-bold text-pearl/40 uppercase tracking-widest">
-                    <span>1:24</span>
-                    <span>4:50</span>
-                 </div>
-              </div>
-
-              <div className="flex items-center gap-8 z-10">
-                 <button onClick={handlePrev} className="text-pearl/40 hover:text-amber transition-colors"><SkipBack className="w-8 h-8" /></button>
-                 <button 
-                  onClick={() => setIsPlaying(!isPlaying)}
-                  className="w-20 h-20 bg-amber text-navy rounded-full flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition-all"
+                 
+                 <a 
+                   href={`https://youtube.com/watch?v=${currentTrack.id}`} 
+                   target="_blank" 
+                   rel="noopener noreferrer"
+                   className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors w-fit"
                  >
-                    {isPlaying ? <Pause className="w-10 h-10" fill="currentColor" /> : <Play className="w-10 h-10 ml-1" fill="currentColor" />}
-                 </button>
-                 <button onClick={handleNext} className="text-pearl/40 hover:text-amber transition-colors"><SkipForward className="w-8 h-8" /></button>
-              </div>
-           </div>
-
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div 
-                onClick={() => showWipAlert("YouTube Clip")}
-                className="glow-card flex items-center gap-4 py-4 hover:bg-white/5 cursor-pointer group"
-              >
-                  <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center text-red-500">
-                     <Youtube className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold group-hover:text-amber transition-colors">Ver no YouTube</p>
-                    <p className="text-[10px] text-pearl/40">Abrir clipe oficial</p>
-                  </div>
-              </div>
-              <div 
-                onClick={() => showWipAlert("Letras Sincronizadas")}
-                className="glow-card flex items-center gap-4 py-4 hover:bg-white/5 cursor-pointer group"
-              >
-                  <div className="w-12 h-12 bg-amber/10 rounded-xl flex items-center justify-center text-amber">
-                     <ListMusic className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold group-hover:text-amber transition-colors">Letra Sincronizada</p>
-                    <p className="text-[10px] text-pearl/40">Acompanhar louvor</p>
-                  </div>
+                    <Youtube className="w-4 h-4" /> Abrir no Youtube
+                 </a>
               </div>
            </div>
         </div>
 
-        {/* Playlists sidebar */}
+        {/* Playlist Collection */}
         <aside className="space-y-6">
-           <h3 className="text-xs font-bold text-pearl/40 uppercase tracking-widest px-2">Playlists Temáticas</h3>
-           <div className="space-y-4">
-              {playlists.map((pl, i) => (
+           <div className="flex items-center gap-2 text-xs font-bold text-pearl/40 uppercase tracking-widest px-2 pb-2 border-b border-white/5">
+              <Music className="w-4 h-4" /> Sala de Adoração
+           </div>
+           
+           <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+              {tracks.map((track) => (
                 <div 
-                  key={i} 
-                  onClick={() => showWipAlert(`Playlist: ${pl.title}`)}
-                  className="glow-card flex items-center gap-4 hover:border-amber/40 cursor-pointer group"
+                  key={track.id} 
+                  onClick={() => {
+                    setCurrentTrack(track);
+                    setIsPlaying(true);
+                  }}
+                  className={cn(
+                    "glow-card p-3 flex items-center gap-4 cursor-pointer transition-all border-l-4",
+                    currentTrack.id === track.id 
+                       ? "bg-white/5 border-l-amber/60 border-amber/10 shadow-[0_0_30px_rgba(201,168,76,0.1)]" 
+                       : "hover:bg-white/5 border-transparent border-white/5 hover:border-l-amber/30"
+                  )}
                 >
-                   <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-2xl">
-                      {pl.icon}
+                   <div className="w-16 h-12 rounded-lg overflow-hidden relative bg-black/50 shrink-0">
+                      <img src={track.thumb} className="w-full h-full object-cover opacity-80" alt={track.title} />
+                      {currentTrack.id === track.id && isPlaying && (
+                         <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                            <div className="w-4 h-4 bg-amber rounded-full animate-pulse" />
+                         </div>
+                      )}
                    </div>
-                   <div className="flex-1">
-                      <h4 className="font-bold group-hover:text-amber transition-colors">{pl.title}</h4>
-                      <p className="text-[10px] text-pearl/60">{pl.desc}</p>
-                   </div>
-                   <div className="w-8 h-8 rounded-full border border-white/5 flex items-center justify-center text-pearl/20 group-hover:text-amber">
-                      <ChevronRight className="w-4 h-4" />
+                   <div className="flex-1 min-w-0">
+                      <h4 className={cn(
+                        "font-bold truncate text-sm transition-colors",
+                        currentTrack.id === track.id ? "text-amber" : "text-pearl group-hover:text-amber"
+                      )}>
+                        {track.title}
+                      </h4>
+                      <p className="text-[10px] text-pearl/60 truncate">{track.artist}</p>
                    </div>
                 </div>
               ))}
            </div>
-
-           <div className="glow-card border-none bg-amber/5 p-6 space-y-4">
-              <div className="flex items-center gap-2 text-amber font-bold text-xs">
-                 <Volume2 className="w-4 h-4" /> Sons para Oração
-              </div>
-              <p className="text-xs text-pearl/60">Misture sons da natureza com piano instrumental para o seu momento a sós.</p>
-              <div className="space-y-3">
-                 <div className="flex justify-between items-center text-[10px]">
-                    <span>Piano Worship</span>
-                    <input type="range" className="w-24 h-1 bg-white/10 rounded-full appearance-none accent-amber" />
-                 </div>
-                 <div className="flex justify-between items-center text-[10px]">
-                    <span>Chuva Suave</span>
-                    <input type="range" className="w-24 h-1 bg-white/10 rounded-full appearance-none accent-amber" />
-                 </div>
-              </div>
-           </div>
         </aside>
       </div>
     </div>
-  );
-}
-
-function ChevronRight({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-    </svg>
   );
 }

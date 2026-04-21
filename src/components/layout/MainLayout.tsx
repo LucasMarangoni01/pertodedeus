@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
-import { Home, BookOpen, MessageSquare, Heart, User, LogOut, Search, PenTool, GraduationCap, Users, Music, Bot, MapPin, HelpCircle } from "lucide-react";
+import { Home, BookOpen, MessageSquare, Heart, User, LogOut, Search, PenTool, GraduationCap, Users, Music, Bot, MapPin, HelpCircle, ShieldAlert, Calculator } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { motion } from "motion/react";
 import { cn } from "../../lib/utils";
@@ -8,7 +8,10 @@ const navItems = [
   { path: "/", icon: Home, label: "Início" },
   { path: "/bible", icon: BookOpen, label: "Bíblia" },
   { path: "/prayer", icon: MessageSquare, label: "Oração" },
+  { path: "/sos", icon: ShieldAlert, label: "S.O.S" },
   { path: "/diary", icon: PenTool, label: "Diário" },
+  { path: "/plans", icon: BookOpen, label: "Planos" },
+  { path: "/calculator", icon: Calculator, label: "Cálculos" },
   { path: "/churches", icon: MapPin, label: "Igrejas" },
   { path: "/study", icon: GraduationCap, label: "Estudos" },
   { path: "/community", icon: Users, label: "Mural" },
@@ -91,21 +94,19 @@ export default function MainLayout() {
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-6 left-4 right-4 h-16 bg-navy/90 backdrop-blur-xl border border-amber/20 rounded-2xl flex items-center justify-around px-4 z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+      <nav className="md:hidden fixed bottom-6 left-4 right-4 h-16 bg-navy/90 backdrop-blur-xl border border-amber/20 rounded-2xl flex items-center px-4 z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] overflow-x-auto custom-scrollbar no-scrollbar gap-2">
         {navItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
             className={({ isActive }) =>
               cn(
-                "p-3 rounded-xl transition-all duration-300 relative group",
-                isActive ? "text-amber" : "text-pearl/40 hover:text-pearl/60"
+                "p-3 rounded-xl transition-all duration-300 relative group flex-shrink-0 flex items-center justify-center",
+                isActive ? "text-amber bg-amber/10" : "text-pearl/40 hover:text-pearl/60"
               )
             }
           >
             <item.icon className="w-6 h-6" />
-            {/* Active Indicator */}
-            <span className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-amber rounded-full opacity-0 group-[.active]:opacity-100 transition-opacity" />
           </NavLink>
         ))}
       </nav>

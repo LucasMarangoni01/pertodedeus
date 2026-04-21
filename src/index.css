@@ -45,3 +45,14 @@
 ::-webkit-scrollbar-thumb {
   @apply bg-amber/30 rounded-full hover:bg-amber/50 transition-colors;
 }
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+}
+

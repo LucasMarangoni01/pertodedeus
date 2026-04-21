@@ -17,6 +17,9 @@ import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import Onboarding from "./pages/Onboarding";
 import Guide from "./pages/Guide";
+import ReadingPlans from "./pages/ReadingPlans";
+import Calculator from "./pages/Calculator";
+import Temptation from "./pages/Temptation";
 
 export default function App() {
   return (
@@ -29,6 +32,8 @@ export default function App() {
             <Route path="/" element={<MainLayout />}>
               <Route index element={<Dashboard />} />
               <Route path="bible" element={<Bible />} />
+              <Route path="plans" element={<ReadingPlans />} />
+              <Route path="calculator" element={<Calculator />} />
               <Route path="prayer" element={<Prayer />} />
               <Route path="diary" element={<Diary />} />
               <Route path="churches" element={<FindChurches />} />
@@ -40,6 +45,7 @@ export default function App() {
               <Route path="devotional" element={<Devotional />} />
               <Route path="profile" element={<Profile />} />
               <Route path="guide" element={<Guide />} />
+              <Route path="sos" element={<Temptation />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

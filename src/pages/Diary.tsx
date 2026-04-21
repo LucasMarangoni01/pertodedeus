@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { PenTool, Calendar, Plus, Save, Hash, Smile, Search, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { PenTool, Calendar, Plus, Save, Hash, Smile, Search, ChevronLeft, ChevronRight, Trash2, BookOpen } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../lib/firebase";
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from "firebase/firestore";
@@ -31,6 +31,8 @@ export default function Diary() {
   const [mood, setMood] = useState("Em paz");
   const [godSpoke, setGodSpoke] = useState("");
   const [learning, setLearning] = useState("");
+  const [ledToThis, setLedToThis] = useState("");
+  const [doDifferently, setDoDifferently] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -53,13 +55,13 @@ export default function Diary() {
       const today = new Date().toISOString().split('T')[0];
       if (selectedEntry?.id) {
         await updateDoc(doc(db, "users", user.uid, "journal", selectedEntry.id), {
-          content, mood, godSpoke, learning, updatedAt: serverTimestamp()
+          content, mood, godSpoke, learning, ledToThis, doDifferently, updatedAt: serverTimestamp()
         });
       } else {
         await addDoc(collection(db, "users", user.uid, "journal"), {
           userId: user.uid,
           date: today,
-          content, mood, godSpoke, learning,
+          content, mood, godSpoke, learning, ledToThis, doDifferently,
           createdAt: serverTimestamp()
         });
       }
@@ -75,15 +77,19 @@ export default function Diary() {
     setMood("Em paz");
     setGodSpoke("");
     setLearning("");
+    setLedToThis("");
+    setDoDifferently("");
     setSelectedEntry(null);
   };
 
   const startEdit = (entry: any) => {
     setSelectedEntry(entry);
-    setContent(entry.content);
-    setMood(entry.mood);
+    setContent(entry.content || "");
+    setMood(entry.mood || "Em paz");
     setGodSpoke(entry.godSpoke || "");
     setLearning(entry.learning || "");
+    setLedToThis(entry.ledToThis || "");
+    setDoDifferently(entry.doDifferently || "");
     setIsEditing(true);
   };
 
@@ -148,7 +154,7 @@ export default function Diary() {
                layout
                key={entry.id}
                onClick={() => startEdit(entry)}
-               className="glow-card border-amber/5 hover:border-amber/40 cursor-pointer flex flex-col md:flex-row md:items-center gap-6"
+               className="glow-card border-amber/5 hover:border-amber/40 cursor-pointer flex flex-col md:flex-row md:items-center gap-6 group"
              >
                 <div className="flex flex-row md:flex-col items-center justify-between md:justify-center md:min-w-[100px] gap-2 border-b md:border-b-0 md:border-r border-amber/10 pb-4 md:pb-0 md:pr-6">
                    <div className="text-2xl">{moods.find(m => m.label === entry.mood)?.icon || "📖"}</div>
@@ -238,44 +244,69 @@ export default function Diary() {
                    </div>
 
                    <div className="space-y-8">
-                      <div className="space-y-4">
-                        <label className="text-xs font-bold text-pearl/40 uppercase tracking-widest">O que está em sua alma?</label>
-                        <textarea 
-                          value={content}
-                          onChange={e => setContent(e.target.value)}
-                          placeholder="Fale com sinceridade diante de Deus..."
-                          className="w-full bg-white/5 border border-amber/10 rounded-3xl p-8 font-serif text-xl focus:border-amber outline-none transition-colors min-h-[300px] resize-none"
-                        />
-                      </div>
-
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="space-y-4">
-                           <label className="text-xs font-bold text-pearl/40 uppercase tracking-widest flex items-center gap-2">
-                              <Smile className="w-4 h-4 text-grape" /> Como Deus te falou hoje?
-                           </label>
-                           <textarea 
-                             value={godSpoke}
-                             onChange={e => setGodSpoke(e.target.value)}
-                             rows={4}
-                             className="w-full bg-white/5 border border-amber/10 rounded-2xl p-6 font-serif text-lg focus:border-amber outline-none transition-colors resize-none"
-                           />
+                          <label className="text-xs font-bold text-pearl/40 uppercase tracking-widest flex items-center gap-2">
+                             <Smile className="w-4 h-4 text-emerald-400" /> O que estou sentindo?
+                          </label>
+                          <textarea 
+                            value={content}
+                            onChange={e => setContent(e.target.value)}
+                            placeholder="Desabafe livremente..."
+                            className="w-full bg-white/5 border border-amber/10 rounded-3xl p-6 font-serif text-lg focus:border-amber outline-none transition-colors min-h-[160px] resize-none"
+                          />
                         </div>
+                        
                         <div className="space-y-4">
                            <label className="text-xs font-bold text-pearl/40 uppercase tracking-widest flex items-center gap-2">
-                              <PenTool className="w-4 h-4 text-amber" /> O que você aprendeu?
+                              <Hash className="w-4 h-4 text-rose-400" /> O que me levou a isso?
+                           </label>
+                           <textarea 
+                             value={ledToThis}
+                             onChange={e => setLedToThis(e.target.value)}
+                             placeholder="Ex: Uma conversa difícil, cansaço, tédio..."
+                             className="w-full bg-white/5 border border-amber/10 rounded-3xl p-6 font-serif text-lg focus:border-amber outline-none transition-colors min-h-[160px] resize-none"
+                           />
+                        </div>
+
+                        <div className="space-y-4">
+                           <label className="text-xs font-bold text-pearl/40 uppercase tracking-widest flex items-center gap-2">
+                              <BookOpen className="w-4 h-4 text-amber" /> O que aprendi?
                            </label>
                            <textarea 
                              value={learning}
                              onChange={e => setLearning(e.target.value)}
-                             rows={4}
-                             className="w-full bg-white/5 border border-amber/10 rounded-2xl p-6 font-serif text-lg focus:border-amber outline-none transition-colors resize-none"
+                             placeholder="Onde Deus esteve no meio de tudo isso?"
+                             className="w-full bg-white/5 border border-amber/10 rounded-3xl p-6 font-serif text-lg focus:border-amber outline-none transition-colors min-h-[160px] resize-none"
+                           />
+                        </div>
+
+                        <div className="space-y-4">
+                           <label className="text-xs font-bold text-pearl/40 uppercase tracking-widest flex items-center gap-2">
+                              <ChevronRight className="w-4 h-4 text-sky-400" /> O que vou fazer diferente?
+                           </label>
+                           <textarea 
+                             value={doDifferently}
+                             onChange={e => setDoDifferently(e.target.value)}
+                             placeholder="Qual a sua ação prática de mudança amanhã?"
+                             className="w-full bg-white/5 border border-amber/10 rounded-3xl p-6 font-serif text-lg focus:border-sky-400 outline-none transition-colors min-h-[160px] resize-none"
                            />
                         </div>
                       </div>
                    </div>
                 </div>
 
-                <footer className="p-8 border-t border-amber/10 flex justify-end gap-4 bg-navy/80 backdrop-blur-md sticky bottom-0">
+                <footer className="p-8 border-t border-amber/10 flex items-center justify-between gap-4 bg-navy/80 backdrop-blur-md sticky bottom-0">
+                   {selectedEntry ? (
+                     <button 
+                       onClick={() => setConfirmDeleteId(selectedEntry.id)}
+                       className="flex items-center gap-2 text-red-400 hover:bg-red-500/10 px-4 py-3 rounded-xl transition-all font-bold"
+                     >
+                       <Trash2 className="w-5 h-5" />
+                       <span className="hidden md:inline">Excluir Página</span>
+                     </button>
+                   ) : <div />}
+                   
                    <button 
                      onClick={handleSave}
                      disabled={loading || !content.trim()}

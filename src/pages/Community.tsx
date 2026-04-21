@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../lib/firebase";
-import { collection, query, where, limit, onSnapshot, orderBy, updateDoc, doc, increment } from "firebase/firestore";
-import { Heart, MessageSquare, Share2, Plus, Users, User, ChevronRight } from "lucide-react";
+import { collection, query, where, limit, onSnapshot, orderBy, updateDoc, doc, increment, addDoc, serverTimestamp } from "firebase/firestore";
+import { Heart, MessageSquare, Share2, Plus, Users, User, ChevronRight, Send } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "../lib/utils";
@@ -11,6 +11,9 @@ import { cn } from "../lib/utils";
 export default function Community() {
   const { user } = useAuth();
   const [publicRequests, setPublicRequests] = useState<any[]>([]);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const chatScrollRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState("pedidos");
   const [notification, setNotification] = useState<string | null>(null);
 
@@ -49,8 +52,44 @@ export default function Community() {
       setPublicRequests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
 
-    return () => unsubscribe();
+    const qChat = query(
+      collection(db, "global_chat"),
+      orderBy("createdAt", "asc"),
+      limit(100)
+    );
+
+    const unsubscribeChat = onSnapshot(qChat, (snapshot) => {
+      setChatMessages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setTimeout(() => {
+        if (chatScrollRef.current) {
+          chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+        }
+      }, 100);
+    });
+
+    return () => {
+      unsubscribe();
+      unsubscribeChat();
+    };
   }, []);
+
+  const handleSendChat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !chatInput.trim()) return;
+    try {
+      await addDoc(collection(db, "global_chat"), {
+        userId: user.uid,
+        userName: user.displayName || "Irmão(ã)",
+        text: chatInput.trim(),
+        createdAt: serverTimestamp()
+      });
+      setChatInput("");
+    } catch (e) {
+      console.error(e);
+      setNotification("Erro ao enviar mensagem.");
+      setTimeout(() => setNotification(null), 3000);
+    }
+  };
 
   return (
     <div className="space-y-10 relative">
@@ -88,10 +127,10 @@ export default function Community() {
             Testemunhos
           </button>
           <button 
-            onClick={() => { setActiveTab("grupos"); showWipAlert("Grupos de Oração"); }}
-            className={cn("px-6 py-2 rounded-xl text-sm font-medium transition-all", activeTab === "grupos" ? "bg-amber text-navy shadow-lg" : "text-pearl/60 hover:text-pearl")}
+            onClick={() => setActiveTab("chat")}
+            className={cn("px-6 py-2 rounded-xl text-sm font-medium transition-all", activeTab === "chat" ? "bg-amber text-navy shadow-lg" : "text-pearl/60 hover:text-pearl")}
           >
-            Grupos
+            Chat Geral
           </button>
         </div>
       </header>
@@ -99,7 +138,7 @@ export default function Community() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Feed */}
         <div className="lg:col-span-2 space-y-6">
-           {publicRequests.map((req) => (
+           {activeTab === "pedidos" && publicRequests.map((req) => (
              <motion.div 
                key={req.id}
                initial={{ opacity: 0, y: 10 }}
@@ -149,11 +188,56 @@ export default function Community() {
              </motion.div>
            ))}
 
-           {publicRequests.length === 0 && (
+           {activeTab === "pedidos" && publicRequests.length === 0 && (
              <div className="py-24 text-center opacity-20">
                 <Users className="w-20 h-20 mx-auto mb-4" />
                 <p className="font-display text-2xl italic">"Onde dois ou três estiverem reunidos..."</p>
              </div>
+           )}
+
+           {activeTab === "chat" && (
+             <motion.div 
+               initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+               className="glow-card p-0 flex flex-col h-[600px] overflow-hidden"
+             >
+               <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+                 {chatMessages.length === 0 ? (
+                   <p className="text-center text-pearl/40 text-sm italic mt-10">Diga a paz do Senhor para a igreja!</p>
+                 ) : (
+                   chatMessages.map(msg => {
+                     const isMine = msg.userId === user?.uid;
+                     return (
+                       <div key={msg.id} className={cn("flex flex-col max-w-[85%]", isMine ? "ml-auto origin-top-right" : "mr-auto origin-top-left")}>
+                         <span className={cn("text-[10px] font-bold tracking-widest uppercase mb-1 opacity-40", isMine ? "text-right" : "text-left")}>
+                           {isMine ? "Você" : msg.userName}
+                         </span>
+                         <div className={cn(
+                           "p-4 rounded-3xl text-sm leading-relaxed shadow-sm",
+                           isMine ? "bg-amber text-navy rounded-tr-none font-medium" : "bg-white/5 border border-amber/10 text-pearl/90 rounded-tl-none"
+                         )}>
+                           {msg.text}
+                         </div>
+                       </div>
+                     );
+                   })
+                 )}
+               </div>
+               <form onSubmit={handleSendChat} className="p-4 border-t border-amber/10 bg-navy/50 flex gap-2">
+                 <input 
+                   value={chatInput}
+                   onChange={e => setChatInput(e.target.value)}
+                   placeholder="Envie uma mensagem..."
+                   className="flex-1 bg-white/5 border border-amber/10 rounded-2xl px-4 outline-none focus:border-amber transition-colors text-sm"
+                 />
+                 <button 
+                   type="submit" 
+                   disabled={!chatInput.trim()}
+                   className="w-12 h-12 bg-amber text-navy rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform disabled:opacity-50"
+                 >
+                   <Send className="w-5 h-5 -rotate-12" />
+                 </button>
+               </form>
+             </motion.div>
            )}
         </div>
 

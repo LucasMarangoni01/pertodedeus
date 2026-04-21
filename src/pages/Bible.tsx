@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Search, Book, ChevronRight, Settings2, Share2, Copy, Highlighter, FileText, X, Star } from "lucide-react";
+import { Search, Book, ChevronRight, Settings2, Share2, Copy, Highlighter, FileText, X, Star, Volume2, Square } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useAuth } from "../context/AuthContext";
 import { bibleBooks } from "../constants/bibleData";
@@ -30,21 +30,108 @@ export default function Bible() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [fontSize, setFontSize] = useState(18);
+  const [audioSpeed, setAudioSpeed] = useState(1);
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoiceURI, setSelectedVoiceURI] = useState<string>("");
   const [selectedVerses, setSelectedVerses] = useState<number[]>([]);
   const [selectedVersion, setSelectedVersion] = useState("ARA");
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+
+  const synthRef = useRef<SpeechSynthesis | null>(null);
+
+  const loadVoices = () => {
+    if (!window.speechSynthesis) return;
+    const voices = window.speechSynthesis.getVoices().filter(v => v.lang.includes("pt-BR") || v.lang.includes("pt_BR") || v.lang === "pt");
+    setAvailableVoices(voices);
+    
+    if (voices.length > 0 && !selectedVoiceURI) {
+      // Tenta encontrar uma voz humanizada online nativa como default
+      const preferredKeywords = ["natural", "online", "premium", "luciana", "google português do brasil", "antonio", "francisca"];
+      let defaultVoice = voices[0];
+      for (const keyword of preferredKeywords) {
+        const match = voices.find(v => v.name.toLowerCase().includes(keyword));
+        if (match) {
+          defaultVoice = match;
+          break;
+        }
+      }
+      setSelectedVoiceURI(defaultVoice.voiceURI);
+    }
+  };
+
+  useEffect(() => {
+    synthRef.current = window.speechSynthesis;
+    // Force load voices in the background so they are ready when the user clicks
+    loadVoices();
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+      speechSynthesis.onvoiceschanged = loadVoices;
+    }
+    return () => {
+      if (synthRef.current) {
+        synthRef.current.cancel();
+      }
+    };
+  }, []);
+
+  const toggleAudio = () => {
+    if (!synthRef.current) return;
+    
+    if (isPlayingAudio) {
+      synthRef.current.cancel();
+      setIsPlayingAudio(false);
+    } else {
+      if (verses.length === 0) return;
+      const textToRead = verses.map(v => v.t).join(". ");
+      const utterance = new SpeechSynthesisUtterance(textToRead);
+      utterance.lang = "pt-BR";
+      utterance.rate = audioSpeed;
+      
+      if (selectedVoiceURI) {
+        const voiceToUse = availableVoices.find(v => v.voiceURI === selectedVoiceURI);
+        if (voiceToUse) {
+          utterance.voice = voiceToUse;
+        }
+      }
+      
+      utterance.onend = () => setIsPlayingAudio(false);
+      utterance.onerror = () => {
+        setIsPlayingAudio(false);
+        showNotification("Erro ao reproduzir áudio.");
+      };
+      
+      synthRef.current.speak(utterance);
+      setIsPlayingAudio(true);
+    }
+  };
 
   // Busca lista de livros dinâmica da API
   useEffect(() => {
     const fetchBooks = async () => {
       setLoadingBooks(true);
       try {
-        const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://bolls.life/get-books/${selectedVersion}/`)}`;
+        const bollsUrl = `https://bolls.life/get-books/${selectedVersion}/`;
+        // Tentativa de carregar via proxy robusto
+        const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(bollsUrl)}`;
         const res = await fetch(url);
         if (!res.ok) throw new Error("Célula de dados indisponível");
         const data = await res.json();
         setDynamicBooks(data);
       } catch (e) {
         console.error("Erro ao buscar livros dinâmicos:", e);
+        // Tentar um segundo proxy se o primeiro falhar
+        try {
+          const bollsUrl = `https://bolls.life/get-books/${selectedVersion}/`;
+          const url = `https://corsproxy.io/?${encodeURIComponent(bollsUrl)}`;
+          const res = await fetch(url);
+          if (res.ok) {
+            const data = await res.json();
+            setDynamicBooks(data);
+            return;
+          }
+        } catch (e2) {
+          console.error("Segundo proxy falhou:", e2);
+        }
+
         // Fallback para lista estática se a API falhar
         setDynamicBooks(bibleBooks.filter(b => 
           (selectedVersion === "VC" || selectedVersion === "BJPT") ? true : !b.isDeuterocanonical
@@ -96,18 +183,22 @@ export default function Bible() {
           const bookData = books.find(b => b.name === selectedBook);
           if (!bookData) throw new Error("Livro não encontrado.");
 
-          // Usando proxy CORS público para funcionar em ambientes estáticos (como GitHub Pages)
           const bollsUrl = `https://bolls.life/get-chapter/${selectedVersion}/${bookData.bollsId}/${selectedChapter}/`;
-          const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(bollsUrl)}`;
           
-          const res = await fetch(url);
-          
-          if (!res.ok) {
-            const errorMsg = await res.json().catch(() => ({ error: "Falha na conexão" }));
-            throw new Error(errorMsg.error || `Erro (${res.status})`);
+          let data;
+          try {
+            // Tenta primeiro o AllOrigins
+            const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(bollsUrl)}`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error("Indisponível no proxy principal");
+            data = await res.json();
+          } catch (err) {
+            // Tenta o CorsProxy.io como fallback
+            const url = `https://corsproxy.io/?${encodeURIComponent(bollsUrl)}`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error("Indisponível em todos os servidores");
+            data = await res.json();
           }
-          
-          const data = await res.json();
           
           if (!Array.isArray(data) || data.length === 0) {
             throw new Error("Não foram encontrados versículos para esta seleção.");
@@ -135,7 +226,7 @@ export default function Bible() {
   }, [selectedBook, selectedChapter, selectedVersion, books]);
 
   return (
-    <div className="h-[calc(100vh-140px)] flex flex-col md:flex-row gap-6 relative">
+    <div className="h-[calc(100vh-200px)] md:h-[calc(100vh-140px)] flex flex-col md:flex-row gap-6 relative">
       <AnimatePresence>
         {notification && (
           <motion.div 
@@ -235,12 +326,33 @@ export default function Bible() {
           </div>
         ) : (
           <>
-            <header className="p-6 border-b border-amber/10 flex items-center justify-between bg-navy/80 backdrop-blur-md relative z-40">
-               <div>
-                 <h2 className="text-xl font-display font-bold">{selectedBook} {selectedChapter}</h2>
-                 <p className="text-[10px] text-amber font-bold tracking-widest">{currentVersionName}</p>
+            <header className="p-4 md:p-6 border-b border-amber/10 flex items-center justify-between bg-navy/80 backdrop-blur-md relative z-40">
+               <div className="flex items-center gap-3">
+                 <button 
+                   onClick={() => setSelectedChapter(null)}
+                   className="md:hidden p-2 -ml-2 rounded-lg text-pearl/60 hover:text-amber hover:bg-white/5 transition-colors"
+                 >
+                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                 </button>
+                 <div>
+                   <h2 className="text-xl md:text-2xl font-display font-bold">{selectedBook} {selectedChapter}</h2>
+                   <p className="text-[10px] text-amber font-bold tracking-widest">{currentVersionName}</p>
+                 </div>
                </div>
-               <div className="flex items-center gap-2">
+               <div className="flex items-center gap-1 md:gap-2">
+                 <button 
+                    onClick={toggleAudio}
+                    className={cn(
+                      "p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold mr-2",
+                      isPlayingAudio ? "bg-amber text-navy hover:bg-amber/80" : "hover:bg-white/5 text-pearl/60"
+                    )}
+                 >
+                    {isPlayingAudio ? (
+                      <><Square className="w-4 h-4 fill-navy" /> Parar</>
+                    ) : (
+                      <><Volume2 className="w-4 h-4" /> Ouvir</>
+                    )}
+                 </button>
                  <div className="relative">
                    <button 
                      onClick={() => setShowSettings(!showSettings)}
@@ -280,6 +392,34 @@ export default function Bible() {
                             </div>
 
                             <div className="pt-4 border-t border-white/5">
+                               <label className="text-[10px] text-pearl/40 uppercase font-bold tracking-widest block mb-2">Voz da Narração</label>
+                               <select 
+                                 value={selectedVoiceURI} 
+                                 onChange={(e) => {
+                                   setSelectedVoiceURI(e.target.value);
+                                   if (isPlayingAudio && synthRef.current) {
+                                     synthRef.current.cancel();
+                                     setIsPlayingAudio(false);
+                                     showNotification("Voz alterada. Clique em Ouvir novamente.");
+                                   }
+                                 }}
+                                 className="w-full bg-white/5 border border-amber/10 rounded-lg px-3 py-2 text-xs text-pearl focus:border-amber outline-none appearance-none"
+                               >
+                                 {availableVoices.length === 0 && <option value="">Carregando vozes...</option>}
+                                 {availableVoices.map(v => (
+                                   <option key={v.voiceURI} value={v.voiceURI} className="bg-navy text-pearl">
+                                     {v.name}
+                                   </option>
+                                 ))}
+                               </select>
+                               {availableVoices.length <= 1 && (
+                                 <p className="text-[9px] text-pearl/30 mt-2 leading-tight">
+                                   Seu celular só possui essa voz instalada. Procure por "Vozes" ou "Acessibilidade" nas configurações do seu aparelho para adicionar pacotes novos.
+                                 </p>
+                               )}
+                            </div>
+
+                            <div className="pt-4 border-t border-white/5">
                                <label className="text-[10px] text-pearl/40 uppercase font-bold tracking-widest block mb-2">Tamanho da Fonte</label>
                                <div className="flex items-center gap-4">
                                  <input 
@@ -291,6 +431,29 @@ export default function Bible() {
                                    className="flex-1 accent-amber"
                                  />
                                  <span className="text-xs font-bold text-amber">{fontSize}px</span>
+                               </div>
+                            </div>
+                            
+                            <div className="pt-4 border-t border-white/5">
+                               <label className="text-[10px] text-pearl/40 uppercase font-bold tracking-widest block mb-2">Velocidade do Áudio</label>
+                               <div className="flex items-center gap-4">
+                                 <input 
+                                   type="range" 
+                                   min="0.5" 
+                                   max="2" 
+                                   step="0.25"
+                                   value={audioSpeed} 
+                                   onChange={(e) => {
+                                      setAudioSpeed(parseFloat(e.target.value));
+                                      if (isPlayingAudio && synthRef.current) {
+                                         synthRef.current.cancel();
+                                         setIsPlayingAudio(false);
+                                         showNotification("Velocidade alterada. Clique em Ouvir novamente.");
+                                      }
+                                   }}
+                                   className="flex-1 accent-amber"
+                                 />
+                                 <span className="text-xs font-bold text-amber">{audioSpeed}x</span>
                                </div>
                             </div>
                          </div>
