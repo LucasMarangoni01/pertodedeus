@@ -28,7 +28,14 @@ const firebaseConfig = {
   firestoreDatabaseId: config.firestoreDatabaseId || (firebaseConfigLocal as any).firestoreDatabaseId
 };
 
-console.log("[Firebase] Initializing with Project:", firebaseConfig.projectId);
+if (import.meta.env.PROD) {
+  console.log("[Firebase] Production Mode. Project:", firebaseConfig.projectId);
+  if (!import.meta.env.VITE_FIREBASE_API_KEY) {
+    console.warn("[Firebase] Warning: VITE_FIREBASE_API_KEY is not set. Falling back to local internal config.");
+  }
+} else {
+  console.log("[Firebase] Development Mode. Project:", firebaseConfig.projectId);
+}
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);

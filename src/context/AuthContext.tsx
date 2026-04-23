@@ -36,17 +36,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchUserProfile = async (firebaseUser: FirebaseUser) => {
-    const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
-    if (userDoc.exists()) {
-      const data = userDoc.data();
-      setUser({
-        uid: firebaseUser.uid,
-        email: firebaseUser.email,
-        displayName: data.displayName || firebaseUser.displayName,
-        photoURL: data.photoURL || firebaseUser.photoURL,
-        ...data
-      });
-    } else {
+    try {
+      const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        setUser({
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: data.displayName || firebaseUser.displayName,
+          photoURL: data.photoURL || firebaseUser.photoURL,
+          ...data
+        });
+      } else {
+        setUser({
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName,
+          photoURL: firebaseUser.photoURL,
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching user profile:", err);
+      // Still set the basic user info so they are "logged in" even if profile fetch fails
       setUser({
         uid: firebaseUser.uid,
         email: firebaseUser.email,
