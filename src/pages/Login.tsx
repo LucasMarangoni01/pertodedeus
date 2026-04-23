@@ -32,10 +32,15 @@ export default function Login() {
     setIsLoggingIn(true);
     try {
       await signInWithGoogle();
-      // We don't navigate manually here because the Navigate components above will trigger 
-      // automatically when the AuthContext state updates.
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login failed:", error);
+      if (error.code === "auth/popup-blocked") {
+        alert("O popup foi bloqueado pelo seu navegador. Por favor, permita popups para este site.");
+      } else if (error.code === "auth/cancelled-popup-request") {
+        // Just user closing it, no need to alert
+      } else {
+        alert("Erro ao entrar: " + (error.message || "Tente novamente."));
+      }
     } finally {
       setIsLoggingIn(false);
     }

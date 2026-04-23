@@ -7,7 +7,7 @@ import firebaseConfigLocal from '../../firebase-applet-config.json';
 
 // Hybrid configuration: Priority to VITE_ environment variables (Vercel/Production),
 // then fallback to the local json file (AI Studio).
-const firebaseConfig = {
+const config = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || firebaseConfigLocal.apiKey,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || firebaseConfigLocal.authDomain,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || firebaseConfigLocal.projectId,
@@ -16,6 +16,19 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || firebaseConfigLocal.appId,
   firestoreDatabaseId: import.meta.env.VITE_FIREBASE_DATABASE_ID || (firebaseConfigLocal as any).firestoreDatabaseId
 };
+
+// Ensure no empty strings override valid local config
+const firebaseConfig = {
+  apiKey: config.apiKey || firebaseConfigLocal.apiKey,
+  authDomain: config.authDomain || firebaseConfigLocal.authDomain,
+  projectId: config.projectId || firebaseConfigLocal.projectId,
+  storageBucket: config.storageBucket || firebaseConfigLocal.storageBucket,
+  messagingSenderId: config.messagingSenderId || firebaseConfigLocal.messagingSenderId,
+  appId: config.appId || firebaseConfigLocal.appId,
+  firestoreDatabaseId: config.firestoreDatabaseId || (firebaseConfigLocal as any).firestoreDatabaseId
+};
+
+console.log("[Firebase] Initializing with Project:", firebaseConfig.projectId);
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
