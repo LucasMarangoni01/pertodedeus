@@ -10,66 +10,41 @@ import { ptBR } from "date-fns/locale";
 
 const struggleCategories = [
   {
-    name: "7 Pecados Capitais",
+    name: "Sentimentos e Atitudes",
     items: [
-      { sin: "Orgulho", advice: "O orgulho é a raiz da queda. Busque a humildade de Cristo, que sendo Deus, se esvaziou por nós.", verse: "Provérbios 16:18" },
-      { sin: "Inveja", advice: "A inveja é como podridão nos ossos. Alegre-se com os que se alegram.", verse: "Provérbios 14:30" },
-      { sin: "Ira / Raiva", advice: "A ira do homem não produz a justiça de Deus. Peça ao Espírito Santo o fruto do domínio próprio.", verse: "Tiago 1:20" },
-      { sin: "Preguiça Espiritual", advice: "A caminhada cristã exige diligência. Comece com 5 minutos de oração hoje.", verse: "Efésios 5:14" },
-      { sin: "Avarícia / Ganância", advice: "O amor ao dinheiro é raiz de todos os males. Busque primeiro o Reino de Deus.", verse: "1 Timóteo 6:10" },
-      { sin: "Gula", advice: "Não seja dominado pelo ventre. O corpo é templo do Espírito Santo.", verse: "1 Coríntios 6:19" },
-      { sin: "Luxúria", advice: "Fuja das paixões da mocidade. Busque a pureza de pensamento e ação.", verse: "2 Timóteo 2:22" }
+      { sin: "Se achar melhor que os outros", advice: "Lembre-se que todos somos iguais para Deus. Busque ser humilde como Jesus foi.", verse: "Provérbios 16:18" },
+      { sin: "Querer o que é dos outros (Inveja)", advice: "Fique feliz com o que você tem e com o sucesso dos outros. Deus tem o melhor para você.", verse: "Provérbios 14:30" },
+      { sin: "Raiva ou Estresse constante", advice: "A raiva não ajuda a fazer o que é certo. Peça calma ao Espírito Santo nos momentos difíceis.", verse: "Tiago 1:20" },
+      { sin: "Falta de vontade de orar", advice: "Não desista da sua fé. Tente conversar com Deus um pouquinho por dia, no seu ritmo.", verse: "Efésios 5:14" },
+      { sin: "Apego exagerado ao dinheiro", advice: "O dinheiro deve ser usado para o bem. Coloque Deus em primeiro lugar no seu coração.", verse: "1 Timóteo 6:10" },
+      { sin: "Exagerar na comida ou bebida", advice: "Cuide do seu corpo como se fosse uma casa onde Deus mora. Busque o equilíbrio.", verse: "1 Coríntios 6:19" },
+      { sin: "Pensamentos ou desejos ruins", advice: "Tente focar em coisas boas e que trazem paz para sua mente e para sua vida.", verse: "2 Timóteo 2:22" }
     ]
   },
   {
-    name: "10 Mandamentos (Evangélicos)",
+    name: "Coisas Importantes",
     items: [
-      { sin: "Idolatria (Outros Deuses)", advice: "Não terás outros deuses diante de mim. Deus requer exclusividade.", verse: "Êxodo 20:3" },
-      { sin: "Imagens de Escultura", advice: "Não farás para ti imagem de escultura. Adore a Deus em espírito.", verse: "Êxodo 20:4" },
-      { sin: "Blasfêmia (Nome em Vão)", advice: "Não tomarás o nome do Senhor em vão. Deus é santo e Seu nome é digno.", verse: "Êxodo 20:7" },
-      { sin: "Negligência ao Dia do Senhor", advice: "Lembra-te do dia de sábado/descanso para o santificar.", verse: "Êxodo 20:8" },
-      { sin: "Desonra aos Pais", advice: "Honra a teu pai e a tua mãe para que teus dias se prolonguem.", verse: "Êxodo 20:12" },
-      { sin: "Homicídio / Ódio", advice: "Não matarás. Quem odeia seu irmão é assassino no coração.", verse: "1 João 3:15" },
-      { sin: "Adultério", advice: "Não adulterarás. Guarde a fidelidade no seu casamento e mente.", verse: "Mateus 5:27-28" },
-      { sin: "Furto / Roubo", advice: "Não furtarás. Seja íntegro em todos os seus negócios e posses.", verse: "Êxodo 20:15" },
-      { sin: "Falso Testemunho / Mentira", advice: "Não dirás falso testemunho. Seja a sua palavra sim, sim; não, não.", verse: "Mateus 5:37" },
-      { sin: "Cobiça", advice: "Não cobiçarás o que é do próximo. Aprenda a estar contente em toda situação.", verse: "Filipenses 4:11" }
+      { sin: "Colocar coisas acima de Deus", advice: "Nada deve ser mais importante que o nosso amor por Deus.", verse: "Êxodo 20:3" },
+      { sin: "Falar de Deus sem respeito", advice: "Use o nome de Deus com carinho e respeito nas suas conversas.", verse: "Êxodo 20:7" },
+      { sin: "Não tirar tempo para descansar", advice: "Tire um dia para descansar a mente e agradecer a Deus por tudo.", verse: "Êxodo 20:8" },
+      { sin: "Tratar mal pai ou mãe", advice: "Respeite e cuide de quem cuidou de você. Isso traz muita paz ao coração.", verse: "Êxodo 20:12" },
+      { sin: "Desejar o mal para alguém", advice: "O ódio machuca a gente. Tente perdoar e desejar coisas boas para todos.", verse: "1 João 3:15" },
+      { sin: "Trair ou não ser fiel", advice: "Seja honesto e fiel com as pessoas que você ama.", verse: "Mateus 5:27-28" },
+      { sin: "Pegar o que não te pertence", advice: "Dê valor ao que é dos outros e seja honesto em todas as situações.", verse: "Êxodo 20:15" },
+      { sin: "Mentir ou fazer fofoca", advice: "Tente sempre dizer a verdade. A verdade traz luz para a nossa caminhada.", verse: "Mateus 5:37" }
     ]
   },
   {
-    name: "10 Mandamentos (Católicos)",
+    name: "Lutas do Dia a Dia",
     items: [
-      { sin: "Amar a Deus sobre todas as coisas", advice: "O primeiro mandamento nos chama a amar a Deus com todo coração.", verse: "Mateus 22:37" },
-      { sin: "Não tomar Seu santo nome em vão", advice: "Respeite a santidade do nome de Deus em suas palavras.", verse: "Salmo 8:1" },
-      { sin: "Guardar domingos e festas de guarda", advice: "Santifique o dia do Senhor participando da Eucaristia e descanso.", verse: "Atos 20:7" },
-      { sin: "Honrar pai e mãe", advice: "O amor filial é a base de uma vida abençoada.", verse: "Efésios 6:1" },
-      { sin: "Não matar", advice: "Proteja a vida desde a concepção até o seu fim natural.", verse: "Salmo 139" },
-      { sin: "Não pecar contra a castidade", advice: "Mantenha o coração e o corpo puros para o Senhor.", verse: "Mateus 5:8" },
-      { sin: "Não furtar", advice: "A justiça exige o respeito aos bens alheios.", verse: "Levítico 19:11" },
-      { sin: "Não levantar falso testemunho", advice: "A verdade nos liberta. Evite a calúnia e a detração.", verse: "João 8:32" },
-      { sin: "Não desejar a mulher do próximo", advice: "Guarde os seus olhares e desejos com pureza.", verse: "Mateus 5:28" },
-      { sin: "Não cobiçar as coisas alheias", advice: "Agradeça pelo que tem e evite a inveja material.", verse: "Hebreus 13:5" }
-    ]
-  },
-  {
-    name: "Relacionamentos e Palavras",
-    items: [
-      { sin: "Malfalar / Calúnia", advice: "A língua tem poder de vida e morte. Use-a para abençoar.", verse: "Provérbios 18:21" },
-      { sin: "Falta de Perdão / Mágoa", advice: "Se não perdoardes, vosso Pai não vos perdoará.", verse: "Mateus 6:15" },
-      { sin: "Julgamento", advice: "Não julgueis para não serdes julgados.", verse: "Mateus 7:1" },
-      { sin: "Murmuração / Reclamação", advice: "Fazei tudo sem murmurações nem contendas.", verse: "Filipenses 2:14" },
-      { sin: "Mentira", advice: "O diabo é o pai da mentira. Seja a sua palavra verdadeira.", verse: "João 8:44" }
-    ]
-  },
-  {
-    name: "Lutas Modernas e Vícios",
-    items: [
-      { sin: "Pornografia / Luxúria Digital", advice: "O que entra pelos olhos afeta a alma. Busque a pureza.", verse: "Mateus 6:22-23" },
-      { sin: "Vício em Redes Sociais / Celular", advice: "Resgate o tempo, pois os dias são maus.", verse: "Efésios 5:16" },
-      { sin: "Ansiedade / Preocupação", advice: "Não andeis ansiosos. Deus cuida de você.", verse: "1 Pedro 5:7" },
-      { sin: "Drogas / Álcool", advice: "Não vos embriagueis, mas enchei-vos do Espírito.", verse: "Efésios 5:18" },
-      { sin: "Preguiça / Procrastinação", advice: "Vai ter com a formiga, ó preguiçoso.", verse: "Provérbios 6:6" },
-      { sin: "Idolatria do Eu", advice: "Aquele que quiser vir após mim, negue-se a si mesmo.", verse: "Mateus 16:24" }
+      { sin: "Gritar ou falar coisas pesadas", advice: "Nossas palavras podem ajudar ou machucar. Escolha falar palavras que deem força.", verse: "Provérbios 18:21" },
+      { sin: "Guardar mágoa no coração", advice: "Perdoar é se libertar de um peso. Peça a Deus ajuda para soltar essa mágoa.", verse: "Mateus 6:15" },
+      { sin: "Apontar o dedo para os outros", advice: "Ninguém é perfeito. Antes de julgar, tente entender e ajudar se puder.", verse: "Mateus 7:1" },
+      { sin: "Reclamar muito da vida", advice: "Tente ver o lado bom das coisas. Agradecer atrai coisas boas do céu.", verse: "Filipenses 2:14" },
+      { sin: "Celular e Internet em excesso", advice: "Não deixe as telas roubarem o seu tempo com quem você ama.", verse: "Efésios 5:16" },
+      { sin: "Medo do futuro (Ansiedade)", advice: "Não sofra por antecipação. Deus está cuidando de cada detalhe hoje.", verse: "1 Pedro 5:7" },
+      { sin: "Vícios que fazem mal", advice: "Seja forte e busque ajuda. Você nasceu para ser livre e feliz.", verse: "Efésios 5:18" },
+      { sin: "Deixar tudo para depois", advice: "Tente fazer um pouquinho a cada dia. A constância gera grandes vitórias.", verse: "Provérbios 6:6" }
     ]
   }
 ];
@@ -84,6 +59,7 @@ export default function StruggleTracker() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sugSearch, setSugSearch] = useState("");
+  const [selectedSuns, setSelectedSuns] = useState<any[]>([]);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -119,6 +95,19 @@ export default function StruggleTracker() {
           verse: formData.verse,
           updatedAt: serverTimestamp(),
         });
+      } else if (selectedSuns.length > 0) {
+        // Bulk Add
+        const batchPromise = selectedSuns.map(s => 
+          addDoc(collection(db, "users", user!.uid, "struggles"), {
+            userId: user!.uid,
+            sinType: s.sin,
+            biblicalAdvice: s.advice,
+            verse: s.verse,
+            totalFalls: 0,
+            createdAt: serverTimestamp(),
+          })
+        );
+        await Promise.all(batchPromise);
       } else {
         await addDoc(collection(db, "users", user.uid, "struggles"), {
           userId: user.uid,
@@ -140,6 +129,7 @@ export default function StruggleTracker() {
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingId(null);
+    setSelectedSuns([]);
     setFormData({ sinType: "", biblicalAdvice: "", verse: "" });
   };
 
@@ -183,11 +173,25 @@ export default function StruggleTracker() {
   };
 
   const selectSuggestion = (sug: any) => {
-    setFormData({
-      sinType: sug.sin,
-      biblicalAdvice: sug.advice,
-      verse: sug.verse
-    });
+    if (editingId) {
+       setFormData({
+         sinType: sug.sin,
+         biblicalAdvice: sug.advice,
+         verse: sug.verse
+       });
+       return;
+    }
+
+    const isSelected = selectedSuns.some(s => s.sin === sug.sin);
+    if (isSelected) {
+      setSelectedSuns(prev => prev.filter(s => s.sin !== sug.sin));
+    } else {
+      setSelectedSuns(prev => [...prev, sug]);
+      // If we select a suggestion and it's the first one, or if we want to pre-fill the form 
+      // when only one is selected, we can. But usually in multi-select, form is for manual entry.
+      // Let's clear manual entry if we start using chips to avoid confusion.
+      setFormData({ sinType: "", biblicalAdvice: "", verse: "" });
+    }
   };
 
   const filteredCategories = struggleCategories.map(cat => ({
@@ -461,8 +465,8 @@ export default function StruggleTracker() {
                                 onClick={() => selectSuggestion(item)}
                                 className={cn(
                                   "px-3 py-1.5 rounded-full border text-[10px] font-bold transition-all",
-                                  formData.sinType === item.sin 
-                                    ? "bg-amber text-navy border-amber" 
+                                  (formData.sinType === item.sin || selectedSuns.some(s => s.sin === item.sin))
+                                    ? "bg-amber text-navy border-amber shadow-[0_0_10px_rgba(201,168,76,0.3)]" 
                                     : "bg-white/5 border-white/5 text-pearl/60 hover:bg-amber/10 hover:text-amber hover:border-amber/20"
                                 )}
                              >
@@ -479,46 +483,72 @@ export default function StruggleTracker() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-pearl/40 uppercase tracking-widest pl-2">Qual luta você enfrenta?</label>
-                  <input 
-                    required
-                    value={formData.sinType}
-                    onChange={e => setFormData({...formData, sinType: e.target.value})}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 focus:border-amber transition-colors outline-none text-lg font-serif"
-                    placeholder="Ex: Impaciência, Melancolia..."
-                  />
-                </div>
+                {selectedSuns.length > 0 ? (
+                  <div className="bg-amber/5 border border-amber/20 rounded-2xl p-6 space-y-3">
+                    <p className="text-xs font-bold text-amber uppercase tracking-widest">Lutas Selecionadas ({selectedSuns.length}):</p>
+                    <div className="flex flex-wrap gap-2">
+                       {selectedSuns.map((s, i) => (
+                         <div key={i} className="px-3 py-1.5 bg-amber/20 text-amber text-[10px] font-bold rounded-lg border border-amber/30 flex items-center gap-2">
+                            {s.sin}
+                            <button type="button" onClick={() => setSelectedSuns(prev => prev.filter(item => item.sin !== s.sin))} className="hover:text-white">✕</button>
+                         </div>
+                       ))}
+                    </div>
+                    <p className="text-[10px] text-pearl/40 italic pt-2">Clique em iniciar para começar o acompanhamento de todas estas lutas separadamente.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-pearl/40 uppercase tracking-widest pl-2">Qual luta você enfrenta?</label>
+                      <input 
+                        required={selectedSuns.length === 0}
+                        value={formData.sinType}
+                        onChange={e => {
+                          setFormData({...formData, sinType: e.target.value});
+                          if (selectedSuns.length > 0) setSelectedSuns([]); // Clear chips if typing
+                        }}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 focus:border-amber transition-colors outline-none text-lg font-serif"
+                        placeholder="Ex: Impaciência, Melancolia..."
+                      />
+                    </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-pearl/40 uppercase tracking-widest pl-2">Dica ou Mensagem para vencer</label>
-                  <textarea 
-                    required
-                    value={formData.biblicalAdvice}
-                    onChange={e => setFormData({...formData, biblicalAdvice: e.target.value})}
-                    rows={3}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 focus:border-amber transition-colors outline-none resize-none font-serif text-pearl/80"
-                    placeholder="O que o Espírito Santo diz sobre isso?"
-                  />
-                </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-pearl/40 uppercase tracking-widest pl-2">Dica ou Mensagem para vencer</label>
+                      <textarea 
+                        required={selectedSuns.length === 0 && formData.sinType !== ""}
+                        value={formData.biblicalAdvice}
+                        onChange={e => setFormData({...formData, biblicalAdvice: e.target.value})}
+                        rows={3}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 focus:border-amber transition-colors outline-none resize-none font-serif text-pearl/80"
+                        placeholder="O que o Espírito Santo diz sobre isso?"
+                      />
+                    </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-pearl/40 uppercase tracking-widest pl-2">Versículo de Apoio (Opcional)</label>
-                  <input 
-                    value={formData.verse}
-                    onChange={e => setFormData({...formData, verse: e.target.value})}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 focus:border-amber transition-colors outline-none text-sm italic"
-                    placeholder="Ex: João 8:32"
-                  />
-                </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-pearl/40 uppercase tracking-widest pl-2">Versículo de Apoio (Opcional)</label>
+                      <input 
+                        value={formData.verse}
+                        onChange={e => setFormData({...formData, verse: e.target.value})}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 focus:border-amber transition-colors outline-none text-sm italic"
+                        placeholder="Ex: João 8:32"
+                      />
+                    </div>
+                  </>
+                )}
 
                 <div className="pt-4 flex flex-col md:flex-row gap-4">
                   <button 
                     type="submit"
-                    disabled={loading}
+                    disabled={loading || (selectedSuns.length === 0 && !formData.sinType)}
                     className="flex-1 bg-amber text-navy font-bold py-5 rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 text-base"
                   >
-                    {loading ? "Trazendo para a Luz..." : editingId ? "Salvar Alterações" : "Iniciar Acompanhamento"}
+                    {loading 
+                      ? "Trazendo para a Luz..." 
+                      : editingId 
+                        ? "Salvar Alterações" 
+                        : selectedSuns.length > 0 
+                          ? `Iniciar ${selectedSuns.length} Acompanhamentos` 
+                          : "Iniciar Acompanhamento"}
                   </button>
                   <button 
                     type="button"
