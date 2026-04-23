@@ -1,20 +1,44 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { Sparkles, Zap, Heart, BookOpen, MessageSquare, Plus, ChevronRight, MapPin } from "lucide-react";
+import { Sparkles, Zap, Heart, BookOpen, MessageSquare, Plus, ChevronRight, MapPin, HelpCircle, Flame, Calendar as CalendarIcon, ShieldAlert, Search } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../lib/firebase";
 import { collection, query, where, limit, onSnapshot, orderBy } from "firebase/firestore";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import { cn } from "../lib/utils";
 
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { openSearch } = useOutletContext<{ openSearch: () => void }>();
   const [lastPrayer, setLastPrayer] = useState<any>(null);
   const [todaysDevotional, setTodaysDevotional] = useState<any>(null);
+  const [randomVerse, setRandomVerse] = useState({ text: "Lâmpada para os meus pés é tua palavra, e luz para o meu caminho.", ref: "Salmos 119:105" });
+
+  const bibleVerses = [
+    { text: "O Senhor é o meu pastor, nada me faltará.", ref: "Salmos 23:1" },
+    { text: "Posso todas as coisas naquele que me fortalece.", ref: "Filipenses 4:13" },
+    { text: "O Senhor te abençoe e te guarde.", ref: "Números 6:24" },
+    { text: "Tudo posso naquele que me fortalece.", ref: "Filipenses 4:13" },
+    { text: "O amor é paciente, o amor é bondoso.", ref: "1 Coríntios 13:4" },
+    { text: "Eu sou o caminho, a verdade e a vida.", ref: "João 14:6" },
+    { text: "Deus é o nosso refúgio e fortaleza.", ref: "Salmos 46:1" },
+    { text: "Buscai primeiro o Reino de Deus.", ref: "Mateus 6:33" },
+    { text: "O meu socorro vem do Senhor.", ref: "Salmos 121:2" },
+    { text: "Seja forte e corajoso.", ref: "Josué 1:9" },
+    { text: "A alegria do Senhor é a vossa força.", ref: "Neemias 8:10" },
+    { text: "O Senhor é a minha luz e a minha salvação.", ref: "Salmos 27:1" },
+    { text: "Crê no Senhor Jesus e serás salvo.", ref: "Atos 16:31" },
+    { text: "Guardei no coração a tua palavra para não pecar contra ti.", ref: "Salmos 119:11" },
+    { text: "Onde estiver o seu tesouro, aí estará o seu coração.", ref: "Mateus 6:21" }
+  ];
 
   useEffect(() => {
     if (!user) return;
+
+    // Pick a random verse
+    const randomIndex = Math.floor(Math.random() * bibleVerses.length);
+    setRandomVerse(bibleVerses[randomIndex]);
 
     // Fetch latest active prayer
     const qPrayer = query(
@@ -44,22 +68,38 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-10">
-      <header className="space-y-2">
-        <motion.p 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-amber font-medium tracking-widest uppercase text-xs"
-        >
-          Bom dia em Cristo
-        </motion.p>
-        <motion.h1 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="text-4xl md:text-5xl font-display font-bold leading-tight"
-        >
-          Olá, {user?.displayName?.split(' ')[0] || "viajante"}
-        </motion.h1>
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <motion.p 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-amber font-medium tracking-widest uppercase text-xs"
+          >
+            Bom dia em Cristo
+          </motion.p>
+          <motion.h1 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-4xl md:text-5xl font-display font-bold leading-tight"
+          >
+            Olá, {user?.displayName?.split(' ')[0] || "viajante"}
+          </motion.h1>
+        </div>
+
+        <div className="flex-1 max-w-md w-full relative group">
+           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-pearl/20 group-focus-within:text-amber transition-colors" />
+           <input 
+             type="text"
+             readOnly
+             onClick={openSearch} 
+             placeholder="O que você busca hoje?"
+             className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 outline-none hover:border-white/20 transition-all cursor-pointer font-display text-sm focus:border-amber/50"
+           />
+           <div className="absolute right-4 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-2">
+              <span className="text-[10px] bg-white/5 px-2 py-1 rounded border border-white/5 text-pearl/20 font-mono">/</span>
+           </div>
+        </div>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -128,11 +168,11 @@ export default function Dashboard() {
                <BookOpen className="w-3 h-3" /> Palavra Viva
             </div>
             <blockquote className="space-y-4 italic font-serif text-lg text-pearl/90 leading-relaxed">
-              "Lâmpada para os meus pés é tua palavra, e luz para o meu caminho."
+              "{randomVerse.text}"
             </blockquote>
           </div>
           <div className="mt-6 flex items-center justify-between">
-             <p className="text-amber font-display font-bold">Salmos 119:105</p>
+             <p className="text-amber font-display font-bold">{randomVerse.ref}</p>
              <button onClick={() => navigate("/bible")} className="p-2 bg-amber/10 text-amber rounded-lg hover:bg-amber hover:text-navy transition-all">
                 <ChevronRight className="w-4 h-4" />
              </button>
@@ -172,12 +212,14 @@ export default function Dashboard() {
         </div>
 
         {/* Action Shortcuts */}
-        <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="lg:col-span-2 grid grid-cols-2 md:grid-cols-6 gap-4">
            {[
+             { label: "Agenda", icon: CalendarIcon, path: "/agenda", color: "bg-amber/20 text-amber" },
+             { label: "Lutas", icon: Flame, path: "/struggles", color: "bg-grape/20 text-grape" },
              { label: "Bíblia", icon: BookOpen, path: "/bible", color: "bg-grape/20 text-grape" },
              { label: "Diário", icon: Heart, path: "/diary", color: "bg-grape/10 text-pearl/80" },
              { label: "Oração", icon: MessageSquare, path: "/prayer", color: "bg-amber/10 text-amber" },
-             { label: "Igrejas", icon: MapPin, path: "/churches", color: "bg-grape/20 text-grape" },
+             { label: "SOS", icon: ShieldAlert, path: "/sos", color: "bg-red-500/20 text-red-400" },
            ].map((item, i) => (
              <button 
                key={i}

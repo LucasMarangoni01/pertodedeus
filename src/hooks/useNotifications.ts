@@ -14,6 +14,7 @@ export function useNotifications() {
   );
 
   const requestPermission = async () => {
+    if (typeof Notification === 'undefined') return false;
     if (!messaging) return false;
     
     try {

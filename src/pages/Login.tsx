@@ -1,11 +1,24 @@
+import { useState } from "react";
 import { motion } from "motion/react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Navigate } from "react-router-dom";
 import { Heart, Chrome } from "lucide-react";
 
 export default function Login() {
-  const { user, signInWithGoogle } = useAuth();
+  const { user, signInWithGoogle, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  // If already logged in, the component will render the Navigate below.
+  // We use the top-level returns for redirection to ensure it happens immediately when the state changes.
+  
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-navy flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-amber/20 border-t-amber rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (user && user.spiritualLevel) {
     return <Navigate to="/" replace />;
@@ -16,8 +29,16 @@ export default function Login() {
   }
 
   const handleLogin = async () => {
-    await signInWithGoogle();
-    navigate("/onboarding");
+    setIsLoggingIn(true);
+    try {
+      await signInWithGoogle();
+      // We don't navigate manually here because the Navigate components above will trigger 
+      // automatically when the AuthContext state updates.
+    } catch (error) {
+      console.error("Login failed:", error);
+    } finally {
+      setIsLoggingIn(false);
+    }
   };
 
   return (
@@ -53,10 +74,15 @@ export default function Login() {
         <div className="space-y-6">
           <button 
             onClick={handleLogin}
-            className="w-full flex items-center justify-center gap-3 bg-white text-navy font-bold py-4 px-6 rounded-2xl transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-xl"
+            disabled={isLoggingIn}
+            className="w-full flex items-center justify-center gap-3 bg-white text-navy font-bold py-4 px-6 rounded-2xl transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-xl disabled:opacity-50"
           >
-            <Chrome className="w-6 h-6" />
-            Entrar com Google
+            {isLoggingIn ? (
+              <div className="w-5 h-5 border-2 border-navy border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Chrome className="w-6 h-6" />
+            )}
+            {isLoggingIn ? "Autenticando..." : "Entrar com Google"}
           </button>
           
           <p className="text-pearl/40 text-sm">

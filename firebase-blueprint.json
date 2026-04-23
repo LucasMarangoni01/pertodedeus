@@ -123,6 +123,49 @@
         "completedItems": { "type": "integer" }
       },
       "required": ["userId", "title", "createdAt", "items"]
+    },
+    "AssistantMessage": {
+      "title": "AI Assistant Message",
+      "description": "Messages exchanged between the user and the AI assistant",
+      "type": "object",
+      "properties": {
+        "role": { "type": "string", "enum": ["user", "assistant"] },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["role", "content", "createdAt"]
+    },
+    "Struggle": {
+      "title": "Struggle Tracker",
+      "description": "Tracking personal struggles and sins with biblical guidance",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "sinType": { "type": "string", "description": "Type of struggle (e.g., Pride, Anger)" },
+        "totalFalls": { "type": "integer", "description": "Number of times recorded a fall" },
+        "lastFall": { "type": "string", "format": "date-time" },
+        "biblicalAdvice": { "type": "string", "description": "Message to help overcome" },
+        "verse": { "type": "string", "description": "Supporting Bible verse" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "sinType", "totalFalls", "createdAt"]
+    },
+    "CalendarEvent": {
+      "title": "Calendar Event",
+      "description": "User scheduled events and reminders",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "startTime": { "type": "string", "format": "date-time" },
+        "endTime": { "type": "string", "format": "date-time" },
+        "date": { "type": "string", "description": "YYYY-MM-DD for easier filtering" },
+        "category": { "type": "string", "enum": ["Oração", "Compromisso", "Evento", "Jejum", "Ministério"] },
+        "isDone": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "startTime", "date", "category"]
     }
   },
   "firestore": {
@@ -137,6 +180,10 @@
     "/users/{userId}/journal/{entryId}": {
       "schema": "JournalEntry",
       "description": "Private spiritual journal for each user"
+    },
+    "/users/{userId}/assistant_chat/{messageId}": {
+      "schema": "AssistantMessage",
+      "description": "Conversation history with the AI assistant"
     },
     "/users/{userId}/devotionals/{devotionalId}": {
       "schema": "Devotional",
@@ -153,6 +200,14 @@
     "/users/{userId}/custom_plans/{planId}": {
       "schema": "ReadingPlan",
       "description": "Custom reading plans created by the user"
+    },
+    "/users/{userId}/struggles/{struggleId}": {
+      "schema": "Struggle",
+      "description": "Private tracking of personal struggles and spiritual growth"
+    },
+    "/users/{userId}/calendar_events/{eventId}": {
+      "schema": "CalendarEvent",
+      "description": "User's personal spiritual agenda"
     }
   }
 }

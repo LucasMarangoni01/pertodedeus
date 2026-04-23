@@ -58,12 +58,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        await fetchUserProfile(firebaseUser);
-      } else {
+      try {
+        if (firebaseUser) {
+          await fetchUserProfile(firebaseUser);
+        } else {
+          setUser(null);
+        }
+      } catch (err) {
+        console.error("Auth initialization error:", err);
         setUser(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -72,9 +78,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     try {
+      setLoading(true); // Indica que estamos processando
       await signInWithPopup(auth, provider);
     } catch (error) {
       console.error("Error signing in with Google:", error);
+      setLoading(false); // Libera se falhar
+      throw error; 
     }
   };
 
@@ -94,7 +103,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut, refreshUserProfile }}>
-      {!loading && children}
+      {loading ? (
+        <div className="min-h-screen bg-navy flex items-center justify-center">
+           <div className="w-12 h-12 border-4 border-amber/20 border-t-amber rounded-full animate-spin" />
+        </div>
+      ) : children}
     </AuthContext.Provider>
   );
 }

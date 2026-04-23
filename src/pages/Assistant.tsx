@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { MessageSquare, Send, Sparkles, User, ShieldCheck, Heart, Info, RefreshCw } from "lucide-react";
+import { MessageSquare, Send, Sparkles, User, ShieldCheck, Heart, Info, RefreshCw, Trash2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { GoogleGenAI } from "@google/genai";
 import ReactMarkdown from "react-markdown";
 import { cn } from "../lib/utils";
+import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, limit, writeBatch, getDocs } from "firebase/firestore";
+import { db } from "../lib/firebase";
 
 let aiInstance: GoogleGenAI | null = null;
 let currentKey: string | null = null;
@@ -26,13 +28,60 @@ const getAi = () => {
 
 export default function Assistant() {
   const { user } = useAuth();
-  const [messages, setMessages] = useState<any[]>([
-    { role: "assistant", content: "Olá! Eu sou seu assistente bíblico. Em que posso te ajudar hoje na sua jornada espiritual?" }
-  ]);
+  const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [simplify, setSimplify] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!user) {
+      setMessages([
+        { role: "assistant", content: "Olá! Faça login para salvar seu histórico de conversas. Eu sou seu assistente bíblico. Em que posso te ajudar hoje?" }
+      ]);
+      return;
+    }
+
+    const q = query(
+      collection(db, "users", user.uid, "assistant_chat"),
+      orderBy("createdAt", "asc"),
+      limit(100)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const msgs = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      if (msgs.length === 0) {
+        setMessages([
+          { role: "assistant", content: `Olá ${user.displayName || ""}! Eu sou seu assistente bíblico. Suas conversas serão salvas em sua conta. Em que posso te ajudar hoje?` }
+        ]);
+      } else {
+        setMessages(msgs);
+      }
+    }, (error) => {
+      console.error("Error fetching chat history:", error);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const clearHistory = async () => {
+    if (!user || messages.length <= 1) return;
+    if (!confirm("Tem certeza que deseja apagar todo o histórico de conversas?")) return;
+
+    try {
+      const q = query(collection(db, "users", user.uid, "assistant_chat"));
+      const snapshot = await getDocs(q);
+      const batch = writeBatch(db);
+      snapshot.docs.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+    } catch (error) {
+      console.error("Error clearing history:", error);
+    }
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -46,10 +95,21 @@ export default function Assistant() {
 
     const userMessage = input.trim();
     setInput("");
-    setMessages(prev => [...prev, { role: "user", content: userMessage }]);
+    
     setLoading(true);
 
     try {
+      // Optimistic UI for non-logged users
+      if (!user) {
+        setMessages(prev => [...prev, { role: "user", content: userMessage }]);
+      } else {
+        await addDoc(collection(db, "users", user.uid, "assistant_chat"), {
+          role: "user",
+          content: userMessage,
+          createdAt: serverTimestamp()
+        });
+      }
+
       const ai = getAi();
       
       const systemInstruction = `Você é um assistente bíblico sábio, acolhedor e profundo.
@@ -60,9 +120,19 @@ export default function Assistant() {
       Não dê conselhos médicos ou financeiros complexos, foque na sabedoria espiritual.
       Use Markdown para formatar as citações bíblicas.`;
 
+      // Transform history for Gemini (expects 'user' and 'model')
+      const chatHistory = messages
+        .filter(m => m.role === 'user' || m.role === 'assistant')
+        .slice(-6) // Include last 6 messages for context
+        .map(m => ({
+          role: m.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: m.content }]
+        }));
+
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: [
+          ...chatHistory,
           { role: "user", parts: [{ text: userMessage }] }
         ],
         config: {
@@ -70,7 +140,17 @@ export default function Assistant() {
         }
       });
 
-      setMessages(prev => [...prev, { role: "assistant", content: response.text }]);
+      const assistantMessage = response.text;
+      
+      if (!user) {
+        setMessages(prev => [...prev, { role: "assistant", content: assistantMessage }]);
+      } else {
+        await addDoc(collection(db, "users", user.uid, "assistant_chat"), {
+          role: "assistant",
+          content: assistantMessage,
+          createdAt: serverTimestamp()
+        });
+      }
       } catch (error: any) {
         console.error("Error in assistant chat:", error);
         
@@ -108,8 +188,19 @@ export default function Assistant() {
              <Sparkles className="w-3 h-3" /> Inteligência com Sabedoria
           </div>
         </div>
-        <div className="hidden md:flex items-center gap-3 px-4 py-2 rounded-xl bg-amber/5 border border-amber/10 text-[10px] text-pearl/40 font-bold uppercase">
-           <ShieldCheck className="w-4 h-4 text-amber" /> Respostas Baseadas na Palavra
+        <div className="flex items-center gap-2">
+           {user && messages.length > 1 && (
+             <button 
+               onClick={clearHistory}
+               className="p-2 rounded-xl hover:bg-white/5 text-pearl/20 hover:text-red-400 transition-colors"
+               title="Limpar Histórico"
+             >
+               <Trash2 className="w-5 h-5" />
+             </button>
+           )}
+           <div className="hidden md:flex items-center gap-3 px-4 py-2 rounded-xl bg-amber/5 border border-amber/10 text-[10px] text-pearl/40 font-bold uppercase">
+              <ShieldCheck className="w-4 h-4 text-amber" /> Respostas Baseadas na Palavra
+           </div>
         </div>
       </header>
 
@@ -208,7 +299,7 @@ export default function Assistant() {
           </div>
         </div>
         <div className="mt-3 flex items-center justify-center gap-4 text-[10px] text-pearl/20 uppercase font-bold tracking-widest">
-           <span className="flex items-center gap-1"><Info className="w-3 h-3" /> O histórico é salvo localmente</span>
+           <span className="flex items-center gap-1"><Info className="w-3 h-3" /> {user ? "Histórico salvo na conta" : "Histórico local temporário"}</span>
            <span className="w-1 h-1 bg-white/10 rounded-full" />
            <span>Respostas geradas por IA</span>
         </div>

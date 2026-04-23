@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Mic, Square, Play, Trash2, Pause, Volume2, SkipBack, SkipForward, VolumeX, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../../lib/utils";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { storage } from "../../lib/firebase";
 
 interface AudioRecorderProps {
@@ -16,126 +16,179 @@ interface AudioRecorderProps {
 export function AudioRecorder({ onAudioUploaded, userId, existingAudioUrl, onDeleteExisting, onUploadingChange }: AudioRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-
-  const isUploadingRef = useRef(false);
-
-  useEffect(() => {
-    isUploadingRef.current = isUploading;
-    if (onUploadingChange) onUploadingChange(isUploading);
-  }, [isUploading, onUploadingChange]);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(existingAudioUrl || null);
+  
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const uploadTaskRef = useRef<any>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Status for playback UI
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
-  
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     setAudioUrl(existingAudioUrl || null);
   }, [existingAudioUrl]);
 
   useEffect(() => {
-    if (isRecording) {
-      timerRef.current = setInterval(() => {
-        setRecordingTime((prev) => prev + 1);
-      }, 1000);
-    } else {
-      if (timerRef.current) clearInterval(timerRef.current);
-    }
+    if (onUploadingChange) onUploadingChange(isUploading);
+  }, [isUploading, onUploadingChange]);
+
+  // Clean up on unmount
+  useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (uploadTaskRef.current) uploadTaskRef.current.cancel();
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
     };
-  }, [isRecording]);
+  }, []);
+
+  const getSupportedMimeType = () => {
+    const types = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/ogg;codecs=opus',
+      'audio/mp4',
+      'audio/aac',
+      'audio/wav'
+    ];
+    for (const type of types) {
+      if (MediaRecorder.isTypeSupported(type)) return type;
+    }
+    return '';
+  };
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm') 
-        ? 'audio/webm' 
-        : MediaRecorder.isTypeSupported('audio/ogg')
-          ? 'audio/ogg'
-          : 'audio/mp4';
+      console.log("Starting recording process...");
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        } 
+      });
 
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
-      mediaRecorderRef.current = mediaRecorder;
+      const mimeType = getSupportedMimeType();
+      console.log("Using MIME type:", mimeType);
+
+      if (!mimeType) {
+        throw new Error("Nenhum formato de áudio suportado encontrado neste navegador.");
+      }
+
+      const options: MediaRecorderOptions = { mimeType };
+      // Safely apply bitrate if supported (some Safari versions might be picky)
+      try {
+        const testRecorder = new MediaRecorder(stream, { ...options, audioBitsPerSecond: 64000 });
+        mediaRecorderRef.current = testRecorder;
+      } catch (e) {
+        console.warn("Bitrate adjustment not supported, using default", e);
+        mediaRecorderRef.current = new MediaRecorder(stream, options);
+      }
+
       chunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (e) => {
+      mediaRecorderRef.current.ondataavailable = (e) => {
         if (e.data.size > 0) {
           chunksRef.current.push(e.data);
         }
       };
 
-      mediaRecorder.onstop = async () => {
-        const currentMimeType = mediaRecorder.mimeType || mimeType;
-        const blob = new Blob(chunksRef.current, { type: currentMimeType });
-        setAudioBlob(blob);
-        const url = URL.createObjectURL(blob);
-        setAudioUrl(url);
-        
-        setIsUploading(true);
-        // Clear parent URL while uploading a new one to prevent saving stale data
-        onAudioUploaded(null);
+      mediaRecorderRef.current.onstop = async () => {
+        console.log("Recording stopped. Processing chunks...");
+        const finalBlob = new Blob(chunksRef.current, { type: mimeType });
+        console.log("Blob created. Size:", finalBlob.size);
 
-        const uploadTimeout = setTimeout(() => {
-          if (isUploadingRef.current) {
-            setIsUploading(false);
-          }
-        }, 30000); // 30s timeout
+        if (finalBlob.size === 0) {
+          setIsUploading(false);
+          alert("O áudio gravado está vazio. Tente gravar novamente.");
+          return;
+        }
+
+        const localUrl = URL.createObjectURL(finalBlob);
+        setAudioUrl(localUrl);
+        setIsUploading(true);
+        setUploadProgress(0);
 
         try {
-          const extension = currentMimeType.split('/')[1]?.split(';')[0] || 'webm';
-          const fileRef = ref(storage, `users/${userId}/journal_audio/${Date.now()}.${extension}`);
+          const extension = mimeType.split('/')[1]?.split(';')[0] || 'webm';
+          const fileName = `${userId}_${Date.now()}.${extension}`;
+          const fileRef = ref(storage, `users/${userId}/journal_audio/${fileName}`);
           
-          await uploadBytes(fileRef, blob, { contentType: currentMimeType });
-          const downloadUrl = await getDownloadURL(fileRef);
-          
-          // Only update parent if we are still the relevant upload
-          onAudioUploaded(downloadUrl);
-        } catch (err) {
-          console.error("Upload error caught:", err);
+          console.log("Starting upload to Firebase Storage...");
+          const uploadTask = uploadBytesResumable(fileRef, finalBlob, { contentType: mimeType });
+          uploadTaskRef.current = uploadTask;
+
+          uploadTask.on('state_changed', 
+            (snapshot) => {
+              const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+              setUploadProgress(progress);
+              console.log(`Upload progress: ${progress.toFixed(2)}%`);
+            }, 
+            (error) => {
+              if (error.code === 'storage/canceled') {
+                console.log("Upload canceled.");
+                return;
+              }
+              console.error("Upload error:", error);
+              setIsUploading(false);
+              alert("Falha no upload do áudio. Verifique sua conexão.");
+            }, 
+            async () => {
+              const downloadUrl = await getDownloadURL(fileRef);
+              console.log("Upload complete. Download URL:", downloadUrl);
+              onAudioUploaded(downloadUrl);
+              setIsUploading(false);
+              uploadTaskRef.current = null;
+            }
+          );
+        } catch (uploadErr) {
+          console.error("Upload setup error:", uploadErr);
           setIsUploading(false);
-          // If upload fails, notify parent that we have no remote URL
-          onAudioUploaded(null);
-          alert("Não conseguimos salvar seu áudio na nuvem. Você pode salvar o texto ou tentar gravar novamente.");
         } finally {
-          clearTimeout(uploadTimeout);
-          setIsUploading(false);
           stream.getTracks().forEach(track => track.stop());
         }
       };
 
-      mediaRecorder.start();
+      // Use a timeslice to ensure dataavailable is called regularly
+      mediaRecorderRef.current.start(1000);
       setIsRecording(true);
       setRecordingTime(0);
       setAudioUrl(null);
-      setAudioBlob(null);
-      setCurrentTime(0);
-      setDuration(0);
-    } catch (err) {
-      console.error("Erro ao acessar microfone:", err);
-      alert("Não foi possível acessar o microfone. Verifique as permissões do navegador.");
+      
+      // Start timer manually to ensure it runs immediately
+      if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+
+    } catch (err: any) {
+      console.error("Microphone access or recorder start error:", err);
+      alert(`Erro: ${err.message || "Não foi possível acessar o microfone."}`);
     }
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     }
   };
 
   const deleteRecording = () => {
-    setAudioBlob(null);
     setAudioUrl(null);
     onAudioUploaded(null);
     if (onDeleteExisting) onDeleteExisting();
@@ -226,17 +279,20 @@ export function AudioRecorder({ onAudioUploaded, userId, existingAudioUrl, onDel
         )}
 
         {isUploading && (
-          <div className="flex flex-col items-end gap-1">
+          <div className="flex flex-col items-end gap-1 w-full max-w-[200px]">
             <div className="flex items-center gap-2 text-amber text-[10px] font-bold uppercase tracking-wider">
-              <Loader2 className="w-3 h-3 animate-spin" /> Consagrando áudio...
+              <Loader2 className="w-3 h-3 animate-spin" /> 
+              {uploadProgress < 100 ? `Otimizando Áudio (${uploadProgress.toFixed(0)}%)` : "Salvando..."}
             </div>
-            <button 
-              type="button"
-              onClick={() => setIsUploading(false)}
-              className="text-[8px] text-pearl/40 hover:text-amber underline decoration-dotted"
-            >
-              Cancelar Espera
-            </button>
+            <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+               <motion.div 
+                 initial={{ width: 0 }}
+                 animate={{ width: `${uploadProgress}%` }}
+                 transition={{ type: "spring", stiffness: 50, damping: 20 }}
+                 className="h-full bg-amber shadow-[0_0_10px_rgba(201,168,76,0.5)]" 
+               />
+            </div>
+            <p className="text-[9px] text-pearl/30 uppercase mt-1">Sua mensagem está sendo processada</p>
           </div>
         )}
 

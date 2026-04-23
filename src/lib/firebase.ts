@@ -11,7 +11,15 @@ export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId)
 export const storage = getStorage(app);
 
 // Messaging is only supported in some environments (e.g. not in all browser iframes)
-export const messaging = typeof window !== 'undefined' ? getMessaging(app) : null;
+let messagingInstance = null;
+if (typeof window !== 'undefined') {
+  try {
+    messagingInstance = getMessaging(app);
+  } catch (e) {
+    console.warn("Firebase Messaging not supported in this environment:", e);
+  }
+}
+export const messaging = messagingInstance;
 export { onMessage };
 
 // Connection test as per instructions

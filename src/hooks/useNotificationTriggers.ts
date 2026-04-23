@@ -25,7 +25,7 @@ export function useNotificationTriggers() {
           const msgTime = msg.createdAt?.toMillis() || Date.now();
           
           if (msg.userId !== user.uid && msgTime > lastChatTime.current) {
-            if (Notification.permission === 'granted') {
+            if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
               new Notification(`Nova mensagem de ${msg.userName}`, {
                 body: msg.text,
                 icon: '/vite.svg'
@@ -54,7 +54,7 @@ export function useNotificationTriggers() {
         if (change.type === "modified") {
           const req = change.doc.data();
           if (req.status === "Respondido") {
-            if (Notification.permission === 'granted') {
+            if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
               new Notification("Oração Respondida! 🙌", {
                 body: `Deus ouviu seu clamor: "${req.title}". Veja o testemunho!`,
                 icon: '/vite.svg'
@@ -71,7 +71,7 @@ export function useNotificationTriggers() {
        const today = new Date().toDateString();
        
        if (lastReminder !== today) {
-          if (Notification.permission === 'granted') {
+          if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
              new Notification("Momento com Deus", {
                body: "Que tal fazer seu devocional de hoje? Fortaleça seu espírito!",
                icon: '/vite.svg'

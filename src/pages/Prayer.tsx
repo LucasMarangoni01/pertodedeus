@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Plus, MessageCircle, CheckCircle2, History, Timer, Info, Send, Heart, BookOpen, Trash2 } from "lucide-react";
+import { Plus, MessageCircle, CheckCircle2, History, Timer, Info, Send, Heart, BookOpen, Trash2, Search, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../lib/firebase";
 import { collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, updateDoc, doc, deleteDoc } from "firebase/firestore";
@@ -21,6 +21,7 @@ export default function Prayer() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [answeringId, setAnsweringId] = useState<string | null>(null);
   const [testimonyDraft, setTestimonyDraft] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Form State
   const [newRequest, setNewRequest] = useState({
@@ -132,18 +133,46 @@ export default function Prayer() {
             exit={{ opacity: 0, y: -10 }}
             className="space-y-6"
           >
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <h2 className="text-xl font-display font-bold">Pedidos Ativos</h2>
-              <button 
-                onClick={() => setIsModalOpen(true)}
-                className="flex items-center gap-2 bg-amber/10 text-amber hover:bg-amber hover:text-navy px-4 py-2 rounded-xl transition-all font-bold"
-              >
-                <Plus className="w-5 h-5" /> Novo Pedido
-              </button>
+              
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                <div className="relative flex-1 md:w-64 group">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-pearl/20 group-focus-within:text-amber transition-colors" />
+                  <input 
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Filtrar orações..."
+                    className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-10 pr-4 text-xs outline-none focus:border-amber/50 transition-all"
+                  />
+                  {searchQuery && (
+                    <button 
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-white/10 rounded-full text-pearl/20 hover:text-pearl"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+
+                <button 
+                  onClick={() => setIsModalOpen(true)}
+                  className="flex items-center gap-2 bg-amber/10 text-amber hover:bg-amber hover:text-navy px-4 py-2 rounded-xl transition-all font-bold text-xs"
+                >
+                  <Plus className="w-4 h-4" /> Novo
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {requests.filter(r => r.status === "Em oração").map((request) => (
+              {requests
+                .filter(r => r.status === "Em oração")
+                .filter(r => 
+                  r.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                  r.description.toLowerCase().includes(searchQuery.toLowerCase())
+                )
+                .map((request) => (
                 <div key={request.id} className="glow-card flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between mb-4">
@@ -212,9 +241,37 @@ export default function Prayer() {
 
         {activeTab === "history" && (
            <motion.div key="history" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-             <h2 className="text-xl font-display font-bold">Mural de Graças</h2>
+             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+               <h2 className="text-xl font-display font-bold">Mural de Graças</h2>
+               
+               <div className="relative w-full md:w-64 group">
+                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-pearl/20 group-focus-within:text-amber transition-colors" />
+                 <input 
+                   type="text"
+                   value={searchQuery}
+                   onChange={(e) => setSearchQuery(e.target.value)}
+                   placeholder="Buscar testemunhos..."
+                   className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-10 pr-4 text-xs outline-none focus:border-amber/50 transition-all"
+                 />
+                 {searchQuery && (
+                   <button 
+                     onClick={() => setSearchQuery("")}
+                     className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-white/10 rounded-full text-pearl/20 hover:text-pearl"
+                   >
+                     <X className="w-3 h-3" />
+                   </button>
+                 )}
+               </div>
+             </div>
+
              <div className="space-y-6">
-                {requests.filter(r => r.status === "Respondido").map((request) => (
+                {requests
+                  .filter(r => r.status === "Respondido")
+                  .filter(r => 
+                    r.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                    (r.testimony && r.testimony.toLowerCase().includes(searchQuery.toLowerCase()))
+                  )
+                  .map((request) => (
                   <div key={request.id} className="glow-card border-l-4 border-l-amber relative group">
                     <button 
                       onClick={() => setConfirmDeleteId(request.id)}

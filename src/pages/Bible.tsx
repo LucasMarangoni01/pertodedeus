@@ -35,6 +35,7 @@ export default function Bible() {
   const [fontSize, setFontSize] = useState(18);
   const [audioSpeed, setAudioSpeed] = useState(1);
   const [selectedVerses, setSelectedVerses] = useState<number[]>([]);
+  const [activeTestament, setActiveTestament] = useState<'Velho' | 'Novo'>('Velho');
   const [selectedVersion, setSelectedVersion] = useState("ARA");
 
   const [nativeVoices, setNativeVoices] = useState<{id: string, name: string}[]>([]);
@@ -137,13 +138,17 @@ export default function Bible() {
     fetchBooks();
   }, [selectedVersion]);
 
-  // Livros formatados para a UI
+  // Livros formatados para a UI com informação de testamento
   const books = useMemo(() => {
-    return dynamicBooks.map(b => ({
-      name: b.name,
-      chapters: b.chapters,
-      bollsId: b.bookid
-    }));
+    return dynamicBooks.map(b => {
+      const staticInfo = bibleBooks.find(sb => sb.bollsId === b.bookid);
+      return {
+        name: b.name,
+        chapters: b.chapters,
+        bollsId: b.bookid,
+        testament: staticInfo?.testament || (b.bookid <= 39 ? 'Velho' : 'Novo')
+      };
+    });
   }, [dynamicBooks]);
 
   // Fallback de compatibilidade ao trocar de versão (Preservar livro/capítulo)
@@ -260,40 +265,77 @@ export default function Bible() {
         </div>
 
         {!selectedBook && (
-          <div className="flex items-center justify-between px-1 mb-4">
-             <span className="text-[10px] text-amber/60 font-bold uppercase tracking-widest leading-none">
-               {loadingBooks ? (
-                 <span className="animate-pulse">Sincronizando livros...</span>
-               ) : (
-                 `${books.length} Livros disponíveis`
-               )}
-             </span>
-             {searchQuery && !loadingBooks && (
-               <span className="text-[9px] text-pearl/30 font-medium">
-                 {books.filter(b => b.name.toLowerCase().includes(searchQuery.toLowerCase())).length} encontrados
+          <div className="flex flex-col gap-4 mb-6">
+            <div className="flex p-1 bg-white/5 rounded-xl border border-amber/5">
+               <button 
+                 onClick={() => setActiveTestament('Velho')}
+                 className={cn(
+                   "flex-1 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all",
+                   activeTestament === 'Velho' ? "bg-amber text-navy shadow-lg" : "text-pearl/40 hover:text-pearl/60"
+                 )}
+               >
+                 Antigo
+               </button>
+               <button 
+                 onClick={() => setActiveTestament('Novo')}
+                 className={cn(
+                   "flex-1 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all",
+                   activeTestament === 'Novo' ? "bg-amber text-navy shadow-lg" : "text-pearl/40 hover:text-pearl/60"
+                 )}
+               >
+                 Novo
+               </button>
+            </div>
+
+            <div className="flex items-center justify-between px-1">
+               <span className="text-[10px] text-amber/60 font-bold uppercase tracking-widest leading-none">
+                 {loadingBooks ? (
+                   <span className="animate-pulse">Sincronizando...</span>
+                 ) : searchQuery ? (
+                   "Busca Global"
+                 ) : (
+                   `${activeTestament === 'Velho' ? 'Antigo' : 'Novo'} Testamento`
+                 )}
                </span>
-             )}
+               {!loadingBooks && (
+                 <span className="text-[9px] text-pearl/30 font-medium">
+                   {searchQuery 
+                     ? `${books.filter(b => b.name.toLowerCase().includes(searchQuery.toLowerCase())).length} resultados`
+                     : `${books.filter(b => b.testament === activeTestament).length} Livros`
+                   }
+                 </span>
+               )}
+            </div>
           </div>
         )}
 
         {!selectedBook ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-1 gap-2">
-            {books.filter(b => b.name.toLowerCase().includes(searchQuery.toLowerCase())).map(book => (
-              <button 
-                key={book.name}
-                onClick={() => {
-                  setSelectedBook(book.name);
-                  setSelectedBookId(book.bollsId);
-                }}
-                className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-white/5 text-left group"
-              >
-                <div className="flex items-center gap-3">
-                   <Book className="w-4 h-4 text-amber/40 group-hover:text-amber" />
-                   <span className="font-medium text-sm">{book.name}</span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-pearl/20" />
-              </button>
-            ))}
+            {books
+              .filter(b => searchQuery ? true : b.testament === activeTestament)
+              .filter(b => b.name.toLowerCase().includes(searchQuery.toLowerCase()))
+              .map(book => (
+                <button 
+                  key={book.name}
+                  onClick={() => {
+                    setSelectedBook(book.name);
+                    setSelectedBookId(book.bollsId);
+                  }}
+                  className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-white/5 text-left group"
+                >
+                  <div className="flex items-center gap-3">
+                     <Book className="w-4 h-4 text-amber/40 group-hover:text-amber" />
+                     <span className="font-medium text-sm">{book.name}</span>
+                  </div>
+                  {searchQuery ? (
+                    <span className="text-[8px] px-1.5 py-0.5 rounded bg-white/10 text-pearl/40 uppercase font-bold">
+                      {book.testament === 'Velho' ? 'AT' : 'NT'}
+                    </span>
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-pearl/20" />
+                  )}
+                </button>
+              ))}
           </div>
         ) : (
           <div className="space-y-6">

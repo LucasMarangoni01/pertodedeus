@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "motion/react";
 import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 import { db } from "../lib/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { Save, User, Bell, Lock, Globe, LogOut, ChevronRight, Moon, Sun, Languages } from "lucide-react";
@@ -11,6 +12,7 @@ const denominations = ["Católico", "Evangélico", "Batista", "Presbiteriano", "
 
 export default function Settings() {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -21,6 +23,15 @@ export default function Settings() {
     denomination: user?.denomination || "Sem denominação",
     isPublic: true,
   });
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate("/login");
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -72,7 +83,7 @@ export default function Settings() {
           ))}
           
           <button 
-            onClick={() => signOut()}
+            onClick={handleLogout}
             className="w-full flex items-center gap-3 p-4 rounded-2xl text-amber hover:bg-grape/40 transition-all font-bold text-sm mt-8 border border-grape"
           >
              <LogOut className="w-5 h-5" /> Sair da Conta

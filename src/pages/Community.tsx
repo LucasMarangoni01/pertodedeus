@@ -387,7 +387,36 @@ export default function Community() {
              </div>
            )}
 
-           {activeTab === "testemunhos" && testimonials.map((t) => (
+           {activeTab === "testemunhos" && (
+             <div className="flex flex-col md:flex-row gap-4 mb-8">
+                <div className="relative flex-1 group">
+                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-pearl/20 group-focus-within:text-amber transition-colors" />
+                   <input 
+                     type="text"
+                     placeholder="Buscar testemunhos de vitória..."
+                     value={searchTerm}
+                     onChange={(e) => setSearchTerm(e.target.value)}
+                     className="w-full bg-white/5 border border-amber/10 rounded-2xl pl-11 pr-4 py-3 outline-none focus:border-amber transition-all text-sm"
+                   />
+                </div>
+                {searchTerm && (
+                  <button 
+                    onClick={() => setSearchTerm("")}
+                    className="px-4 py-2 text-xs font-bold text-amber hover:underline"
+                  >
+                    Limpar
+                  </button>
+                )}
+             </div>
+           )}
+
+           {activeTab === "testemunhos" && testimonials
+             .filter(t => 
+               (t.title || "")?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+               (t.content || "")?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+               (t.userName || "")?.toLowerCase().includes(searchTerm.toLowerCase())
+             )
+             .map((t) => (
              <motion.div 
                key={t.id}
                initial={{ opacity: 0, y: 10 }}

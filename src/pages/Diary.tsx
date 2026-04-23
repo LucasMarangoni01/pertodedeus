@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { PenTool, Calendar, Plus, Save, Hash, Smile, Search, ChevronLeft, ChevronRight, Trash2, BookOpen, Mic } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -9,6 +9,7 @@ import { cn } from "../lib/utils";
 import { storage } from "../lib/firebase";
 import { AudioRecorder } from "../components/diary/AudioRecorder";
 import { AudioPreview } from "../components/diary/AudioPreview";
+import { SpeechControls } from "../components/diary/SpeechControls";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -24,6 +25,7 @@ const moods = [
 export default function Diary() {
   const { user } = useAuth();
   const [entries, setEntries] = useState<any[]>([]);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -39,9 +41,25 @@ export default function Diary() {
   const [doDifferently, setDoDifferently] = useState("");
   const [audioUrl, setAudioUrl] = useState<string>("");
   const [isUploadingAudio, setIsUploadingAudio] = useState(false);
+  const audioUrlRef = useRef(audioUrl);
+
+  // Sync ref with state for background logic
+  useEffect(() => {
+    audioUrlRef.current = audioUrl;
+  }, [audioUrl]);
+
+  // Safely close editor and reset all related states
+  const closeEditor = () => {
+    setIsEditing(false);
+    setIsUploadingAudio(false);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setIsInitialLoading(false);
+      return;
+    }
     const q = query(
       collection(db, "users", user.uid, "journal"),
       orderBy("createdAt", "desc")
@@ -49,6 +67,10 @@ export default function Diary() {
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setEntries(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setIsInitialLoading(false);
+    }, (err) => {
+      console.error("Journal Error:", err);
+      setIsInitialLoading(false);
     });
 
     return () => unsubscribe();
@@ -80,7 +102,7 @@ export default function Diary() {
           createdAt: serverTimestamp()
         });
       }
-      setIsEditing(false);
+      closeEditor();
       resetForm();
     } catch (error) {
       console.error("Error saving entry:", error);
@@ -122,7 +144,7 @@ export default function Diary() {
     try {
       await deleteDoc(doc(db, "users", user!.uid, "journal", idToDelete));
       if (selectedEntry?.id === idToDelete) {
-        setIsEditing(false);
+        closeEditor();
         resetForm();
       }
       setConfirmDeleteId(null);
@@ -169,159 +191,185 @@ export default function Diary() {
 
         {/* Entries List */}
         <div className="lg:col-span-12 space-y-4">
-           {entries.map((entry) => (
-             <motion.div 
-               layout
-               key={entry.id}
-               onClick={() => startEdit(entry)}
-               className="glow-card border-amber/5 hover:border-amber/40 cursor-pointer flex flex-col md:flex-row md:items-center gap-6 group"
-             >
-                <div className="flex flex-row md:flex-col items-center justify-between md:justify-center md:min-w-[100px] gap-2 border-b md:border-b-0 md:border-r border-amber/10 pb-4 md:pb-0 md:pr-6">
-                   <div className="text-2xl">{moods.find(m => m.label === entry.mood)?.icon || "📖"}</div>
-                   <div className="text-center">
-                      <p className="text-xl font-display font-bold text-amber">
-                        {entry.createdAt?.toDate ? format(entry.createdAt.toDate(), "dd") : "--"}
-                      </p>
-                      <p className="text-[10px] text-pearl/40 uppercase font-bold">
-                        {entry.createdAt?.toDate ? format(entry.createdAt.toDate(), "MMM", { locale: ptBR }) : "..."}
-                      </p>
-                   </div>
-                </div>
+           {isInitialLoading ? (
+             Array.from({ length: 3 }).map((_, i) => (
+               <div key={i} className="glow-card h-32 animate-pulse bg-white/5 border-amber/5" />
+             ))
+           ) : entries.length === 0 ? (
+             <div className="py-20 text-center space-y-6 bg-white/5 border border-amber/10 rounded-[2.5rem]">
+               <BookOpen className="w-20 h-20 text-pearl/5 mx-auto" />
+               <div className="space-y-2">
+                 <p className="text-2xl font-display font-medium text-pearl/40">Seu diário está em branco</p>
+                 <p className="text-pearl/20 max-w-sm mx-auto">Comece a registrar suas experiências, aprendizados e o que Deus tem falado com você.</p>
+               </div>
+               <button 
+                 onClick={() => { resetForm(); setIsEditing(true); }}
+                 className="text-amber font-bold p-3 px-6 rounded-xl border border-amber/20 hover:bg-amber/10 transition-all"
+               >
+                 Criar Primeiro Registro
+               </button>
+             </div>
+           ) : (
+             entries.map((entry) => (
+               <motion.div 
+                 layout
+                 key={entry.id}
+                 onClick={() => startEdit(entry)}
+                 className="glow-card border-amber/5 hover:border-amber/40 cursor-pointer flex flex-col md:flex-row md:items-center gap-6 group"
+               >
+                  <div className="flex flex-row md:flex-col items-center justify-between md:justify-center md:min-w-[100px] gap-2 border-b md:border-b-0 md:border-r border-amber/10 pb-4 md:pb-0 md:pr-6">
+                     <div className="text-2xl">{moods.find(m => m.label === entry.mood)?.icon || "📖"}</div>
+                     <div className="text-center">
+                        <p className="text-xl font-display font-bold text-amber">
+                          {entry.createdAt?.toDate ? format(entry.createdAt.toDate(), "dd") : "--"}
+                        </p>
+                        <p className="text-[10px] text-pearl/40 uppercase font-bold">
+                          {entry.createdAt?.toDate ? format(entry.createdAt.toDate(), "MMM", { locale: ptBR }) : "..."}
+                        </p>
+                     </div>
+                  </div>
 
-                <div className="flex-1 space-y-2">
-                   <p className="text-pearl/80 line-clamp-2 md:line-clamp-1 font-serif text-lg leading-relaxed">
-                     {entry.content}
-                   </p>
-                   <div className="flex flex-wrap gap-2">
-                      {entry.tags?.map((tag: string) => (
-                        <span key={tag} className="text-[10px] text-amber/60 bg-amber/5 px-2 py-0.5 rounded border border-amber/10">#{tag}</span>
-                      ))}
-                      {entry.godSpoke && <span className="text-[10px] text-grape/60 bg-grape/5 px-2 py-0.5 rounded border border-grape/10 font-bold">DEUS FALOU</span>}
-                      {entry.audioUrl && (
-                        <div className="flex items-center gap-2">
-                           <span className="text-[10px] text-amber/60 bg-amber/5 px-2 py-0.5 rounded border border-amber/10 flex items-center gap-1">
-                             <Mic className="w-2 h-2" /> VIVA VOZ
-                           </span>
-                           <AudioPreview url={entry.audioUrl} />
+                  <div className="flex-1 space-y-2">
+                     <p className="text-pearl/80 line-clamp-2 md:line-clamp-1 font-serif text-lg leading-relaxed">
+                       {entry.content}
+                     </p>
+                     <div className="flex flex-wrap gap-2">
+                        {entry.tags?.map((tag: string) => (
+                          <span key={tag} className="text-[10px] text-amber/60 bg-amber/5 px-2 py-0.5 rounded border border-amber/10">#{tag}</span>
+                        ))}
+                        {entry.godSpoke && <span className="text-[10px] text-grape/60 bg-grape/5 px-2 py-0.5 rounded border border-grape/10 font-bold">DEUS FALOU</span>}
+                        {entry.audioUrl && (
+                          <div className="flex items-center gap-2">
+                             <span className="text-[10px] text-amber/60 bg-amber/5 px-2 py-0.5 rounded border border-amber/10 flex items-center gap-1">
+                               <Mic className="w-2 h-2" /> VIVA VOZ
+                             </span>
+                             <AudioPreview url={entry.audioUrl} />
+                          </div>
+                        )}
+                        <div className="pt-2">
+                          <SpeechControls text={entry.content} />
                         </div>
-                      )}
-                   </div>
-                </div>
+                     </div>
+                  </div>
 
-                   <div className="flex flex-col gap-2">
-                     <button className="md:opacity-0 group-hover:opacity-100 p-2 text-pearl/20 hover:text-amber transition-all">
-                        <ChevronRight className="w-5 h-5" />
-                     </button>
-                     <button 
-                       onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(entry.id); }}
-                       disabled={deletingId === entry.id}
-                       className="p-2 text-pearl/40 hover:text-pearl transition-all md:opacity-0 group-hover:opacity-100 disabled:opacity-50"
-                       title="Excluir"
-                     >
-                       <Trash2 className={cn("w-5 h-5", deletingId === entry.id && "animate-pulse")} />
-                     </button>
-                   </div>
-             </motion.div>
-           ))}
+                     <div className="flex flex-col gap-2">
+                       <button className="md:opacity-0 group-hover:opacity-100 p-2 text-pearl/20 hover:text-amber transition-all">
+                          <ChevronRight className="w-5 h-5" />
+                       </button>
+                       <button 
+                         onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(entry.id); }}
+                         disabled={deletingId === entry.id}
+                         className="p-2 text-pearl/40 hover:text-pearl transition-all md:opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                         title="Excluir"
+                       >
+                         <Trash2 className={cn("w-5 h-5", deletingId === entry.id && "animate-pulse")} />
+                       </button>
+                     </div>
+               </motion.div>
+             ))
+           )}
         </div>
       </div>
 
       {/* Editor Modal */}
       <AnimatePresence>
         {isEditing && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-10 bg-navy/95 backdrop-blur-md">
+          <div className="fixed inset-0 z-50 flex items-center justify-center sm:p-4 md:p-10 bg-navy/95 backdrop-blur-md">
              <motion.div 
                initial={{ opacity: 0, y: 50 }}
                animate={{ opacity: 1, y: 0 }}
                exit={{ opacity: 0, scale: 0.95 }}
-               className="bg-navy border border-amber/20 w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[2.5rem] flex flex-col shadow-[0_0_100px_rgba(201,168,76,0.15)]"
+               className="bg-navy border border-amber/20 w-full max-w-4xl h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto sm:rounded-[2.5rem] flex flex-col shadow-[0_0_100px_rgba(201,168,76,0.15)]"
              >
-                <header className="p-8 border-b border-amber/10 flex items-center justify-between sticky top-0 bg-navy z-10">
-                   <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-amber/10 rounded-2xl flex items-center justify-center text-amber">
-                         <PenTool className="w-6 h-6" />
+                <header className="p-4 sm:p-8 border-b border-amber/10 flex items-center justify-between sticky top-0 bg-navy z-10">
+                   <div className="flex items-center gap-3 sm:gap-4">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber/10 rounded-xl sm:rounded-2xl flex items-center justify-center text-amber">
+                         <PenTool className="w-5 h-5 sm:w-6 sm:h-6" />
                       </div>
                       <div>
-                        <h2 className="text-2xl font-display font-bold">Meu Diário</h2>
-                        <p className="text-pearl/40 text-xs font-bold uppercase tracking-widest">{format(new Date(), "PPPP", { locale: ptBR })}</p>
+                        <h2 className="text-lg sm:text-2xl font-display font-bold">Meu Diário</h2>
+                        <p className="text-pearl/40 text-[10px] font-bold uppercase tracking-widest">{format(new Date(), "PPPP", { locale: ptBR })}</p>
                       </div>
                    </div>
-                   <button onClick={() => setIsEditing(false)} className="text-pearl/40 hover:text-pearl transition-colors">✕ Fechar</button>
+                   <div className="flex items-center gap-3 sm:gap-4">
+                      <SpeechControls text={content} className="scale-90 sm:scale-100" />
+                      <button onClick={closeEditor} className="text-pearl/40 hover:text-pearl transition-colors text-sm sm:text-base whitespace-nowrap">✕ Fechar</button>
+                   </div>
                 </header>
 
-                <div className="p-8 space-y-10">
+                <div className="p-4 sm:p-8 space-y-6 sm:space-y-10">
                    {/* Mood Selector */}
-                   <div className="space-y-4">
-                      <label className="text-xs font-bold text-pearl/40 uppercase tracking-widest">Como está seu coração hoje?</label>
-                      <div className="flex flex-wrap gap-3">
+                   <div className="space-y-3 sm:space-y-4">
+                      <label className="text-[10px] font-bold text-pearl/40 uppercase tracking-widest">Como está seu coração hoje?</label>
+                      <div className="flex flex-wrap gap-2 sm:gap-3">
                          {moods.map((m) => (
                            <button
                              key={m.label}
                              onClick={() => setMood(m.label)}
                              className={cn(
-                               "flex items-center gap-2 px-5 py-3 rounded-2xl border transition-all text-sm",
+                               "flex items-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-5 sm:py-3 rounded-xl sm:rounded-2xl border transition-all text-xs sm:text-sm",
                                mood === m.label 
                                  ? "bg-amber border-amber text-navy font-bold shadow-[0_0_20px_rgba(201,168,76,0.3)]"
                                  : "bg-white/5 border-amber/10 text-pearl/60 hover:border-amber/40"
                              )}
                            >
-                             <span className="text-lg">{m.icon}</span> {m.label}
+                             <span className="text-base sm:text-lg">{m.icon}</span> {m.label}
                            </button>
                          ))}
                       </div>
                    </div>
 
-                   <div className="space-y-8">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="space-y-4">
-                          <label className="text-xs font-bold text-pearl/40 uppercase tracking-widest flex items-center gap-2">
+                   <div className="space-y-6 sm:space-y-8">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+                        <div className="space-y-3 sm:space-y-4">
+                          <label className="text-[10px] font-bold text-pearl/40 uppercase tracking-widest flex items-center gap-2">
                              <Smile className="w-4 h-4 text-amber" /> O que estou sentindo?
                           </label>
                           <textarea 
                             value={content}
                             onChange={e => setContent(e.target.value)}
                             placeholder="Desabafe livremente..."
-                            className="w-full bg-white/5 border border-amber/10 rounded-3xl p-6 font-serif text-lg focus:border-amber outline-none transition-colors min-h-[160px] resize-none"
+                            className="w-full bg-white/5 border border-amber/10 rounded-2xl sm:rounded-3xl p-4 sm:p-6 font-serif text-base sm:text-lg focus:border-amber outline-none transition-colors min-h-[120px] sm:min-h-[160px] resize-none"
                           />
                         </div>
                         
-                        <div className="space-y-4">
-                           <label className="text-xs font-bold text-pearl/40 uppercase tracking-widest flex items-center gap-2">
+                        <div className="space-y-3 sm:space-y-4">
+                           <label className="text-[10px] font-bold text-pearl/40 uppercase tracking-widest flex items-center gap-2">
                               <Hash className="w-4 h-4 text-rose-400" /> O que me levou a isso?
                            </label>
                            <textarea 
                              value={ledToThis}
                              onChange={e => setLedToThis(e.target.value)}
                              placeholder="Ex: Uma conversa difícil, cansaço, tédio..."
-                             className="w-full bg-white/5 border border-amber/10 rounded-3xl p-6 font-serif text-lg focus:border-amber outline-none transition-colors min-h-[160px] resize-none"
+                             className="w-full bg-white/5 border border-amber/10 rounded-2xl sm:rounded-3xl p-4 sm:p-6 font-serif text-base sm:text-lg focus:border-amber outline-none transition-colors min-h-[120px] sm:min-h-[160px] resize-none"
                            />
                         </div>
 
-                        <div className="space-y-4">
-                           <label className="text-xs font-bold text-pearl/40 uppercase tracking-widest flex items-center gap-2">
+                        <div className="space-y-3 sm:space-y-4">
+                           <label className="text-[10px] font-bold text-pearl/40 uppercase tracking-widest flex items-center gap-2">
                               <BookOpen className="w-4 h-4 text-amber" /> O que aprendi?
                            </label>
                            <textarea 
                              value={learning}
                              onChange={e => setLearning(e.target.value)}
                              placeholder="Onde Deus esteve no meio de tudo isso?"
-                             className="w-full bg-white/5 border border-amber/10 rounded-3xl p-6 font-serif text-lg focus:border-amber outline-none transition-colors min-h-[160px] resize-none"
+                             className="w-full bg-white/5 border border-amber/10 rounded-2xl sm:rounded-3xl p-4 sm:p-6 font-serif text-base sm:text-lg focus:border-amber outline-none transition-colors min-h-[120px] sm:min-h-[160px] resize-none"
                            />
                         </div>
 
-                        <div className="space-y-4">
-                           <label className="text-xs font-bold text-pearl/40 uppercase tracking-widest flex items-center gap-2">
+                        <div className="space-y-3 sm:space-y-4">
+                           <label className="text-[10px] font-bold text-pearl/40 uppercase tracking-widest flex items-center gap-2">
                               <ChevronRight className="w-4 h-4 text-pearl" /> O que vou fazer diferente?
                            </label>
                            <textarea 
                              value={doDifferently}
                              onChange={e => setDoDifferently(e.target.value)}
                              placeholder="Qual a sua ação prática de mudança amanhã?"
-                             className="w-full bg-white/5 border border-amber/10 rounded-3xl p-6 font-serif text-lg focus:border-amber outline-none transition-colors min-h-[160px] resize-none"
+                             className="w-full bg-white/5 border border-amber/10 rounded-2xl sm:rounded-3xl p-4 sm:p-6 font-serif text-base sm:text-lg focus:border-amber outline-none transition-colors min-h-[120px] sm:min-h-[160px] resize-none"
                            />
                         </div>
 
-                        <div className="space-y-4 md:col-span-2 pt-4">
+                        <div className="sm:col-span-2 pt-2 sm:pt-4">
                            <AudioRecorder 
                              userId={user.uid}
                              onAudioUploaded={(url) => setAudioUrl(url || "")} 
@@ -334,23 +382,23 @@ export default function Diary() {
                    </div>
                 </div>
 
-                <footer className="p-8 border-t border-amber/10 flex items-center justify-between gap-4 bg-navy/80 backdrop-blur-md sticky bottom-0">
+                <footer className="p-6 sm:p-8 border-t border-amber/10 flex items-center justify-between gap-3 sm:gap-4 bg-navy/80 backdrop-blur-md sticky bottom-0">
                    {selectedEntry ? (
                      <button 
                        onClick={() => setConfirmDeleteId(selectedEntry.id)}
-                       className="flex items-center gap-2 text-grape hover:bg-grape/10 px-4 py-3 rounded-xl transition-all font-bold"
+                       className="flex items-center gap-2 text-grape hover:bg-grape/10 p-3 sm:px-4 sm:py-3 rounded-xl transition-all font-bold text-sm sm:text-base"
                      >
                        <Trash2 className="w-5 h-5" />
-                       <span className="hidden md:inline">Excluir Página</span>
+                       <span className="hidden sm:inline">Excluir Página</span>
                      </button>
                    ) : <div />}
                    
                    <button 
                      onClick={handleSave}
                      disabled={loading || isUploadingAudio || !content.trim()}
-                     className="flex items-center gap-3 bg-amber text-navy font-bold px-10 py-4 rounded-2xl shadow-xl hover:scale-105 transition-all disabled:opacity-50"
+                     className="flex-1 sm:flex-none flex items-center justify-center gap-2 sm:gap-3 bg-amber text-navy font-bold px-6 sm:px-10 py-4 rounded-2xl shadow-xl hover:scale-105 transition-all disabled:opacity-50 text-sm sm:text-base"
                    >
-                     {loading ? "Consagrando..." : isUploadingAudio ? "Subindo áudio..." : <><Save className="w-6 h-6" /> Guardar no Coração</>}
+                     {loading ? "Consagrando..." : isUploadingAudio ? "Subindo..." : <><Save className="w-5 h-5 sm:w-6 sm:h-6" /> Guardar</>}
                    </button>
                 </footer>
              </motion.div>

@@ -19,6 +19,9 @@ import Guide from "./pages/Guide";
 import ReadingPlans from "./pages/ReadingPlans";
 import Calculator from "./pages/Calculator";
 import Temptation from "./pages/Temptation";
+import ReligionQuiz from "./pages/ReligionQuiz";
+import StruggleTracker from "./pages/StruggleTracker";
+import Agenda from "./pages/Agenda";
 
 export default function App() {
   return (
@@ -30,6 +33,9 @@ export default function App() {
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/" element={<MainLayout />}>
               <Route index element={<Dashboard />} />
+              <Route path="quiz" element={<ReligionQuiz />} />
+              <Route path="struggles" element={<StruggleTracker />} />
+              <Route path="agenda" element={<Agenda />} />
               <Route path="bible" element={<Bible />} />
               <Route path="plans" element={<ReadingPlans />} />
               <Route path="calculator" element={<Calculator />} />
