@@ -8,41 +8,69 @@ import { cn } from "../lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-const struggleSuggestions = [
-  { 
-    sin: "Luxúria", 
-    advice: "Fuja das paixões da mocidade e siga a justiça, a fé, o amor e a paz. O seu corpo é templo do Espírito Santo; honre a Deus com ele e busque a pureza de pensamento e ação.",
-    verse: "2 Timothy 2:22 / 1 Corinthians 6:19-20"
+const struggleCategories = [
+  {
+    name: "7 Pecados Capitais",
+    items: [
+      { sin: "Orgulho", advice: "O orgulho é a raiz da queda. Busque a humildade de Cristo, que sendo Deus, se esvaziou por nós.", verse: "Provérbios 16:18" },
+      { sin: "Inveja", advice: "A inveja é como podridão nos ossos. Alegre-se com os que se alegram.", verse: "Provérbios 14:30" },
+      { sin: "Ira / Raiva", advice: "A ira do homem não produz a justiça de Deus. Peça ao Espírito Santo o fruto do domínio próprio.", verse: "Tiago 1:20" },
+      { sin: "Preguiça Espiritual", advice: "A caminhada cristã exige diligência. Comece com 5 minutos de oração hoje.", verse: "Efésios 5:14" },
+      { sin: "Avarícia / Ganância", advice: "O amor ao dinheiro é raiz de todos os males. Busque primeiro o Reino de Deus.", verse: "1 Timóteo 6:10" },
+      { sin: "Gula", advice: "Não seja dominado pelo ventre. O corpo é templo do Espírito Santo.", verse: "1 Coríntios 6:19" },
+      { sin: "Luxúria", advice: "Fuja das paixões da mocidade. Busque a pureza de pensamento e ação.", verse: "2 Timóteo 2:22" }
+    ]
   },
-  { 
-    sin: "Ira / Raiva", 
-    advice: "A ira do homem não produz a justiça de Deus. Quando sentir o sangue ferver, pare, respire e peça ao Espírito Santo o fruto do domínio próprio.",
-    verse: "Tiago 1:20"
+  {
+    name: "10 Mandamentos (Evangélicos)",
+    items: [
+      { sin: "Idolatria (Outros Deuses)", advice: "Não terás outros deuses diante de mim. Deus requer exclusividade.", verse: "Êxodo 20:3" },
+      { sin: "Imagens de Escultura", advice: "Não farás para ti imagem de escultura. Adore a Deus em espírito.", verse: "Êxodo 20:4" },
+      { sin: "Blasfêmia (Nome em Vão)", advice: "Não tomarás o nome do Senhor em vão. Deus é santo e Seu nome é digno.", verse: "Êxodo 20:7" },
+      { sin: "Negligência ao Dia do Senhor", advice: "Lembra-te do dia de sábado/descanso para o santificar.", verse: "Êxodo 20:8" },
+      { sin: "Desonra aos Pais", advice: "Honra a teu pai e a tua mãe para que teus dias se prolonguem.", verse: "Êxodo 20:12" },
+      { sin: "Homicídio / Ódio", advice: "Não matarás. Quem odeia seu irmão é assassino no coração.", verse: "1 João 3:15" },
+      { sin: "Adultério", advice: "Não adulterarás. Guarde a fidelidade no seu casamento e mente.", verse: "Mateus 5:27-28" },
+      { sin: "Furto / Roubo", advice: "Não furtarás. Seja íntegro em todos os seus negócios e posses.", verse: "Êxodo 20:15" },
+      { sin: "Falso Testemunho / Mentira", advice: "Não dirás falso testemunho. Seja a sua palavra sim, sim; não, não.", verse: "Mateus 5:37" },
+      { sin: "Cobiça", advice: "Não cobiçarás o que é do próximo. Aprenda a estar contente em toda situação.", verse: "Filipenses 4:11" }
+    ]
   },
-  { 
-    sin: "Ansiedade", 
-    advice: "A ansiedade sufoca a fé. Lembre-se que Deus cuida das aves do céu e cuidará muito mais de você. Lance sobre Ele toda a sua ansiedade.",
-    verse: "1 Pedro 5:7"
+  {
+    name: "10 Mandamentos (Católicos)",
+    items: [
+      { sin: "Amar a Deus sobre todas as coisas", advice: "O primeiro mandamento nos chama a amar a Deus com todo coração.", verse: "Mateus 22:37" },
+      { sin: "Não tomar Seu santo nome em vão", advice: "Respeite a santidade do nome de Deus em suas palavras.", verse: "Salmo 8:1" },
+      { sin: "Guardar domingos e festas de guarda", advice: "Santifique o dia do Senhor participando da Eucaristia e descanso.", verse: "Atos 20:7" },
+      { sin: "Honrar pai e mãe", advice: "O amor filial é a base de uma vida abençoada.", verse: "Efésios 6:1" },
+      { sin: "Não matar", advice: "Proteja a vida desde a concepção até o seu fim natural.", verse: "Salmo 139" },
+      { sin: "Não pecar contra a castidade", advice: "Mantenha o coração e o corpo puros para o Senhor.", verse: "Mateus 5:8" },
+      { sin: "Não furtar", advice: "A justiça exige o respeito aos bens alheios.", verse: "Levítico 19:11" },
+      { sin: "Não levantar falso testemunho", advice: "A verdade nos liberta. Evite a calúnia e a detração.", verse: "João 8:32" },
+      { sin: "Não desejar a mulher do próximo", advice: "Guarde os seus olhares e desejos com pureza.", verse: "Mateus 5:28" },
+      { sin: "Não cobiçar as coisas alheias", advice: "Agradeça pelo que tem e evite a inveja material.", verse: "Hebreus 13:5" }
+    ]
   },
-  { 
-    sin: "Orgulho", 
-    advice: "O orgulho é a raiz da queda. Busque a humildade de Cristo, que sendo Deus, se esvaziou por nós. A glória pertence somente a Ele.",
-    verse: "Provérbios 16:18"
+  {
+    name: "Relacionamentos e Palavras",
+    items: [
+      { sin: "Malfalar / Calúnia", advice: "A língua tem poder de vida e morte. Use-a para abençoar.", verse: "Provérbios 18:21" },
+      { sin: "Falta de Perdão / Mágoa", advice: "Se não perdoardes, vosso Pai não vos perdoará.", verse: "Mateus 6:15" },
+      { sin: "Julgamento", advice: "Não julgueis para não serdes julgados.", verse: "Mateus 7:1" },
+      { sin: "Murmuração / Reclamação", advice: "Fazei tudo sem murmurações nem contendas.", verse: "Filipenses 2:14" },
+      { sin: "Mentira", advice: "O diabo é o pai da mentira. Seja a sua palavra verdadeira.", verse: "João 8:44" }
+    ]
   },
-  { 
-    sin: "Impureza / Lust", 
-    advice: "Fuja da aparência do mal. Proteja seus olhos e mente. Busque ser cheio do Espírito para que os desejos da carne não encontrem espaço.",
-    verse: "Mateus 5:28"
-  },
-  { 
-    sin: "Inveja", 
-    advice: "A inveja é como podridão nos ossos. Alegre-se com os que se alegram. O que Deus tem para o seu irmão não diminui o que Ele tem para você.",
-    verse: "Provérbios 14:30"
-  },
-  { 
-    sin: "Preguiça Spiritual", 
-    advice: "Desperta, ó tu que dormes! A caminhada cristã exige diligência. Comece com 5 minutos de oração hoje. A constância gera profundidade.",
-    verse: "Efésios 5:14"
+  {
+    name: "Lutas Modernas e Vícios",
+    items: [
+      { sin: "Pornografia / Luxúria Digital", advice: "O que entra pelos olhos afeta a alma. Busque a pureza.", verse: "Mateus 6:22-23" },
+      { sin: "Vício em Redes Sociais / Celular", advice: "Resgate o tempo, pois os dias são maus.", verse: "Efésios 5:16" },
+      { sin: "Ansiedade / Preocupação", advice: "Não andeis ansiosos. Deus cuida de você.", verse: "1 Pedro 5:7" },
+      { sin: "Drogas / Álcool", advice: "Não vos embriagueis, mas enchei-vos do Espírito.", verse: "Efésios 5:18" },
+      { sin: "Preguiça / Procrastinação", advice: "Vai ter com a formiga, ó preguiçoso.", verse: "Provérbios 6:6" },
+      { sin: "Idolatria do Eu", advice: "Aquele que quiser vir após mim, negue-se a si mesmo.", verse: "Mateus 16:24" }
+    ]
   }
 ];
 
@@ -55,6 +83,7 @@ export default function StruggleTracker() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sugSearch, setSugSearch] = useState("");
 
   // Form State
   const [formData, setFormData] = useState({
@@ -153,13 +182,20 @@ export default function StruggleTracker() {
     }
   };
 
-  const selectSuggestion = (sug: typeof struggleSuggestions[0]) => {
+  const selectSuggestion = (sug: any) => {
     setFormData({
       sinType: sug.sin,
       biblicalAdvice: sug.advice,
       verse: sug.verse
     });
   };
+
+  const filteredCategories = struggleCategories.map(cat => ({
+    ...cat,
+    items: cat.items.filter(item => 
+      item.sin.toLowerCase().includes(sugSearch.toLowerCase())
+    )
+  })).filter(cat => cat.items.length > 0);
 
   return (
     <div className="max-w-5xl mx-auto space-y-10 py-6">
@@ -398,18 +434,47 @@ export default function StruggleTracker() {
                 <button onClick={closeModal} className="text-pearl/40 hover:text-pearl transition-colors">✕</button>
               </div>
 
-              <div className="space-y-4 relative z-10">
-                 <p className="text-xs font-bold text-amber uppercase tracking-widest">Sugestões comuns:</p>
-                 <div className="flex flex-wrap gap-2">
-                    {struggleSuggestions.map((sug, i) => (
-                      <button 
-                         key={i} 
-                         onClick={() => selectSuggestion(sug)}
-                         className="px-3 py-1.5 rounded-full bg-white/5 border border-white/5 text-[10px] font-bold text-pearl/60 hover:bg-amber/10 hover:text-amber hover:border-amber/20 transition-all"
-                      >
-                        {sug.sin}
-                      </button>
+              <div className="space-y-4 relative z-10 max-h-[250px] flex flex-col">
+                 <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold text-amber uppercase tracking-widest leading-none">Selecione ou escreva abaixo:</p>
+                    <div className="relative group w-48">
+                       <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-pearl/20 group-focus-within:text-amber transition-colors" />
+                       <input 
+                         type="text"
+                         value={sugSearch}
+                         onChange={(e) => setSugSearch(e.target.value)}
+                         placeholder="Buscar pecado..."
+                         className="w-full bg-white/5 border border-white/10 rounded-lg py-1 pl-7 pr-2 text-[10px] outline-none focus:border-amber/50 transition-all font-display"
+                       />
+                    </div>
+                 </div>
+
+                 <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
+                    {filteredCategories.map((cat, i) => (
+                      <div key={i} className="space-y-2">
+                        <p className="text-[10px] font-bold text-pearl/20 uppercase tracking-[0.1em]">{cat.name}</p>
+                        <div className="flex flex-wrap gap-2">
+                           {cat.items.map((item, j) => (
+                             <button 
+                                key={j} 
+                                type="button"
+                                onClick={() => selectSuggestion(item)}
+                                className={cn(
+                                  "px-3 py-1.5 rounded-full border text-[10px] font-bold transition-all",
+                                  formData.sinType === item.sin 
+                                    ? "bg-amber text-navy border-amber" 
+                                    : "bg-white/5 border-white/5 text-pearl/60 hover:bg-amber/10 hover:text-amber hover:border-amber/20"
+                                )}
+                             >
+                               {item.sin}
+                             </button>
+                           ))}
+                        </div>
+                      </div>
                     ))}
+                    {filteredCategories.length === 0 && (
+                      <p className="text-[10px] text-pearl/20 italic text-center py-4">Nenhuma sugestão encontrada para "{sugSearch}"</p>
+                    )}
                  </div>
               </div>
 
