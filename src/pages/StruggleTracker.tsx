@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Plus, Flame, Heart, AlertTriangle, CheckCircle2, History as HistoryIcon, Trash2, ArrowRight, BookOpen, Quote, Sparkles, RefreshCw, Info, Edit2, Search, X } from "lucide-react";
+import { Plus, Flame, Heart, AlertTriangle, CheckCircle2, History as HistoryIcon, Trash2, ArrowRight, BookOpen, Quote, Sparkles, RefreshCw, Info, Edit2, Search, X, MinusCircle } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../lib/firebase";
-import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, updateDoc, doc, deleteDoc } from "firebase/firestore";
+import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, updateDoc, doc, deleteDoc, increment, limit, getDocs, writeBatch } from "firebase/firestore";
 import { cn } from "../lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -52,8 +52,10 @@ const struggleCategories = [
 export default function StruggleTracker() {
   const { user } = useAuth();
   const [struggles, setStruggles] = useState<any[]>([]);
+  const [history, setHistory] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isDeletingHistory, setIsDeletingHistory] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -80,7 +82,22 @@ export default function StruggleTracker() {
       setStruggles(docs);
     });
 
-    return () => unsubscribe();
+    // History Listener
+    const historyQ = query(
+      collection(db, "users", user.uid, "struggle_history"),
+      orderBy("createdAt", "desc"),
+      limit(5)
+    );
+
+    const unsubscribeHistory = onSnapshot(historyQ, (snapshot) => {
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setHistory(docs);
+    });
+
+    return () => {
+      unsubscribe();
+      unsubscribeHistory();
+    };
   }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -104,6 +121,7 @@ export default function StruggleTracker() {
             biblicalAdvice: s.advice,
             verse: s.verse,
             totalFalls: 0,
+            totalVictories: 0,
             createdAt: serverTimestamp(),
           })
         );
@@ -115,6 +133,7 @@ export default function StruggleTracker() {
           biblicalAdvice: formData.biblicalAdvice,
           verse: formData.verse,
           totalFalls: 0,
+          totalVictories: 0,
           createdAt: serverTimestamp(),
         });
       }
@@ -143,17 +162,102 @@ export default function StruggleTracker() {
     setIsModalOpen(true);
   };
 
-  const registerFall = async (id: string, currentFalls: number) => {
+  const registerFall = async (id: string, sinType: string) => {
     if (!user || updatingId) return;
     setUpdatingId(id);
     try {
       await updateDoc(doc(db, "users", user.uid, "struggles", id), {
-        totalFalls: currentFalls + 1,
+        totalFalls: increment(1),
         lastFall: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
+
+      // Record to history
+      await addDoc(collection(db, "users", user.uid, "struggle_history"), {
+        userId: user.uid,
+        sinType: sinType,
+        type: 'fall',
+        createdAt: serverTimestamp()
+      });
     } catch (error) {
       console.error("Error registering fall:", error);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const registerVictory = async (id: string, sinType: string) => {
+    if (!user || updatingId) return;
+    setUpdatingId(id);
+    try {
+      await updateDoc(doc(db, "users", user.uid, "struggles", id), {
+        totalVictories: increment(1),
+        lastVictory: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+
+      // Record to history
+      await addDoc(collection(db, "users", user.uid, "struggle_history"), {
+        userId: user.uid,
+        sinType: sinType,
+        type: 'victory',
+        createdAt: serverTimestamp()
+      });
+    } catch (error) {
+      console.error("Error registering victory:", error);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+
+  const clearHistory = async () => {
+    if (!user || isDeletingHistory || history.length === 0) return;
+    
+    setIsDeletingHistory(true);
+    try {
+      const q = query(collection(db, "users", user.uid, "struggle_history"));
+      const snapshot = await getDocs(q);
+      
+      const batch = writeBatch(db);
+      snapshot.docs.forEach((d) => {
+        batch.delete(d.ref);
+      });
+      await batch.commit();
+      setShowClearConfirm(false);
+    } catch (error) {
+      console.error("Error clearing history:", error);
+    } finally {
+      setIsDeletingHistory(false);
+    }
+  };
+
+  const removeFall = async (id: string, currentFalls: number) => {
+    if (!user || updatingId || (currentFalls || 0) <= 0) return;
+    setUpdatingId(id);
+    try {
+      await updateDoc(doc(db, "users", user.uid, "struggles", id), {
+        totalFalls: increment(-1),
+        updatedAt: serverTimestamp()
+      });
+    } catch (error) {
+      console.error("Error removing fall:", error);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const removeVictory = async (id: string, currentVictories: number) => {
+    if (!user || updatingId || (currentVictories || 0) <= 0) return;
+    setUpdatingId(id);
+    try {
+      await updateDoc(doc(db, "users", user.uid, "struggles", id), {
+        totalVictories: increment(-1),
+        updatedAt: serverTimestamp()
+      });
+    } catch (error) {
+      console.error("Error removing victory:", error);
     } finally {
       setUpdatingId(null);
     }
@@ -310,9 +414,38 @@ export default function StruggleTracker() {
                   <div className="flex items-start justify-between">
                     <div className="space-y-1">
                       <h3 className="text-2xl font-display font-bold text-pearl group-hover:text-amber transition-colors">{struggle.sinType}</h3>
-                      <p className="text-xs text-pearl/40 uppercase font-bold tracking-widest flex items-center gap-2">
-                        <HistoryIcon className="w-3 h-3" /> Total de quedas: {struggle.totalFalls}
-                      </p>
+                      <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-[10px] text-pearl/40 uppercase font-bold tracking-widest flex items-center gap-1.5">
+                            <HistoryIcon className="w-3 h-3" /> Quedas: {struggle.totalFalls}
+                          </p>
+                          {struggle.totalFalls > 0 && (
+                            <button 
+                              onClick={() => removeFall(struggle.id, struggle.totalFalls)}
+                              disabled={updatingId === struggle.id}
+                              className="p-1 text-red-500/30 hover:text-red-500 transition-colors"
+                              title="Diminuir quedas"
+                            >
+                              <MinusCircle className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-[10px] text-amber uppercase font-bold tracking-widest flex items-center gap-1.5">
+                            <Sparkles className="w-3 h-3" /> Vitórias: {struggle.totalVictories || 0}
+                          </p>
+                          {(struggle.totalVictories || 0) > 0 && (
+                            <button 
+                              onClick={() => removeVictory(struggle.id, struggle.totalVictories)}
+                              disabled={updatingId === struggle.id}
+                              className="p-1 text-amber/30 hover:text-amber transition-colors"
+                              title="Diminuir vitórias"
+                            >
+                              <MinusCircle className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <button 
@@ -344,7 +477,7 @@ export default function StruggleTracker() {
 
                   <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
                     <button 
-                      onClick={() => registerFall(struggle.id, struggle.totalFalls)}
+                      onClick={() => registerFall(struggle.id, struggle.sinType)}
                       disabled={updatingId === struggle.id}
                       className="w-full sm:flex-1 bg-white/5 border border-amber/10 hover:border-amber/40 hover:bg-amber/5 py-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
                     >
@@ -356,15 +489,27 @@ export default function StruggleTracker() {
                       Caí de novo (Confessar Queda)
                     </button>
                     <button 
-                      className="w-full sm:w-auto bg-amber/10 text-amber hover:bg-amber hover:text-navy px-8 py-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2"
+                      onClick={() => registerVictory(struggle.id, struggle.sinType)}
+                      disabled={updatingId === struggle.id}
+                      className="w-full sm:w-auto bg-amber/10 text-amber hover:bg-amber hover:text-navy px-8 py-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                     >
-                      <CheckCircle2 className="w-4 h-4" /> Vitória de Hoje
+                      {updatingId === struggle.id ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4" />
+                      )}
+                      Vitória de Hoje
                     </button>
                   </div>
                   
-                  {struggle.lastFall && (
-                    <div className="text-[10px] text-pearl/20 text-center uppercase tracking-widest pt-2">
-                      Última queda registrada em {format(struggle.lastFall.toDate(), "d 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+                  {(struggle.lastFall || struggle.lastVictory) && (
+                    <div className="text-[10px] text-pearl/20 text-center uppercase tracking-widest pt-2 flex flex-col gap-1">
+                      {struggle.lastFall && (
+                        <div>Última queda: {format(struggle.lastFall.toDate(), "d 'de' MMMM 'às' HH:mm", { locale: ptBR })}</div>
+                      )}
+                      {struggle.lastVictory && (
+                        <div className="text-amber/40">Última vitória: {format(struggle.lastVictory.toDate(), "d 'de' MMMM 'às' HH:mm", { locale: ptBR })}</div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -385,6 +530,64 @@ export default function StruggleTracker() {
 
         {/* Sidebar / Tips */}
         <div className="space-y-6">
+          {/* History Section */}
+          <div className="bg-navy/50 border border-white/5 rounded-[2.5rem] p-8 space-y-6 overflow-hidden relative group">
+             <div className="absolute top-0 right-0 p-8 opacity-5">
+                <HistoryIcon className="w-24 h-24" />
+             </div>
+
+             <div className="flex items-center justify-between relative z-10">
+                <div className="flex items-center gap-3 text-pearl font-bold text-sm uppercase tracking-widest">
+                   <HistoryIcon className="w-4 h-4 text-amber" /> Histórico Recente
+                </div>
+                {history.length > 0 && (
+                  <button 
+                    onClick={() => setShowClearConfirm(true)}
+                    disabled={isDeletingHistory}
+                    className="p-2 hover:bg-red-500/10 text-pearl/20 hover:text-red-400 rounded-xl transition-all"
+                    title="Limpar Histórico"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                )}
+             </div>
+
+             <div className="space-y-4 relative z-10">
+               {history.length > 0 ? (
+                 <div className="space-y-3">
+                    {history.map((h) => (
+                      <div key={h.id} className="flex items-start gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 group/item hover:border-white/10 transition-all">
+                        <div className={cn(
+                          "w-2 h-2 mt-1.5 rounded-full shrink-0",
+                          h.type === 'fall' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]'
+                        )} />
+                        <div className="flex-1 space-y-0.5 min-w-0">
+                          <p className="text-xs font-bold text-pearl/90 truncate capitalize">{h.sinType}</p>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className={cn(
+                              "text-[10px] font-bold uppercase tracking-widest",
+                              h.type === 'fall' ? 'text-red-400' : 'text-emerald-400'
+                            )}>
+                              {h.type === 'fall' ? 'Queda' : 'Vitória'}
+                            </span>
+                            <span className="text-[10px] text-pearl/30">
+                              {h.createdAt ? format(h.createdAt.toDate(), "dd/MM HH:mm") : '...'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                 </div>
+               ) : (
+                 <div className="py-10 text-center space-y-2 opacity-30">
+                   <HistoryIcon className="w-8 h-8 mx-auto mb-2" />
+                   <p className="text-xs font-bold uppercase tracking-widest">Sem registros</p>
+                   <p className="text-[10px] italic">Suas últimas 5 ações aparecerão aqui.</p>
+                 </div>
+               )}
+             </div>
+          </div>
+
           <div className="bg-grape/5 border border-grape/10 rounded-[2.5rem] p-8 space-y-6">
             <div className="flex items-center gap-3 text-grape font-bold text-xs uppercase tracking-widest">
                <Sparkles className="w-4 h-4" /> Sabedoria de Deus
@@ -560,6 +763,43 @@ export default function StruggleTracker() {
                 </div>
               </form>
             </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      {/* Confirm Clear History Modal */}
+      <AnimatePresence>
+        {showClearConfirm && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-6 bg-navy/95 backdrop-blur-md">
+             <motion.div 
+               initial={{ opacity: 0, scale: 0.9 }}
+               animate={{ opacity: 1, scale: 1 }}
+               exit={{ opacity: 0, scale: 0.9 }}
+               className="bg-navy border border-red-500/20 w-full max-w-sm rounded-[2rem] p-8 space-y-6 text-center shadow-2xl"
+             >
+                <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mx-auto mb-4">
+                  <Trash2 className="w-8 h-8" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-display font-bold">Limpar Histórico?</h3>
+                  <p className="text-pearl/60 text-sm">Deseja realmente apagar todo o seu histórico de lutas e vitórias? Esta ação é irreversível.</p>
+                </div>
+
+                <div className="flex flex-col gap-3 pt-4">
+                  <button 
+                    disabled={isDeletingHistory}
+                    onClick={clearHistory}
+                    className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-2xl shadow-xl transition-all disabled:opacity-50"
+                  >
+                    {isDeletingHistory ? "Limpando..." : "Sim, Limpar tudo"}
+                  </button>
+                  <button 
+                    onClick={() => setShowClearConfirm(false)}
+                    className="w-full py-3 text-pearl/40 font-bold hover:text-pearl transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+             </motion.div>
           </div>
         )}
       </AnimatePresence>

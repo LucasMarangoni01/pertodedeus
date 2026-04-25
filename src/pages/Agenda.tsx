@@ -177,19 +177,28 @@ export default function Agenda() {
     if (!user) return;
     try {
       await updateDoc(doc(db, "users", user.uid, "calendar_events", event.id), {
-        isDone: !event.isDone
+        isDone: !event.isDone,
+        updatedAt: serverTimestamp()
       });
     } catch (error) {
       console.error("Error toggling status:", error);
     }
   };
 
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const deleteEvent = async (id: string) => {
-    if (!user || !confirm("Deseja remover este compromisso?")) return;
+    if (!user) return;
+    setIsDeleting(true);
     try {
       await deleteDoc(doc(db, "users", user.uid, "calendar_events", id));
+      setShowDeleteConfirm(null);
     } catch (error) {
       console.error("Error deleting event:", error);
+      alert("Erro ao remover compromisso. Tente novamente.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -391,7 +400,7 @@ export default function Agenda() {
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button 
-                            onClick={() => deleteEvent(event.id)}
+                            onClick={() => setShowDeleteConfirm(event.id)}
                             className="p-2 text-pearl/20 hover:text-red-400 hover:bg-red-400/10 rounded-xl"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -532,6 +541,43 @@ export default function Agenda() {
                 </div>
               </form>
             </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      {/* Confirm Delete Modal */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-6 bg-navy/95 backdrop-blur-md">
+             <motion.div 
+               initial={{ opacity: 0, scale: 0.9 }}
+               animate={{ opacity: 1, scale: 1 }}
+               exit={{ opacity: 0, scale: 0.9 }}
+               className="bg-navy border border-red-500/20 w-full max-w-sm rounded-[2rem] p-8 space-y-6 text-center shadow-2xl"
+             >
+                <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mx-auto mb-4">
+                  <Trash2 className="w-8 h-8" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-display font-bold">Remover Evento?</h3>
+                  <p className="text-pearl/60 text-sm">Esta ação não pode ser desfeita. Deseja realmente excluir este compromisso da sua agenda?</p>
+                </div>
+
+                <div className="flex flex-col gap-3 pt-4">
+                  <button 
+                    disabled={isDeleting}
+                    onClick={() => deleteEvent(showDeleteConfirm)}
+                    className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-2xl shadow-xl transition-all disabled:opacity-50"
+                  >
+                    {isDeleting ? "Excluindo..." : "Sim, Excluir"}
+                  </button>
+                  <button 
+                    onClick={() => setShowDeleteConfirm(null)}
+                    className="w-full py-3 text-pearl/40 font-bold hover:text-pearl transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+             </motion.div>
           </div>
         )}
       </AnimatePresence>

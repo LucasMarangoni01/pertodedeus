@@ -8,6 +8,7 @@ import { ChevronRight, ArrowLeft } from "lucide-react";
 import { cn } from "../lib/utils";
 
 const denominations = ["Católico", "Evangélico", "Batista", "Presbiteriano", "Pentecostal", "Sem denominação", "Outro"];
+const bibleVersions = ["NVI", "ARA", "NVT", "NAA", "NTLH"];
 const challengesList = ["Oração constante", "Leitura bíblica", "Fé em momentos difíceis", "Perdão", "Vícios", "Relacionamentos", "Propósito de vida"];
 
 export default function Onboarding() {
@@ -19,6 +20,7 @@ export default function Onboarding() {
   const [formData, setFormData] = useState({
     displayName: user?.displayName || "",
     denomination: "Sem denominação",
+    bibleVersion: "NVI",
     yearsAsChristian: 0,
     challenges: [] as string[],
   });
@@ -143,6 +145,47 @@ export default function Onboarding() {
           )}
 
           {step === 3 && (
+            <motion.div 
+              key="step-version"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-8"
+            >
+              <button onClick={handleBack} className="text-pearl/40 flex items-center gap-2 hover:text-pearl transition-colors">
+                <ArrowLeft className="w-4 h-4" /> Voltar
+              </button>
+              <div className="space-y-2">
+                <h2 className="text-3xl font-display font-bold">Tradução Preferida</h2>
+                <p className="text-pearl/60">Qual versão da Bíblia você prefere para seus estudos e devocionais?</p>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                {bibleVersions.map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setFormData({ ...formData, bibleVersion: v })}
+                    className={cn(
+                      "px-4 py-4 rounded-xl border text-sm transition-all",
+                      formData.bibleVersion === v 
+                        ? "bg-amber border-amber text-navy font-bold" 
+                        : "bg-white/5 border-amber/10 text-pearl/60 hover:border-amber/40"
+                    )}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-amber/40 italic text-center">Isso pode ser alterado depois nas configurações.</p>
+              <button 
+                onClick={handleNext}
+                className="w-full flex items-center justify-center gap-2 bg-amber text-navy font-bold py-4 rounded-2xl shadow-lg"
+              >
+                Continuar <ChevronRight className="w-5 h-5" />
+              </button>
+            </motion.div>
+          )}
+
+          {step === 4 && (
             <motion.div 
               key="step3"
               initial={{ opacity: 0, x: 20 }}

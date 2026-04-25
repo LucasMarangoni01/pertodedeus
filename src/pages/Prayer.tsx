@@ -24,6 +24,7 @@ export default function Prayer() {
   const [searchQuery, setSearchQuery] = useState("");
 
   // Form State
+  const [editingRequest, setEditingRequest] = useState<any>(null);
   const [newRequest, setNewRequest] = useState({
     title: "",
     description: "",
@@ -48,22 +49,43 @@ export default function Prayer() {
     return () => unsubscribe();
   }, [user]);
 
-  const handleCreateRequest = async (e: React.FormEvent) => {
+  const handleOpenEdit = (request: any) => {
+    setEditingRequest(request);
+    setNewRequest({
+      title: request.title,
+      description: request.description || "",
+      category: request.category,
+      urgency: request.urgency,
+      isPublic: request.isPublic || false
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleCreateOrUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
     setLoading(true);
     try {
-      await addDoc(collection(db, "prayer_requests"), {
-        userId: user.uid,
-        ...newRequest,
-        status: "Em oração",
-        intercessorCount: 0,
-        createdAt: serverTimestamp(),
-      });
+      if (editingRequest) {
+        await updateDoc(doc(db, "prayer_requests", editingRequest.id), {
+          ...newRequest,
+          updatedAt: serverTimestamp()
+        });
+      } else {
+        await addDoc(collection(db, "prayer_requests"), {
+          userId: user.uid,
+          ...newRequest,
+          status: "Em oração",
+          intercessorCount: 0,
+          createdAt: serverTimestamp(),
+        });
+      }
       setIsModalOpen(false);
+      setEditingRequest(null);
       setNewRequest({ title: "", description: "", category: "Família", urgency: "Média", isPublic: false });
     } catch (error) {
-      console.error("Error creating prayer request:", error);
+      console.error("Error saving prayer request:", error);
+      alert("Erro ao salvar oração. Tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -173,7 +195,14 @@ export default function Prayer() {
                   r.description.toLowerCase().includes(searchQuery.toLowerCase())
                 )
                 .map((request) => (
-                <div key={request.id} className="glow-card flex flex-col justify-between">
+                <div key={request.id} className="glow-card flex flex-col justify-between relative group">
+                  <button 
+                    onClick={() => handleOpenEdit(request)}
+                    className="absolute top-2 right-2 p-2 text-pearl/20 hover:text-amber transition-all opacity-0 group-hover:opacity-100"
+                    title="Editar"
+                  >
+                    <Plus className="w-4 h-4 rotate-45" />
+                  </button>
                   <div>
                     <div className="flex items-center justify-between mb-4">
                       <span className={cn(
@@ -316,11 +345,11 @@ export default function Prayer() {
             className="bg-navy border border-amber/20 w-full max-w-lg rounded-3xl p-8 space-y-6 shadow-[0_0_100px_rgba(201,168,76,0.1)]"
           >
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-display font-bold">Abrir Clamor</h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-pearl/40 hover:text-pearl transition-colors">✕</button>
+              <h2 className="text-2xl font-display font-bold">{editingRequest ? "Editar Clamor" : "Abrir Clamor"}</h2>
+              <button onClick={() => { setIsModalOpen(false); setEditingRequest(null); }} className="text-pearl/40 hover:text-pearl transition-colors">✕</button>
             </div>
 
-            <form onSubmit={handleCreateRequest} className="space-y-5">
+            <form onSubmit={handleCreateOrUpdate} className="space-y-5">
               <div className="space-y-2">
                 <label className="text-xs font-bold text-pearl/40 uppercase">Título do Pedido</label>
                 <input 
@@ -384,7 +413,7 @@ export default function Prayer() {
                 disabled={loading}
                 className="w-full bg-amber text-navy font-bold py-4 rounded-2xl shadow-xl hover:scale-[1.02] transition-transform disabled:opacity-50"
               >
-                {loading ? "Registrando..." : "Consagrar Pedido"}
+                {loading ? "Salvando..." : editingRequest ? "Salvar Alterações" : "Consagrar Pedido"}
               </button>
             </form>
           </motion.div>

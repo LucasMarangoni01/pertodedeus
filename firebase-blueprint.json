@@ -8,12 +8,43 @@
         "displayName": { "type": "string", "description": "User's display name" },
         "photoURL": { "type": "string", "description": "Profile picture URL" },
         "denomination": { "type": "string", "description": "Church denomination" },
+        "bibleVersion": { "type": "string", "enum": ["NVI", "ARA", "NVT", "NAA", "NTLH"], "description": "Preferred Bible translation" },
         "yearsAsChristian": { "type": "number", "description": "Time as a Christian" },
         "spiritualLevel": { "type": "string", "enum": ["Semente", "Raiz", "Árvore", "Fruto", "Luz"], "description": "Gamified spiritual level" },
         "streak": { "type": "integer", "description": "Consecutive days of activity" },
         "lastCheckIn": { "type": "string", "format": "date-time", "description": "Last activity timestamp" },
         "bio": { "type": "string", "description": "Short bio or favorite verse" },
-        "fcmTokens": { "type": "array", "items": { "type": "string" }, "description": "List of FCM tokens for push notifications" }
+        "fcmTokens": { "type": "array", "items": { "type": "string" }, "description": "List of FCM tokens for push notifications" },
+        "notifications": {
+          "type": "object",
+          "properties": {
+            "dailyDevotional": { "type": "boolean" },
+            "prayerRequests": { "type": "boolean" },
+            "communityActivity": { "type": "boolean" }
+          },
+          "description": "User notification preferences"
+        },
+        "privacy": {
+          "type": "object",
+          "properties": {
+            "showProfile": { "type": "boolean" },
+            "showStreak": { "type": "boolean" },
+            "showStruggles": { "type": "boolean" }
+          },
+          "description": "User privacy preferences"
+        },
+        "bibleProgress": {
+          "type": "object",
+          "properties": {
+            "book": { "type": "string" },
+            "bookId": { "type": "integer" },
+            "chapter": { "type": "integer" },
+            "verse": { "type": "integer" },
+            "version": { "type": "string" },
+            "updatedAt": { "type": "string", "format": "date-time" }
+          },
+          "description": "Last read position in the Bible"
+        }
       },
       "required": ["displayName", "spiritualLevel", "streak"]
     },
@@ -124,6 +155,18 @@
       },
       "required": ["userId", "title", "createdAt", "items"]
     },
+    "AssistantConversation": {
+      "title": "AI Assistant Conversation",
+      "description": "A specific conversation thread with the AI assistant",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Auto-generated or user-defined title for the conversation" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "lastMessage": { "type": "string" }
+      },
+      "required": ["title", "createdAt"]
+    },
     "AssistantMessage": {
       "title": "AI Assistant Message",
       "description": "Messages exchanged between the user and the AI assistant",
@@ -144,11 +187,25 @@
         "sinType": { "type": "string", "description": "Type of struggle (e.g., Pride, Anger)" },
         "totalFalls": { "type": "integer", "description": "Number of times recorded a fall" },
         "lastFall": { "type": "string", "format": "date-time" },
+        "totalVictories": { "type": "integer", "description": "Number of times recorded a victory" },
+        "lastVictory": { "type": "string", "format": "date-time" },
         "biblicalAdvice": { "type": "string", "description": "Message to help overcome" },
         "verse": { "type": "string", "description": "Supporting Bible verse" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "sinType", "totalFalls", "createdAt"]
+    },
+    "StruggleHistory": {
+      "title": "Struggle History Log",
+      "description": "Log of individual falls or victories for history tracking",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "sinType": { "type": "string" },
+        "type": { "type": "string", "enum": ["fall", "victory"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "sinType", "type", "createdAt"]
     },
     "CalendarEvent": {
       "title": "Calendar Event",
@@ -181,9 +238,13 @@
       "schema": "JournalEntry",
       "description": "Private spiritual journal for each user"
     },
-    "/users/{userId}/assistant_chat/{messageId}": {
+    "/users/{userId}/assistant_conversations/{conversationId}": {
+      "schema": "AssistantConversation",
+      "description": "Conversation threads with the AI assistant"
+    },
+    "/users/{userId}/assistant_conversations/{conversationId}/messages/{messageId}": {
       "schema": "AssistantMessage",
-      "description": "Conversation history with the AI assistant"
+      "description": "Messages within a specific conversation"
     },
     "/users/{userId}/devotionals/{devotionalId}": {
       "schema": "Devotional",
@@ -204,6 +265,10 @@
     "/users/{userId}/struggles/{struggleId}": {
       "schema": "Struggle",
       "description": "Private tracking of personal struggles and spiritual growth"
+    },
+    "/users/{userId}/struggle_history/{historyId}": {
+      "schema": "StruggleHistory",
+      "description": "History of specific struggle events (falls/victories)"
     },
     "/users/{userId}/calendar_events/{eventId}": {
       "schema": "CalendarEvent",

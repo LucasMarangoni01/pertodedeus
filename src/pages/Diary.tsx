@@ -40,6 +40,9 @@ export default function Diary() {
   const [ledToThis, setLedToThis] = useState("");
   const [doDifferently, setDoDifferently] = useState("");
   const [audioUrl, setAudioUrl] = useState<string>("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isUploadingAudio, setIsUploadingAudio] = useState(false);
   const audioUrlRef = useRef(audioUrl);
 
@@ -81,6 +84,18 @@ export default function Diary() {
     setLoading(true);
     try {
       const today = new Date().toISOString().split('T')[0];
+      const payload: any = {
+        content: content.trim(),
+        mood: mood || "Em paz",
+        godSpoke: godSpoke || "",
+        learning: learning || "",
+        ledToThis: ledToThis || "",
+        doDifferently: doDifferently || "",
+        audioUrl: audioUrl || "",
+        tags: tags || [],
+        updatedAt: serverTimestamp()
+      };
+
       if (selectedEntry?.id) {
         // If audio was deleted, cleanup in background
         if (selectedEntry.audioUrl && !audioUrl) {
@@ -88,19 +103,17 @@ export default function Diary() {
            deleteObject(oldRef).catch(e => console.warn("Background cleanup failed", e));
         }
 
-        await updateDoc(doc(db, "users", user.uid, "journal", selectedEntry.id), {
-          content, mood, godSpoke, learning, ledToThis, doDifferently, 
-          audioUrl: audioUrl,
-          updatedAt: serverTimestamp()
-        });
+        const entryRef = doc(db, "users", user.uid, "journal", selectedEntry.id);
+        await updateDoc(entryRef, payload);
       } else {
-        await addDoc(collection(db, "users", user.uid, "journal"), {
+        const newEntry = {
+          ...payload,
           userId: user.uid,
           date: today,
-          content, mood, godSpoke, learning, ledToThis, doDifferently,
-          audioUrl: audioUrl,
           createdAt: serverTimestamp()
-        });
+        };
+        delete newEntry.updatedAt; // Don't send updatedAt on creation
+        await addDoc(collection(db, "users", user.uid, "journal"), newEntry);
       }
       closeEditor();
       resetForm();
@@ -120,6 +133,8 @@ export default function Diary() {
     setLedToThis("");
     setDoDifferently("");
     setAudioUrl("");
+    setTags([]);
+    setTagInput("");
     setSelectedEntry(null);
   };
 
@@ -132,6 +147,8 @@ export default function Diary() {
     setLedToThis(entry.ledToThis || "");
     setDoDifferently(entry.doDifferently || "");
     setAudioUrl(entry.audioUrl || "");
+    setTags(entry.tags || []);
+    setTagInput("");
     setIsEditing(true);
   };
 
@@ -156,6 +173,30 @@ export default function Diary() {
     }
   };
 
+  const handleAddTag = (e?: React.KeyboardEvent) => {
+    if (e && e.key !== 'Enter') return;
+    if (e) e.preventDefault();
+    
+    const tag = tagInput.trim().toLowerCase().replace(/[^a-z0-9à-ú]/g, '');
+    if (tag && !tags.includes(tag)) {
+      setTags([...tags, tag]);
+      setTagInput("");
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setTags(tags.filter(t => t !== tagToRemove));
+  };
+
+  const filteredEntries = entries.filter(entry => {
+    if (!searchQuery) return true;
+    const search = searchQuery.toLowerCase();
+    const matchesContent = entry.content?.toLowerCase().includes(search);
+    const matchesTags = entry.tags?.some((t: string) => t.toLowerCase().includes(search));
+    const matchesMood = entry.mood?.toLowerCase().includes(search);
+    return matchesContent || matchesTags || matchesMood;
+  });
+
   return (
     <div className="space-y-8">
       <header className="flex items-end justify-between gap-6">
@@ -171,6 +212,17 @@ export default function Diary() {
           <Plus className="w-5 h-5" /> Nova Entrada
         </button>
       </header>
+
+      <div className="relative mb-6">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-pearl/40 w-5 h-5" />
+        <input 
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Filtrar por conteúdo, tags ou humor..."
+          className="w-full bg-white/5 border border-amber/10 rounded-2xl pl-12 pr-4 py-4 outline-none focus:border-amber transition-colors text-pearl placeholder:text-pearl/20"
+        />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Heatmap/Calendar Summary (Mocked) */}
@@ -209,8 +261,16 @@ export default function Diary() {
                  Criar Primeiro Registro
                </button>
              </div>
+           ) : filteredEntries.length === 0 ? (
+             <div className="py-20 text-center space-y-6 bg-white/5 border border-amber/10 rounded-[2.5rem]">
+               <BookOpen className="w-20 h-20 text-pearl/5 mx-auto" />
+               <div className="space-y-2">
+                 <p className="text-2xl font-display font-medium text-pearl/40">Nenhum registro encontrado</p>
+                 <p className="text-pearl/20 max-w-sm mx-auto">Tente ajustar seus termos de busca ou filtros.</p>
+               </div>
+             </div>
            ) : (
-             entries.map((entry) => (
+             filteredEntries.map((entry) => (
                <motion.div 
                  layout
                  key={entry.id}
@@ -367,6 +427,45 @@ export default function Diary() {
                              placeholder="Qual a sua ação prática de mudança amanhã?"
                              className="w-full bg-white/5 border border-amber/10 rounded-2xl sm:rounded-3xl p-4 sm:p-6 font-serif text-base sm:text-lg focus:border-amber outline-none transition-colors min-h-[120px] sm:min-h-[160px] resize-none"
                            />
+                        </div>
+
+                        <div className="space-y-4 sm:col-span-2 p-6 bg-white/5 border border-amber/10 rounded-3xl">
+                           <label className="text-[10px] font-bold text-pearl/40 uppercase tracking-widest flex items-center gap-2">
+                              <Hash className="w-4 h-4 text-amber" /> Tags e Categorias
+                           </label>
+                           
+                           <div className="flex flex-wrap gap-2 mb-4">
+                              {tags.map(tag => (
+                                <motion.span 
+                                  layout
+                                  key={tag} 
+                                  className="inline-flex items-center gap-1.5 bg-amber/10 text-amber border border-amber/20 px-3 py-1 rounded-full text-xs font-bold"
+                                >
+                                  #{tag}
+                                  <button onClick={() => removeTag(tag)} className="hover:text-pearl transition-colors">
+                                     <Plus className="w-3 h-3 rotate-45" />
+                                  </button>
+                                </motion.span>
+                              ))}
+                           </div>
+
+                           <div className="flex gap-2">
+                              <input 
+                                type="text"
+                                value={tagInput}
+                                onChange={e => setTagInput(e.target.value)}
+                                onKeyDown={handleAddTag}
+                                placeholder="Digite uma tag (ex: fé, provação)..."
+                                className="flex-1 bg-white/5 border border-amber/10 rounded-xl px-4 py-2 text-sm focus:border-amber outline-none transition-colors"
+                              />
+                              <button 
+                                type="button"
+                                onClick={() => handleAddTag()}
+                                className="bg-amber/10 text-amber px-4 py-2 rounded-xl text-sm font-bold hover:bg-amber/20 transition-all"
+                              >
+                                Adicionar
+                              </button>
+                           </div>
                         </div>
 
                         <div className="sm:col-span-2 pt-2 sm:pt-4">

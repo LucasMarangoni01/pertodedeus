@@ -21,6 +21,7 @@ const navigationGroups = [
     title: "Espiritualidade",
     items: [
       { path: "/bible", icon: BookOpen, label: "Bíblia Sagrada" },
+      { path: "/jejum", icon: Flame, label: "Jejum Espiritual" },
       { path: "/prayer", icon: MessageSquare, label: "Meus Pedidos" },
       { path: "/devotional", icon: Heart, label: "Devocional IA" },
       { path: "/study", icon: GraduationCap, label: "Estudos" },

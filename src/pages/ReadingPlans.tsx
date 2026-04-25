@@ -114,7 +114,8 @@ export default function ReadingPlans() {
 
     await updateDoc(doc(db, "users", user.uid, "custom_plans", planId), {
       items: newItems,
-      completedItems: completedItems
+      completedItems: completedItems,
+      updatedAt: serverTimestamp()
     });
   };
 

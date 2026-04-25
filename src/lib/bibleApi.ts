@@ -80,3 +80,10 @@ export async function getBibleChapter(version: string, bookId: number, chapter: 
 
   return data;
 }
+
+export async function searchBible(version: string, query: string) {
+  if (!query || query.length < 3) return [];
+  const url = `https://bolls.life/search/${version}/?search=${encodeURIComponent(query)}&method=1`;
+  const data = await fetchWithFallback(url, false);
+  return data;
+}

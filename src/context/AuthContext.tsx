@@ -7,7 +7,7 @@ import {
   User as FirebaseUser
 } from "firebase/auth";
 import { auth, db } from "../lib/firebase";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, onSnapshot, getDoc } from "firebase/firestore";
 
 interface AppUser {
   uid: string;
@@ -15,10 +15,31 @@ interface AppUser {
   displayName: string | null;
   photoURL: string | null;
   denomination?: string;
+  bibleVersion?: string;
   spiritualLevel?: string;
   streak?: number;
   bio?: string;
   yearsAsChristian?: number;
+  challenges?: string[];
+  isPublic?: boolean;
+  notifications?: {
+    dailyDevotional: boolean;
+    prayerRequests: boolean;
+    communityActivity: boolean;
+  };
+  privacy?: {
+    showProfile: boolean;
+    showStreak: boolean;
+    showStruggles: boolean;
+  };
+  bibleProgress?: {
+    book: string;
+    bookId: number;
+    chapter: number;
+    verse: number;
+    version: string;
+    updatedAt: any;
+  };
 }
 
 interface AuthContextType {
@@ -35,55 +56,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchUserProfile = async (firebaseUser: FirebaseUser) => {
-    try {
-      const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: data.displayName || firebaseUser.displayName,
-          photoURL: data.photoURL || firebaseUser.photoURL,
-          ...data
+  useEffect(() => {
+    let unsubscribeProfile: (() => void) | null = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (unsubscribeProfile) {
+        unsubscribeProfile();
+        unsubscribeProfile = null;
+      }
+
+      if (firebaseUser) {
+        // Set up real-time listener for user profile
+        unsubscribeProfile = onSnapshot(doc(db, "users", firebaseUser.uid), (userDoc) => {
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            setUser({
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              displayName: data.displayName || firebaseUser.displayName,
+              photoURL: data.photoURL || firebaseUser.photoURL,
+              ...data as any
+            });
+          } else {
+            setUser({
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              displayName: firebaseUser.displayName,
+              photoURL: firebaseUser.photoURL,
+            });
+          }
+          setLoading(false);
+        }, (err) => {
+          console.error("[Auth] Profile listener error:", err);
+          setLoading(false);
         });
       } else {
-        setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
-          photoURL: firebaseUser.photoURL,
-        });
-      }
-    } catch (err) {
-      console.error("Error fetching user profile:", err);
-      // Still set the basic user info so they are "logged in" even if profile fetch fails
-      setUser({
-        uid: firebaseUser.uid,
-        email: firebaseUser.email,
-        displayName: firebaseUser.displayName,
-        photoURL: firebaseUser.photoURL,
-      });
-    }
-  };
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      try {
-        if (firebaseUser) {
-          await fetchUserProfile(firebaseUser);
-        } else {
-          setUser(null);
-        }
-      } catch (err) {
-        console.error("Auth initialization error:", err);
         setUser(null);
-      } finally {
         setLoading(false);
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeProfile) unsubscribeProfile();
+    };
   }, []);
 
   const signInWithGoogle = async () => {
@@ -106,7 +122,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUserProfile = async () => {
     if (auth.currentUser) {
-      await fetchUserProfile(auth.currentUser);
+      // With onSnapshot, this might be redundant but keeping for compatibility
+      const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        setUser({
+          uid: auth.currentUser.uid,
+          email: auth.currentUser.email,
+          displayName: data.displayName || auth.currentUser.displayName,
+          photoURL: data.photoURL || auth.currentUser.photoURL,
+          ...data as any
+        });
+      }
     }
   };
 

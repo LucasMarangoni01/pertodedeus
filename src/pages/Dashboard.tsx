@@ -216,7 +216,7 @@ export default function Dashboard() {
            {[
              { label: "Agenda", icon: CalendarIcon, path: "/agenda", color: "bg-amber/20 text-amber" },
              { label: "Lutas", icon: Flame, path: "/struggles", color: "bg-grape/20 text-grape" },
-             { label: "Bíblia", icon: BookOpen, path: "/bible", color: "bg-grape/20 text-grape" },
+             { label: "Jejum", icon: Flame, path: "/jejum", color: "bg-amber/10 text-amber" },
              { label: "Diário", icon: Heart, path: "/diary", color: "bg-grape/10 text-pearl/80" },
              { label: "Oração", icon: MessageSquare, path: "/prayer", color: "bg-amber/10 text-amber" },
              { label: "SOS", icon: ShieldAlert, path: "/sos", color: "bg-red-500/20 text-red-400" },

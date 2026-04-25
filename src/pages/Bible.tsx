@@ -1,16 +1,21 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Search, Book, ChevronRight, Settings2, Share2, Copy, Highlighter, FileText, X, Star, Volume2, Square } from "lucide-react";
+import { Search, Book, ChevronRight, Settings2, Share2, Copy, Highlighter, FileText, X, Star, Volume2, Square, PlayCircle } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useAuth } from "../context/AuthContext";
 import { bibleBooks } from "../constants/bibleData";
+import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../lib/firebase";
 
-import { getBibleBooks, getBibleChapter } from "../lib/bibleApi";
+import { getBibleBooks, getBibleChapter, searchBible } from "../lib/bibleApi";
+import { getChapterTitle } from "../services/bibleService";
 
 const translations = [
-  { id: "ARA", name: "Almeida Revista e Atualizada (ARA)" },
-  { id: "NTLH", name: "Nova Tradução na Linguagem de Hoje (NTLH)" },
-  { id: "NVIPT", name: "Nova Versão Internacional (NVI)" }
+  { id: "ARA", name: "ARA - Almeida Revista e Atualizada" },
+  { id: "NVIPT", name: "NVI - Nova Versão Internacional", alias: "NVI" },
+  { id: "NTLH", name: "NTLH - Nova Tradução na Linguagem de Hoje" },
+  { id: "NVT", name: "NVT - Nova Versão Transformadora" },
+  { id: "NAA", name: "NAA - Nova Almeida Atualizada" }
 ];
 
 export default function Bible() {
@@ -36,7 +41,100 @@ export default function Bible() {
   const [audioSpeed, setAudioSpeed] = useState(1);
   const [selectedVerses, setSelectedVerses] = useState<number[]>([]);
   const [activeTestament, setActiveTestament] = useState<'Velho' | 'Novo'>('Velho');
-  const [selectedVersion, setSelectedVersion] = useState("ARA");
+  const [globalResults, setGlobalResults] = useState<any[]>([]);
+  const [searchingGlobal, setSearchingGlobal] = useState(false);
+  const [showGlobalResults, setShowGlobalResults] = useState(false);
+  const [chapterTitle, setChapterTitle] = useState<string | null>(null);
+  const lastSavedVerse = useRef<number | null>(null);
+  
+  // Initialize version from user profile or default to ARA
+  const [selectedVersion, setSelectedVersion] = useState(() => {
+    const userVers = user?.bibleVersion;
+    if (userVers) {
+      const match = translations.find(t => t.alias === userVers || t.id === userVers);
+      return match ? match.id : "ARA";
+    }
+    return "ARA";
+  });
+
+  const saveReadingProgress = async (book: string, bookId: number, chapter: number, verse: number) => {
+    const progress = { book, bookId, chapter, verse, version: selectedVersion, updatedAt: new Date().toISOString() };
+    localStorage.setItem("bibleProgress", JSON.stringify(progress));
+
+    if (user?.uid) {
+      try {
+        await updateDoc(doc(db, "users", user.uid), {
+          bibleProgress: {
+            ...progress,
+            updatedAt: serverTimestamp()
+          }
+        });
+      } catch (err) {
+        console.error("Save Progress Error:", err);
+      }
+    }
+  };
+
+  const continueReading = () => {
+    const saved = user?.bibleProgress || (() => {
+      const stored = localStorage.getItem("bibleProgress");
+      return stored ? JSON.parse(stored) : null;
+    })();
+
+    if (saved) {
+      const { book, bookId, chapter, verse, version } = saved;
+      if (version && version !== selectedVersion) setSelectedVersion(version);
+      setSelectedBook(book);
+      setSelectedBookId(bookId);
+      setSelectedChapter(chapter);
+      lastSavedVerse.current = verse;
+      showNotification(`Retomando em ${book} ${chapter}:${verse}`);
+    } else {
+      setSelectedBook("Gênesis");
+      setSelectedBookId(1);
+      setSelectedChapter(1);
+      lastSavedVerse.current = 1;
+      showNotification("Iniciando em Gênesis 1:1");
+    }
+  };
+
+  // Sync version if user profile changes (e.g. from settings)
+  useEffect(() => {
+    if (user?.bibleVersion) {
+      const match = translations.find(t => t.alias === user.bibleVersion || t.id === user.bibleVersion);
+      if (match && match.id !== selectedVersion) {
+        setSelectedVersion(match.id);
+      }
+    }
+  }, [user?.bibleVersion]);
+
+  // Debounced real-time search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery.trim().length >= 3) {
+        handleGlobalSearch();
+      } else if (searchQuery.length === 0) {
+        setShowGlobalResults(false);
+        setGlobalResults([]);
+      }
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (!loading && lastSavedVerse.current && verses.length > 0) {
+      const timer = setTimeout(() => {
+        const element = document.getElementById(`verse-${lastSavedVerse.current}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setSelectedVerses([lastSavedVerse.current!]);
+          lastSavedVerse.current = null;
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, verses]);
 
   const [nativeVoices, setNativeVoices] = useState<{id: string, name: string}[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<string>("pt-BR");
@@ -196,6 +294,35 @@ export default function Bible() {
     setSelectedVerses(prev => 
       prev.includes(num) ? prev.filter(v => v !== num) : [...prev, num]
     );
+    if (selectedBook && selectedBookId && selectedChapter) {
+      saveReadingProgress(selectedBook, selectedBookId, selectedChapter, num);
+    }
+  };
+
+  const handleGlobalSearch = async () => {
+    if (!searchQuery || searchQuery.length < 3) {
+      if (searchQuery.length > 0) showNotification("Digite pelo menos 3 caracteres.");
+      return;
+    }
+    setSearchingGlobal(true);
+    setShowGlobalResults(true);
+    setSelectedBook(null);
+    setSelectedChapter(null);
+    try {
+      const results = await searchBible(selectedVersion, searchQuery);
+      setGlobalResults(results);
+    } catch (e) {
+      console.error("Global Search Error:", e);
+      showNotification("Erro na busca global.");
+    } finally {
+      setSearchingGlobal(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleGlobalSearch();
+    }
   };
 
   useEffect(() => {
@@ -203,10 +330,12 @@ export default function Bible() {
       const fetchVerses = async () => {
         setLoading(true);
         setError(null);
+        setChapterTitle(null);
         try {
           const bookData = books.find(b => b.name === selectedBook);
           if (!bookData) throw new Error("Livro não encontrado.");
 
+          // Fetch verses first to show them immediately
           const data = await getBibleChapter(selectedVersion, bookData.bollsId, selectedChapter);
           
           if (!Array.isArray(data) || data.length === 0) {
@@ -219,6 +348,17 @@ export default function Bible() {
           }));
           
           setVerses(formattedVerses);
+          setLoading(false); // Stop loading immediately after verses arrive
+
+          // Save progress as the start of chapter
+          if (!lastSavedVerse.current) {
+            saveReadingProgress(selectedBook, bookData.bollsId, selectedChapter, 1);
+          }
+
+          // Load title in background asynchronously
+          getChapterTitle(selectedBook, selectedChapter, selectedVersion).then(title => {
+            if (title) setChapterTitle(title);
+          });
         } catch (e) {
           const msg = e instanceof Error ? e.message : "Erro desconhecido";
           setError(`Erro: ${msg}. Verifique se o livro está disponível nesta versão.`);
@@ -255,17 +395,49 @@ export default function Bible() {
         selectedChapter ? "hidden md:flex flex-col w-64" : "flex flex-col w-full"
       )}>
         <div className="relative mb-6">
-           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-pearl/40 w-4 h-4" />
+           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-pearl/40 w-4 h-4 cursor-pointer hover:text-amber transition-colors" onClick={handleGlobalSearch} />
            <input 
              value={searchQuery}
              onChange={e => setSearchQuery(e.target.value)}
-             placeholder="Buscar livro ou tema..."
+             onKeyDown={handleKeyDown}
+             placeholder="Buscar livro ou palavra-chave..."
              className="w-full bg-white/5 border border-amber/10 rounded-xl pl-12 pr-4 py-3 outline-none focus:border-amber transition-colors"
            />
+           {searchQuery && (
+              <button 
+                onClick={() => { setSearchQuery(""); setShowGlobalResults(false); setGlobalResults([]); }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-pearl/20 hover:text-pearl/60"
+              >
+                 <X className="w-3 h-3" />
+              </button>
+           )}
         </div>
 
-        {!selectedBook && (
+        {!selectedBook && !showGlobalResults && (
           <div className="flex flex-col gap-4 mb-6">
+            <motion.button 
+               whileHover={{ scale: 1.02 }}
+               whileTap={{ scale: 0.98 }}
+               onClick={continueReading}
+               className="w-full bg-amber text-navy p-4 rounded-2xl flex items-center justify-between shadow-xl shadow-amber/10 group"
+            >
+               <div className="flex items-center gap-3">
+                  <div className="p-2 bg-navy/10 rounded-xl group-hover:bg-navy/20 transition-colors">
+                     <PlayCircle className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                     <span className="block text-[10px] font-bold uppercase tracking-wider opacity-60">Sua última leitura</span>
+                     <span className="block text-sm font-bold">
+                        {user?.bibleProgress 
+                           ? `${user.bibleProgress.book} ${user.bibleProgress.chapter}:${user.bibleProgress.verse}`
+                           : "Continuar Leitura"
+                        }
+                     </span>
+                  </div>
+               </div>
+               <ChevronRight className="w-5 h-5 opacity-40 group-hover:translate-x-1 transition-transform" />
+            </motion.button>
+
             <div className="flex p-1 bg-white/5 rounded-xl border border-amber/5">
                <button 
                  onClick={() => setActiveTestament('Velho')}
@@ -309,7 +481,7 @@ export default function Bible() {
           </div>
         )}
 
-        {!selectedBook ? (
+        {!selectedBook && !showGlobalResults ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-1 gap-2">
             {books
               .filter(b => searchQuery ? true : b.testament === activeTestament)
@@ -320,6 +492,7 @@ export default function Bible() {
                   onClick={() => {
                     setSelectedBook(book.name);
                     setSelectedBookId(book.bollsId);
+                    setShowGlobalResults(false);
                   }}
                   className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-white/5 text-left group"
                 >
@@ -336,6 +509,51 @@ export default function Bible() {
                   )}
                 </button>
               ))}
+          </div>
+        ) : showGlobalResults ? (
+          <div className="space-y-4">
+             <div className="flex items-center justify-between px-1 mb-2">
+                <span className="text-[10px] text-amber font-bold uppercase tracking-widest">
+                  Resultados da Busca
+                </span>
+                <button onClick={() => { setShowGlobalResults(false); setSearchQuery(""); }} className="text-[10px] text-pearl/40 hover:text-pearl underline">Limpar</button>
+             </div>
+             
+             {searchingGlobal ? (
+                <div className="py-12 flex flex-col items-center justify-center gap-3 opacity-40">
+                   <div className="w-6 h-6 border-2 border-amber/20 border-t-amber rounded-full animate-spin" />
+                   <p className="text-[10px] font-bold uppercase">Pesquisando...</p>
+                </div>
+             ) : globalResults.length === 0 ? (
+                <div className="py-12 text-center opacity-40">
+                   <Search className="w-8 h-8 mx-auto mb-2" />
+                   <p className="text-[10px] font-bold uppercase tracking-widest">Nenhum versículo encontrado</p>
+                </div>
+             ) : (
+                <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                   {globalResults.map((result, idx) => (
+                      <button 
+                         key={idx}
+                         onClick={async () => {
+                            const book = books.find(b => b.bollsId === result.book);
+                            if (book) {
+                               setSelectedBook(book.name);
+                               setSelectedBookId(book.bollsId);
+                               setSelectedChapter(result.chapter);
+                               setShowGlobalResults(false);
+                               // Scroll and highlighting would be better but let's start with navigation
+                            }
+                         }}
+                         className="w-full text-left p-3 rounded-xl bg-white/5 border border-transparent hover:border-amber/20 transition-all group"
+                      >
+                         <p className="text-xs font-bold text-amber mb-1 group-hover:translate-x-1 transition-transform">
+                            {books.find(b => b.bollsId === result.book)?.name} {result.chapter}:{result.verse}
+                         </p>
+                         <p className="text-[11px] text-pearl/60 line-clamp-2 leading-relaxed" dangerouslySetInnerHTML={{ __html: result.text }} />
+                      </button>
+                   ))}
+                </div>
+             )}
           </div>
         ) : (
           <div className="space-y-6">
@@ -523,11 +741,24 @@ export default function Bible() {
                  </div>
                ) : (
                  <>
+                   {chapterTitle && (
+                     <motion.div 
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mb-10 text-center space-y-2 border-b border-amber/5 pb-8"
+                     >
+                        <span className="text-[10px] font-bold text-amber uppercase tracking-[0.2em] opacity-60">Capítulo {selectedChapter}</span>
+                        <h1 className="text-3xl md:text-5xl font-display font-bold text-pearl/90 leading-tight">
+                           {chapterTitle}
+                        </h1>
+                     </motion.div>
+                   )}
                    {verses.map(v => (
                      <motion.p 
                        initial={{ opacity: 0 }}
                        animate={{ opacity: 1 }}
                        key={v.v}
+                       id={`verse-${v.v}`}
                        onClick={() => handleVerseClick(v.v)}
                        style={{ fontSize: `${fontSize}px` }}
                        className={cn(

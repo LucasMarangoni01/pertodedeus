@@ -21,6 +21,7 @@ import Calculator from "./pages/Calculator";
 import Temptation from "./pages/Temptation";
 import ReligionQuiz from "./pages/ReligionQuiz";
 import StruggleTracker from "./pages/StruggleTracker";
+import Fasting from "./pages/Fasting";
 import Agenda from "./pages/Agenda";
 
 export default function App() {
@@ -35,6 +36,7 @@ export default function App() {
               <Route index element={<Dashboard />} />
               <Route path="quiz" element={<ReligionQuiz />} />
               <Route path="struggles" element={<StruggleTracker />} />
+              <Route path="jejum" element={<Fasting />} />
               <Route path="agenda" element={<Agenda />} />
               <Route path="bible" element={<Bible />} />
               <Route path="plans" element={<ReadingPlans />} />

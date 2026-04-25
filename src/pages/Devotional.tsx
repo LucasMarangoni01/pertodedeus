@@ -10,7 +10,7 @@ import ReactMarkdown from "react-markdown";
 import { cn } from "../lib/utils";
 
 export default function Devotional() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [devotional, setDevotional] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -20,8 +20,10 @@ export default function Devotional() {
   const [showGenerator, setShowGenerator] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
+    if (authLoading || !user) return;
     
+    // Reset loading state for daily check
+    setLoading(true);
     const todayStr = new Date().toISOString().split('T')[0];
     const q = query(
       collection(db, "users", user.uid, "devotionals"),
@@ -63,7 +65,7 @@ export default function Devotional() {
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user, authLoading]);
 
   const handleNewDevotional = async (passage?: string, simplify?: boolean) => {
     if (!user) return;
@@ -125,6 +127,8 @@ export default function Devotional() {
       }
     }
   };
+
+  if (authLoading) return null;
 
   if (loading) {
     return (
