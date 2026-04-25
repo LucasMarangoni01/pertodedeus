@@ -45,29 +45,39 @@ export default function Settings() {
     if (user && !hasLoaded) {
       console.log("DEBUG - DADO DO FIRESTORE NO useAuth:", user);
       
-      const v = user.bibleVersion || "NVI";
+      let v = user.bibleVersion || "NVI";
+      let localData = null;
+
+      if (isGuest) {
+        const saved = localStorage.getItem("guestSettings");
+        if (saved) {
+          localData = JSON.parse(saved);
+          v = localData.bibleVersion || v;
+        }
+      }
+
       setBibleVersionState(v);
       
       setFormData({
-        displayName: user.displayName || "",
-        bio: user.bio || "",
-        denomination: user.denomination || "Sem denominação",
+        displayName: localData?.displayName || user.displayName || (isGuest ? "Visitante" : ""),
+        bio: localData?.bio || user.bio || "",
+        denomination: localData?.denomination || user.denomination || "Sem denominação",
         bibleVersion: v,
-        isPublic: user.isPublic ?? true,
+        isPublic: localData?.isPublic ?? (user.isPublic ?? true),
         notifications: {
-          dailyDevotional: user.notifications?.dailyDevotional ?? true,
-          prayerRequests: user.notifications?.prayerRequests ?? true,
-          communityActivity: user.notifications?.communityActivity ?? true,
+          dailyDevotional: localData?.notifications?.dailyDevotional ?? (user.notifications?.dailyDevotional ?? true),
+          prayerRequests: localData?.notifications?.prayerRequests ?? (user.notifications?.prayerRequests ?? true),
+          communityActivity: localData?.notifications?.communityActivity ?? (user.notifications?.communityActivity ?? true),
         },
         privacy: {
-          showProfile: user.privacy?.showProfile ?? true,
-          showStreak: user.privacy?.showStreak ?? true,
-          showStruggles: user.privacy?.showStruggles ?? false,
+          showProfile: localData?.privacy?.showProfile ?? (user.privacy?.showProfile ?? true),
+          showStreak: localData?.privacy?.showStreak ?? (user.privacy?.showStreak ?? true),
+          showStruggles: localData?.privacy?.showStruggles ?? (user.privacy?.showStruggles ?? false),
         }
       });
       setHasLoaded(true);
     }
-  }, [user, hasLoaded]);
+  }, [user, hasLoaded, isGuest]);
 
   // Log state on every render for debugging
   console.log("DEBUG - STATE bibleVersion local:", bibleVersionState);
@@ -100,10 +110,6 @@ export default function Settings() {
   const handleSave = async () => {
     if (!user || loading) return;
     
-    if (isGuest) {
-      alert("No Modo Visitante as configurações não são salvas no servidor. Faça login para personalizar seu perfil permanentemente.");
-      return;
-    }
     // Validation match with firestore.rules
     if (!formData.displayName || !formData.displayName.trim()) {
       alert("O nome de exibição não pode estar vazio.");
@@ -114,8 +120,6 @@ export default function Settings() {
     setSuccess(false);
 
     try {
-      console.log("[Settings] Iniciando salvamento...", { bibleVersion: bibleVersionState });
-      
       const updateData = {
         displayName: formData.displayName.trim(),
         bio: formData.bio || "",
@@ -134,16 +138,22 @@ export default function Settings() {
         },
         spiritualLevel: user.spiritualLevel || "Semente",
         streak: user.streak ?? 0,
-        updatedAt: serverTimestamp(),
+        updatedAt: isGuest ? new Date().toISOString() : serverTimestamp(),
       };
 
-      const userRef = doc(db, "users", user.uid);
+      if (isGuest) {
+        // Save locally for guests
+        localStorage.setItem("guestSettings", JSON.stringify(updateData));
+        localStorage.setItem("bibleVersion", bibleVersionState); // Global override for hooks
+        console.log("[Settings] Salvo localmente no modo visitante");
+      } else {
+        console.log("[Settings] Iniciando salvamento no Firestore...", { bibleVersion: bibleVersionState });
+        const userRef = doc(db, "users", user.uid);
+        const { withTimeout } = await import("../lib/firebase");
+        await withTimeout(setDoc(userRef, updateData, { merge: true }), 12000);
+        console.log("[Settings] Salvo com sucesso no Firestore");
+      }
       
-      // Using centralized timeout helper
-      const { withTimeout } = await import("../lib/firebase");
-      await withTimeout(setDoc(userRef, updateData, { merge: true }), 12000);
-      
-      console.log("[Settings] Salvo com sucesso no Firestore");
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (error: any) {
