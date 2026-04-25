@@ -10,6 +10,7 @@ import { cn } from "../lib/utils";
 
 export default function Community() {
   const { user } = useAuth();
+  const isAdmin = user?.isAdmin;
   const [publicRequests, setPublicRequests] = useState<any[]>([]);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [testimonials, setTestimonials] = useState<any[]>([]);
@@ -480,7 +481,7 @@ export default function Community() {
                       </div>
                    </div>
 
-                   {t.userId === user?.uid && (
+                   {(t.userId === user?.uid || isAdmin) && (
                       <div className="flex items-center gap-2">
                         {deletingTestimonyId === t.id ? (
                            <div className="flex items-center gap-2 bg-red-500/10 px-2 py-1 rounded-lg">
@@ -551,7 +552,7 @@ export default function Community() {
                             <span className="text-[10px] font-bold tracking-widest uppercase opacity-40">
                               {isMine ? "Você" : msg.userName}
                             </span>
-                            {isMine && !isEditing && (
+                            {(isMine || isAdmin) && !isEditing && (
                               <div className="flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
                                 {deletingChatId === msg.id ? (
                                   <div className="flex items-center gap-2 bg-red-500/20 px-2 py-1 rounded-lg">
@@ -571,17 +572,19 @@ export default function Community() {
                                   </div>
                                 ) : (
                                   <>
-                                    <button 
-                                      onClick={() => {
-                                        setEditingChatId(msg.id);
-                                        setEditingChatText(msg.text);
-                                        setDeletingChatId(null);
-                                      }}
-                                      className="p-1 hover:text-amber transition-colors"
-                                      title="Editar"
-                                    >
-                                      <Edit2 className="w-3 h-3" />
-                                    </button>
+                                    {isMine && (
+                                      <button 
+                                        onClick={() => {
+                                          setEditingChatId(msg.id);
+                                          setEditingChatText(msg.text);
+                                          setDeletingChatId(null);
+                                        }}
+                                        className="p-1 hover:text-amber transition-colors"
+                                        title="Editar"
+                                      >
+                                        <Edit2 className="w-3 h-3" />
+                                      </button>
+                                    )}
                                     <button 
                                       onClick={() => setDeletingChatId(msg.id)}
                                       className="p-1 hover:text-red-400 transition-colors"

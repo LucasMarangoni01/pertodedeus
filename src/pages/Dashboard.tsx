@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { Sparkles, Zap, Heart, BookOpen, MessageSquare, Plus, ChevronRight, MapPin, HelpCircle, Flame, Calendar as CalendarIcon, ShieldAlert, Search } from "lucide-react";
+import { Sparkles, Zap, Heart, BookOpen, MessageSquare, Plus, ChevronRight, MapPin, HelpCircle, Flame, Calendar as CalendarIcon, ShieldAlert, Search, Megaphone, X as CloseIcon } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../lib/firebase";
 import { collection, query, where, limit, onSnapshot, orderBy } from "firebase/firestore";
@@ -14,6 +14,8 @@ export default function Dashboard() {
   const [lastPrayer, setLastPrayer] = useState<any>(null);
   const [todaysDevotional, setTodaysDevotional] = useState<any>(null);
   const [randomVerse, setRandomVerse] = useState({ text: "Lâmpada para os meus pés é tua palavra, e luz para o meu caminho.", ref: "Salmos 119:105" });
+  const [announcement, setAnnouncement] = useState<any>(null);
+  const [dismissedAnnounce, setDismissedAnnounce] = useState<string | null>(null);
 
   const bibleVerses = [
     { text: "O Senhor é o meu pastor, nada me faltará.", ref: "Salmos 23:1" },
@@ -63,11 +65,62 @@ export default function Dashboard() {
       if (!s.empty) setTodaysDevotional({ id: s.docs[0].id, ...s.docs[0].data() });
     });
 
-    return () => { unsubPrayer(); unsubDevo(); };
+    // Fetch latest active announcement
+    const qAnnounce = query(
+      collection(db, "global_announcements"),
+      where("active", "==", true),
+      orderBy("createdAt", "desc"),
+      limit(1)
+    );
+    const unsubAnnounce = onSnapshot(qAnnounce, (s) => {
+      if (!s.empty) {
+        const data = { id: s.docs[0].id, ...s.docs[0].data() };
+        setAnnouncement(data);
+      } else {
+        setAnnouncement(null);
+      }
+    });
+
+    return () => { 
+      unsubPrayer(); 
+      unsubDevo(); 
+      unsubAnnounce();
+    };
   }, [user, isGuest]);
 
   return (
     <div className="space-y-10">
+      {announcement && dismissedAnnounce !== announcement.id && (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className={cn(
+            "p-6 rounded-3xl border shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center gap-6",
+            announcement.type === 'alert' ? "bg-amber/10 border-amber/30 text-amber" : 
+            announcement.type === 'welcome' ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" :
+            "bg-blue-500/10 border-blue-500/30 text-blue-400"
+          )}
+        >
+          <div className={cn(
+            "p-4 rounded-2xl shrink-0",
+            announcement.type === 'alert' ? "bg-amber/20" : 
+            announcement.type === 'welcome' ? "bg-emerald-500/20" : "bg-blue-500/20"
+          )}>
+            <Megaphone className="w-8 h-8" />
+          </div>
+          <div className="flex-1 text-center md:text-left">
+            <h4 className="text-xl font-display font-bold mb-1">{announcement.title}</h4>
+            <p className="text-sm opacity-80 leading-relaxed">{announcement.content}</p>
+          </div>
+          <button 
+            onClick={() => setDismissedAnnounce(announcement.id)}
+            className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full transition-colors"
+          >
+            <CloseIcon className="w-4 h-4" />
+          </button>
+        </motion.div>
+      )}
+
       {isGuest && (
         <motion.div 
           initial={{ opacity: 0, y: -10 }}

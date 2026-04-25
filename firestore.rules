@@ -9,7 +9,13 @@ service cloud.firestore {
     // --- Reusable Logic Primitives ---
     function isSignedIn() { return request.auth != null; }
     function isEmailVerified() { return request.auth.token.email_verified == true; }
-    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isAdmin() { 
+      return isSignedIn() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        request.auth.token.email == "lukete135467@gmail.com"
+      );
+    }
+    function isOwner(userId) { return isSignedIn() && (request.auth.uid == userId || isAdmin()); }
     // IDs must be reasonably sized and safe
     function isValidId(id) { return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
     function incoming() { return request.resource.data; }
@@ -19,7 +25,7 @@ service cloud.firestore {
     match /users/{userId} {
       // Profiles are accessible if signed in, but sensitive data (if any) should be guarded
       allow get: if isSignedIn() && isValidId(userId);
-      allow list: if false; // Prevent scraping all users
+      allow list: if isAdmin(); // Prevent scraping all users except for admins
 
       allow create: if isOwner(userId) 
                     && isValidId(userId)
@@ -187,10 +193,10 @@ service cloud.firestore {
     // --- Prayer Requests (Global/Shared) ---
     match /prayer_requests/{requestId} {
       // Get: Owner or Public
-      allow get: if isSignedIn() && (isOwner(existing().userId) || existing().isPublic == true);
+      allow get: if isSignedIn() && (isOwner(existing().userId) || existing().isPublic == true || isAdmin());
       
       // List: Must explicitly filter by userId or isPublic
-      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.isPublic == true);
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.isPublic == true || isAdmin());
       
       allow create: if isSignedIn() 
                     && isOwner(incoming().userId) 
@@ -266,6 +272,12 @@ service cloud.firestore {
           && data.userName is string && data.userName.size() > 0 && data.userName.size() <= 100
           && data.text is string && data.text.size() > 0 && data.text.size() <= 2000;
       }
+    }
+
+    // --- Global Announcements ---
+    match /global_announcements/{announcementId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
   }
 }

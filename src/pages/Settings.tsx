@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { db } from "../lib/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { Save, User, Bell, Lock, Globe, LogOut, ChevronRight, Moon, Sun, Languages } from "lucide-react";
+import { Save, User, Bell, Lock, Globe, LogOut, ChevronRight, Moon, Sun, Languages, RefreshCw, AlertTriangle } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useTheme } from "../context/ThemeContext";
 
@@ -17,7 +17,7 @@ export default function Settings() {
   const { theme, toggleTheme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [activeTab, setActiveTab] = useState<'profile' | 'app' | 'notif' | 'privacy'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'app' | 'notif' | 'privacy' | 'advanced'>('profile');
   const [bibleVersionState, setBibleVersionState] = useState("NVI");
 
   const [formData, setFormData] = useState({
@@ -241,6 +241,7 @@ export default function Settings() {
             { id: 'app', label: 'Aplicativo', icon: Globe },
             { id: 'notif', label: 'Notificações', icon: Bell },
             { id: 'privacy', label: 'Privacidade', icon: Lock },
+            { id: 'advanced', label: 'Avançado', icon: RefreshCw },
           ].map((item) => (
             <button
               key={item.id}
@@ -497,6 +498,46 @@ export default function Settings() {
                   </div>
                 </div>
                 {renderFooter()}
+              </section>
+            )}
+            {activeTab === 'advanced' && (
+              <section className="glow-card space-y-8">
+                <div className="space-y-6">
+                  <h3 className="text-xl font-display font-bold flex items-center gap-3">
+                    <RefreshCw className="text-amber w-6 h-6" /> Avançado: Redefinição
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <div className="p-4 bg-red-500/5 rounded-2xl border border-red-500/20 space-y-4">
+                       <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500">
+                             <AlertTriangle className="w-5 h-5" />
+                          </div>
+                          <div>
+                             <p className="text-sm font-bold text-red-400">Redefinição de Datas</p>
+                             <p className="text-[10px] text-pearl/50 font-bold uppercase">Ações para testes e depuração</p>
+                          </div>
+                       </div>
+                       
+                       <p className="text-xs text-pearl/60">
+                         Para testes, você pode limpar os caches de data armazenados no seu dispositivo. Isso forçará o aplicativo a carregar os dados atualizados ou gerar novos devocionais se o dia tiver mudado.
+                       </p>
+
+                       <button 
+                         onClick={() => {
+                           if(window.confirm("Deseja redefinir as datas locais (Bíblia, devocional)? O app irá recarregar as informações e a página fará um refresh.")){
+                             localStorage.removeItem("bibleProgress");
+                             localStorage.removeItem("guestSettings");
+                             window.location.reload();
+                           }
+                         }}
+                         className="w-full flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold px-6 py-3 rounded-xl transition-all border border-red-500/20"
+                       >
+                         <RefreshCw className="w-4 h-4" /> Resetar Datas / Limpar Storage Local
+                       </button>
+                    </div>
+                  </div>
+                </div>
               </section>
             )}
           </motion.div>

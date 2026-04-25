@@ -7,6 +7,7 @@
       "properties": {
         "displayName": { "type": "string", "description": "User's display name" },
         "photoURL": { "type": "string", "description": "Profile picture URL" },
+        "role": { "type": "string", "enum": ["admin", "user"], "description": "User role" },
         "denomination": { "type": "string", "description": "Church denomination" },
         "bibleVersion": { "type": "string", "enum": ["NVI", "ARA", "NVT", "NAA", "NTLH"], "description": "Preferred Bible translation" },
         "yearsAsChristian": { "type": "number", "description": "Time as a Christian" },
@@ -223,6 +224,19 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "title", "startTime", "date", "category"]
+    },
+    "Announcement": {
+      "title": "Global Announcement",
+      "description": "Message from admins to all users",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "type": { "type": "string", "enum": ["info", "alert", "welcome"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "active": { "type": "boolean" }
+      },
+      "required": ["title", "content", "type", "createdAt"]
     }
   },
   "firestore": {
@@ -273,6 +287,10 @@
     "/users/{userId}/calendar_events/{eventId}": {
       "schema": "CalendarEvent",
       "description": "User's personal spiritual agenda"
+    },
+    "/global_announcements/{announcementId}": {
+      "schema": "Announcement",
+      "description": "Official admin communication"
     }
   }
 }

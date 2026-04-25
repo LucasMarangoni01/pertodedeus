@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate, Navigate, useOutletContext } from "react-router-dom";
-import { Home, BookOpen, MessageSquare, Heart, User, LogOut, Search, PenTool, GraduationCap, Users, Bot, MapPin, HelpCircle, ShieldAlert, Calculator, Flame, LayoutGrid, Menu, X, Settings as SettingsIcon, Calendar as CalendarIcon, Music as MusicIcon } from "lucide-react";
+import { BookOpen, MessageSquare, Heart, User, LogOut, Search, PenTool, GraduationCap, Users, Bot, MapPin, HelpCircle, ShieldAlert, Calculator, Flame, LayoutGrid, Menu, X, Settings as SettingsIcon, Calendar as CalendarIcon, Shield } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { NotificationManager } from "../NotificationManager";
@@ -21,7 +21,6 @@ const navigationGroups = [
     title: "Espiritualidade",
     items: [
       { path: "/bible", icon: BookOpen, label: "Bíblia Sagrada" },
-      { path: "/music", icon: MusicIcon, label: "Louvor & Adoração" },
       { path: "/jejum", icon: Flame, label: "Jejum Espiritual" },
       { path: "/prayer", icon: MessageSquare, label: "Meus Pedidos" },
       { path: "/devotional", icon: Heart, label: "Devocional IA" },
@@ -102,14 +101,21 @@ export default function MainLayout() {
   // Flattened for mobile/logic and filtering
   const allNavItems = navigationGroups.flatMap(g => g.items);
   
+  const adminGroup = user?.isAdmin ? [{
+    title: "Administração",
+    items: [
+      { path: "/admin", icon: Shield, label: "Painel Admin" },
+    ]
+  }] : [];
+
   const filteredGroups = globalSearch 
     ? [{ 
         title: "Resultados da Busca", 
-        items: allNavItems.filter(item => 
+        items: [...adminGroup.flatMap(g => g.items), ...allNavItems].filter(item => 
           item.label.toLowerCase().includes(globalSearch.toLowerCase())
         ) 
       }]
-    : navigationGroups;
+    : [...navigationGroups, ...adminGroup];
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-navy text-pearl">

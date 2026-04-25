@@ -14,6 +14,8 @@ interface AppUser {
   email: string | null;
   displayName: string | null;
   photoURL: string | null;
+  role?: 'admin' | 'user';
+  isAdmin?: boolean;
   denomination?: string;
   bibleVersion?: string;
   spiritualLevel?: string;
@@ -97,6 +99,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         unsubscribeProfile = onSnapshot(doc(db, "users", firebaseUser.uid), (userDoc) => {
           if (!isMounted) return;
           
+          const isAdminByEmail = firebaseUser.email === "lukete135467@gmail.com";
+
           if (userDoc.exists()) {
             const data = userDoc.data();
             setUser({
@@ -104,6 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               email: firebaseUser.email,
               displayName: data.displayName || firebaseUser.displayName,
               photoURL: data.photoURL || firebaseUser.photoURL,
+              isAdmin: data.role === 'admin' || isAdminByEmail,
               ...data as any
             });
           } else {
@@ -112,6 +117,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               email: firebaseUser.email,
               displayName: firebaseUser.displayName,
               photoURL: firebaseUser.photoURL,
+              isAdmin: isAdminByEmail,
+              role: isAdminByEmail ? 'admin' : 'user'
             });
           }
           setLoading(false);

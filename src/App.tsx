@@ -26,7 +26,7 @@ const ReligionQuiz = lazy(() => import("./pages/ReligionQuiz"));
 const StruggleTracker = lazy(() => import("./pages/StruggleTracker"));
 const Fasting = lazy(() => import("./pages/Fasting"));
 const Agenda = lazy(() => import("./pages/Agenda"));
-const Music = lazy(() => import("./pages/Music"));
+const Admin = lazy(() => import("./pages/Admin"));
 
 const PageLoader = () => (
   <div className="min-h-screen bg-navy flex items-center justify-center">
@@ -50,7 +50,6 @@ export default function App() {
                 <Route path="jejum" element={<Fasting />} />
                 <Route path="agenda" element={<Agenda />} />
                 <Route path="bible" element={<Bible />} />
-                <Route path="music" element={<Music />} />
                 <Route path="plans" element={<ReadingPlans />} />
                 <Route path="calculator" element={<Calculator />} />
                 <Route path="prayer" element={<Prayer />} />
@@ -59,6 +58,7 @@ export default function App() {
                 <Route path="study" element={<Study />} />
                 <Route path="community" element={<Community />} />
                 <Route path="assistant" element={<Assistant />} />
+                <Route path="admin" element={<Admin />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="devotional" element={<Devotional />} />
                 <Route path="profile" element={<Profile />} />
