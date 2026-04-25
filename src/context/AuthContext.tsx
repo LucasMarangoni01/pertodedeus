@@ -4,7 +4,9 @@ import {
   signInWithPopup, 
   GoogleAuthProvider, 
   signOut as firebaseSignOut,
-  User as FirebaseUser
+  User as FirebaseUser,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword
 } from "firebase/auth";
 import { auth, db } from "../lib/firebase";
 import { doc, onSnapshot, getDoc } from "firebase/firestore";
@@ -48,6 +50,8 @@ interface AuthContextType {
   user: AppUser | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
+  signInWithEmail: (email: string, pass: string) => Promise<void>;
+  registerWithEmail: (email: string, pass: string) => Promise<void>;
   signOut: () => Promise<void>;
   isGuest: boolean;
   enterGuestMode: () => void;
@@ -144,9 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     try {
-      // Usar import dinâmico para evitar dependência circular
       const { withTimeout } = await import("../lib/firebase");
-      // Damos 60 segundos pois depende da interação do usuário com o popup
       await withTimeout(signInWithPopup(auth, provider), 60000);
     } catch (error: any) {
       console.error("[Auth] Error signing in with Google:", error);
@@ -154,6 +156,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error("A autenticação demorou muito. Verifique se o popup foi bloqueado pelo navegador.");
       }
       throw error; 
+    }
+  };
+
+  const signInWithEmail = async (email: string, pass: string) => {
+    try {
+      const { withTimeout } = await import("../lib/firebase");
+      await withTimeout(signInWithEmailAndPassword(auth, email, pass), 15000);
+    } catch (error: any) {
+      console.error("[Auth] Error with email login:", error);
+      throw error;
+    }
+  };
+
+  const registerWithEmail = async (email: string, pass: string) => {
+    try {
+      const { withTimeout } = await import("../lib/firebase");
+      await withTimeout(createUserWithEmailAndPassword(auth, email, pass), 15000);
+    } catch (error: any) {
+      console.error("[Auth] Error with email register:", error);
+      throw error;
     }
   };
 
@@ -167,7 +189,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut, isGuest, enterGuestMode, exitGuestMode }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      signInWithGoogle, 
+      signInWithEmail, 
+      registerWithEmail, 
+      signOut, 
+      isGuest, 
+      enterGuestMode, 
+      exitGuestMode 
+    }}>
       {loading ? (
         <div className="min-h-screen bg-navy flex flex-col items-center justify-center p-6 text-center">
            <div className="w-12 h-12 border-4 border-amber/20 border-t-amber rounded-full animate-spin mb-6" />

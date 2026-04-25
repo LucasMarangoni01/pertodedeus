@@ -276,7 +276,7 @@ service cloud.firestore {
 
     // --- Global Announcements ---
     match /global_announcements/{announcementId} {
-      allow read: if isSignedIn();
+      allow read: if true; // Permite leitura pública para anúncios globais
       allow write: if isAdmin();
     }
   }

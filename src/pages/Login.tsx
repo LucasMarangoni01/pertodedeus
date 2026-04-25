@@ -1,16 +1,31 @@
 import { useState } from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Navigate } from "react-router-dom";
-import { Heart, Chrome } from "lucide-react";
+import { Heart, Chrome, Mail, Lock, UserPlus, LogIn, ChevronLeft, Eye, EyeOff, AlertCircle } from "lucide-react";
+
+type AuthMode = 'initial' | 'email-login' | 'email-register';
 
 export default function Login() {
-  const { user, signInWithGoogle, loading: authLoading, isGuest, enterGuestMode } = useAuth();
+  const { 
+    user, 
+    signInWithGoogle, 
+    signInWithEmail,
+    registerWithEmail,
+    loading: authLoading, 
+    isGuest, 
+    enterGuestMode 
+  } = useAuth();
   const navigate = useNavigate();
+  const [mode, setMode] = useState<AuthMode>('initial');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // If already logged in or in guest mode, redirect
-  
+  // Form states
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-navy flex items-center justify-center">
@@ -23,28 +38,54 @@ export default function Login() {
     return <Navigate to="/" replace />;
   }
 
+  if (user && !user.spiritualLevel) {
+    return <Navigate to="/onboarding" replace />;
+  }
+
   const handleGuestEnter = () => {
     enterGuestMode();
     navigate("/");
   };
 
-  if (user && !user.spiritualLevel) {
-    return <Navigate to="/onboarding" replace />;
-  }
-
-  const handleLogin = async () => {
+  const handleGoogleLogin = async () => {
     setIsLoggingIn(true);
+    setError(null);
     try {
       await signInWithGoogle();
     } catch (error: any) {
       console.error("Login failed:", error);
       if (error.code === "auth/popup-blocked") {
-        alert("O popup foi bloqueado pelo seu navegador. Por favor, permita popups para este site.");
-      } else if (error.code === "auth/cancelled-popup-request") {
-        // Just user closing it, no need to alert
+        setError("O popup foi bloqueado pelo seu navegador.");
       } else {
-        alert("Erro ao entrar: " + (error.message || "Tente novamente."));
+        setError("Erro ao entrar: " + (error.message || "Tente novamente."));
       }
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) return;
+    
+    setIsLoggingIn(true);
+    setError(null);
+    try {
+      if (mode === 'email-login') {
+        await signInWithEmail(email, password);
+      } else {
+        await registerWithEmail(email, password);
+      }
+    } catch (error: any) {
+      console.error("Email auth failed:", error);
+      let msg = "Erro na autenticação. Verifique os dados.";
+      if (error.code === 'auth/wrong-password') msg = "Senha incorreta.";
+      if (error.code === 'auth/user-not-found') msg = "E-mail não cadastrado.";
+      if (error.code === 'auth/email-already-in-use') msg = "E-mail já está em uso.";
+      if (error.code === 'auth/weak-password') msg = "Senha muito fraca (mínimo 6 caracteres).";
+      if (error.code === 'auth/invalid-email') msg = "E-mail inválido ou mal formatado.";
+      if (error.code === 'auth/operation-not-allowed') msg = "O login por e-mail ainda não foi ativado no console do Firebase.";
+      setError(msg);
     } finally {
       setIsLoggingIn(false);
     }
@@ -59,56 +100,158 @@ export default function Login() {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="z-10 max-w-md w-full space-y-12"
+        className="z-10 max-w-md w-full space-y-8"
       >
         <div className="flex flex-col items-center gap-6">
           <motion.div 
             animate={{ scale: [1, 1.05, 1] }}
             transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            className="w-24 h-24 bg-amber rounded-[2rem] flex items-center justify-center shadow-[0_0_50px_rgba(201,168,76,0.3)]"
+            className="w-20 h-20 bg-amber rounded-[1.5rem] flex items-center justify-center shadow-[0_0_50px_rgba(201,168,76,0.3)]"
           >
-            <Heart className="text-navy w-12 h-12" fill="currentColor" />
+            <Heart className="text-navy w-10 h-10" fill="currentColor" />
           </motion.div>
           
-          <div className="space-y-4">
-            <h1 className="text-5xl font-display font-bold tracking-tight text-amber glow-text">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-display font-bold tracking-tight text-amber glow-text">
               Perto de Deus
             </h1>
-            <p className="text-pearl/60 font-serif text-lg leading-relaxed italic">
-              "Permanecerei em vós, e vós em mim."
+            <p className="text-pearl/60 font-serif text-base leading-relaxed italic">
+              {mode === 'email-register' ? "Comece sua jornada espiritual" : "\"Permanecerei em vós, e vós em mim.\""}
             </p>
           </div>
         </div>
 
-        <div className="space-y-6">
-          <div className="flex flex-col gap-4">
-            <button 
-              onClick={handleLogin}
-              disabled={isLoggingIn}
-              className="w-full flex items-center justify-center gap-3 bg-white text-navy font-bold py-4 px-6 rounded-2xl transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-xl disabled:opacity-50"
+        <AnimatePresence mode="wait">
+          {mode === 'initial' ? (
+            <motion.div 
+              key="initial"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              className="space-y-4"
             >
-              {isLoggingIn ? (
-                <div className="w-5 h-5 border-2 border-navy border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Chrome className="w-6 h-6" />
-              )}
-              {isLoggingIn ? "Autenticando..." : "Entrar com Google"}
-            </button>
+              <button 
+                onClick={handleGoogleLogin}
+                disabled={isLoggingIn}
+                className="w-full flex items-center justify-center gap-3 bg-white text-navy font-bold py-4 px-6 rounded-2xl transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-xl disabled:opacity-50"
+              >
+                {isLoggingIn ? (
+                  <div className="w-5 h-5 border-2 border-navy border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Chrome className="w-6 h-6" />
+                )}
+                {isLoggingIn ? "Autenticando..." : "Entrar com Google"}
+              </button>
 
-            <button 
-              onClick={handleGuestEnter}
-              disabled={isLoggingIn}
-              className="w-full py-4 text-pearl/40 font-bold hover:text-amber transition-colors text-sm uppercase tracking-widest"
+              <button 
+                onClick={() => setMode('email-login')}
+                className="w-full flex items-center justify-center gap-3 bg-white/5 border border-white/10 text-pearl font-bold py-4 px-6 rounded-2xl transition-transform hover:scale-[1.02] active:scale-[0.98] hover:bg-white/10"
+              >
+                <Mail className="w-5 h-5 text-amber" />
+                Usar E-mail e Senha
+              </button>
+
+              <button 
+                onClick={handleGuestEnter}
+                disabled={isLoggingIn}
+                className="w-full py-4 text-pearl/40 font-bold hover:text-amber transition-colors text-sm uppercase tracking-widest"
+              >
+                Entrar como Visitante
+              </button>
+            </motion.div>
+          ) : (
+            <motion.form 
+              key="form"
+              onSubmit={handleEmailAuth}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-4 text-left"
             >
-              Entrar como Visitante
-            </button>
-          </div>
-          
-          <p className="text-pearl/40 text-sm">
-            Ao entrar, você concorda com nossos <br />
-            <span className="underline cursor-pointer hover:text-amber transition-colors">Termos de Uso</span> e <span className="underline cursor-pointer hover:text-amber transition-colors">Privacidade</span>.
-          </p>
-        </div>
+              <div className="flex items-center gap-2 mb-4">
+                <button 
+                  type="button"
+                  onClick={() => { setMode('initial'); setError(null); }}
+                  className="p-2 hover:bg-white/5 rounded-full text-pearl/60"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <span className="text-xs font-bold uppercase tracking-widest text-pearl/40">
+                  {mode === 'email-login' ? "Entrar com E-mail" : "Criar nova conta"}
+                </span>
+              </div>
+
+              {error && (
+                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-500 text-xs font-medium">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  {error}
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div className="relative group">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-pearl/30 group-focus-within:text-amber transition-colors" />
+                  <input 
+                    type="email"
+                    required
+                    placeholder="Seu e-mail"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    className="w-full bg-navy/50 border border-pearl/10 rounded-2xl py-4 pl-12 pr-4 text-pearl focus:outline-none focus:border-amber/50 transition-colors"
+                  />
+                </div>
+
+                <div className="relative group">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-pearl/30 group-focus-within:text-amber transition-colors" />
+                  <input 
+                    type={showPassword ? "text" : "password"}
+                    required
+                    placeholder="Sua senha"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    className="w-full bg-navy/50 border border-pearl/10 rounded-2xl py-4 pl-12 pr-12 text-pearl focus:outline-none focus:border-amber/50 transition-colors"
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-pearl/30 hover:text-pearl transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+
+              <button 
+                type="submit"
+                disabled={isLoggingIn}
+                className="w-full flex items-center justify-center gap-3 bg-amber text-navy font-bold py-4 px-6 rounded-2xl transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-xl disabled:opacity-50 mt-4"
+              >
+                {isLoggingIn ? (
+                  <div className="w-5 h-5 border-2 border-navy border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  mode === 'email-login' ? <LogIn className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />
+                )}
+                {isLoggingIn ? "Processando..." : (mode === 'email-login' ? "Entrar" : "Criar Conta")}
+              </button>
+
+              <button 
+                type="button"
+                onClick={() => {
+                  setMode(mode === 'email-login' ? 'email-register' : 'email-login');
+                  setError(null);
+                }}
+                className="w-full text-center text-xs text-pearl/40 font-bold hover:text-amber transition-colors mt-2"
+              >
+                {mode === 'email-login' ? "Não tem uma conta? Cadastre-se" : "Já tem uma conta? Entre aqui"}
+              </button>
+            </motion.form>
+          )}
+        </AnimatePresence>
+        
+        <p className="text-pearl/40 text-[10px] uppercase tracking-widest">
+          Ao participar, você aceita nossos <br />
+          <span className="underline cursor-pointer hover:text-amber transition-colors">Termos</span> e <span className="underline cursor-pointer hover:text-amber transition-colors">Privacidade</span>.
+        </p>
       </motion.div>
       
       {/* Floating Particles Decoration */}
