@@ -118,6 +118,11 @@ export default function Login() {
            }}
         />
       ))}
+      <footer className="absolute bottom-6 left-0 right-0 z-10">
+        <p className="text-pearl/20 text-[10px] font-medium tracking-wide">
+          © {new Date().getFullYear()} Perto de Deus • Todos os direitos reservados
+        </p>
+      </footer>
     </div>
   );
 }

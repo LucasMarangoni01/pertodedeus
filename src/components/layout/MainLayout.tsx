@@ -187,6 +187,10 @@ export default function MainLayout() {
             <LogOut className="w-5 h-5" />
             <span className="font-medium text-sm">Sair da Conta</span>
           </button>
+          <div className="mt-6 text-[10px] text-pearl/20 text-center font-medium">
+            © {new Date().getFullYear()} Perto de Deus<br />
+            Todos os direitos reservados
+          </div>
         </div>
       </aside>
 
@@ -280,6 +284,10 @@ export default function MainLayout() {
               >
                 <LogOut className="w-5 h-5" /> Sair da Conta
               </button>
+
+              <div className="text-center text-[10px] text-pearl/20 pb-10">
+                © {new Date().getFullYear()} Perto de Deus • Todos os direitos reservados
+              </div>
             </div>
           </motion.div>
         )}

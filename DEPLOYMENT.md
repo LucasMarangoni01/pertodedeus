@@ -27,8 +27,11 @@ Se o botão "Entrar com Google" não funcionar na Vercel (o popup fecha e nada a
 3. Clique em **Add domain** e cole o domínio da sua Vercel (ex: `perto-de-deus.vercel.app`).
 4. Também verifique no [Google Cloud Console](https://console.cloud.google.com/) em **APIs & Services** > **Credentials**, se o domínio está na lista de **Authorized JavaScript origins** no cliente OAuth 2.0 Web.
 
-## Notas sobre o Backend
-Este projeto é primariamente uma SPA (Single Page Application). Se você deseja utilizar o backend de TTS (`server.ts`), será necessário configurar a Vercel para rodar Serverless Functions ou hospedar o backend separadamente. Para uso comum, a versão atual prioriza o processamento via Firebase e APis do navegador.
+## Notas sobre o Backend (Vercel)
+Este projeto foi otimizado para a Vercel utilizando **Serverless Functions**. 
+- O arquivo `api/tts.ts` gerencia a síntese de voz (TTS) automaticamente quando deployed na Vercel.
+- O arquivo `server.ts` é mantido apenas para referência ou para rodar o backend localmente com `npm run dev:server` (se configurado).
+- O arquivo `vercel.json` garante que as rotas do React (SPA) funcionem e que as chamadas para `/api/*` sejam encaminhadas corretamente.
 
 ## Estrutura SPA
 O arquivo `vercel.json` já está incluído para garantir que as rotas do React funcionem corretamente (rewrites).
