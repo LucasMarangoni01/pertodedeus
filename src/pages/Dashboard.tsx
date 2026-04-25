@@ -103,8 +103,40 @@ export default function Dashboard() {
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Continue Bible Progress - New & Optimized */}
+        <section className="col-span-1 md:col-span-2 lg:col-span-1">
+           <motion.div 
+             whileHover={{ y: -4 }}
+             onClick={() => navigate("/bible")}
+             className="glow-card h-full flex flex-col justify-between border-amber/20 bg-amber/5 relative overflow-hidden group cursor-pointer"
+           >
+              <div className="absolute -top-6 -right-6 opacity-10 group-hover:scale-110 transition-transform">
+                 <BookOpen className="w-24 h-24 text-amber" />
+              </div>
+              <div>
+                 <div className="text-amber text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-amber animate-pulse" /> Continuar Lendo
+                 </div>
+                 {user?.bibleProgress ? (
+                   <>
+                      <h3 className="text-2xl font-display font-bold mb-1">{user.bibleProgress.book} {user.bibleProgress.chapter}</h3>
+                      <p className="text-pearl/60 text-xs font-medium">Versículo {user.bibleProgress.verse} • {user.bibleProgress.version || "ARA"}</p>
+                   </>
+                 ) : (
+                   <h3 className="text-xl font-display font-bold">Começar Leitura</h3>
+                 )}
+              </div>
+              <div className="mt-8 flex items-center justify-between">
+                 <div className="h-1 flex-1 bg-white/5 rounded-full mr-4 overflow-hidden">
+                    <div className="h-full bg-amber w-1/3" />
+                 </div>
+                 <ChevronRight className="w-5 h-5 text-amber group-hover:translate-x-1 transition-transform" />
+              </div>
+           </motion.div>
+        </section>
+
         {/* Streak & Level Summary */}
-        <section className="glow-card col-span-1 md:col-span-2 lg:col-span-3 flex flex-wrap items-center justify-between gap-6 relative overflow-hidden">
+        <section className="glow-card col-span-1 md:col-span-2 flex flex-wrap items-center justify-between gap-6 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
              <Heart className="w-64 h-64 text-amber" fill="currentColor" />
           </div>

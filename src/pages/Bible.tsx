@@ -98,6 +98,24 @@ export default function Bible() {
     }
   };
 
+  useEffect(() => {
+    if (!selectedBook && !loadingBooks) {
+      continueReading();
+    }
+  }, [loadingBooks]);
+
+  // Persist version changes to user profile
+  useEffect(() => {
+    if (user?.uid && selectedVersion) {
+      const currentPersisted = user.bibleVersion;
+      if (currentPersisted !== selectedVersion) {
+        updateDoc(doc(db, "users", user.uid), {
+          bibleVersion: selectedVersion
+        }).catch(err => console.error("Error persisting version:", err));
+      }
+    }
+  }, [selectedVersion, user?.uid, user?.bibleVersion]);
+
   // Sync version if user profile changes (e.g. from settings)
   useEffect(() => {
     if (user?.bibleVersion) {

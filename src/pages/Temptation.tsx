@@ -10,12 +10,26 @@ const checklistItems = [
   { id: 3, label: "Mandar mensagem para um irmão/mentor", icon: Users },
 ];
 
+const escapeVerses = [
+  { text: "Não sobreveio a vocês tentação que não fosse comum aos homens. E Deus é fiel; ele não permitirá que vocês sejam tentados além do que podem suportar...", ref: "1 Coríntios 10:13" },
+  { text: "Sujeitai-vos, pois, a Deus, resisti ao diabo, e ele fugirá de vós.", ref: "Tiago 4:7" },
+  { text: "Vigiai e orai, para que não entreis em tentação; na verdade, o espírito está pronto, mas a carne é fraca.", ref: "Mateus 26:41" },
+  { text: "Tudo posso naquele que me fortalece.", ref: "Filipenses 4:13" },
+  { text: "O Senhor é o meu pastor, nada me faltará.", ref: "Salmos 23:1" },
+  { text: "Em todas estas coisas somos mais do que vencedores, por aquele que nos amou.", ref: "Romanos 8:37" }
+];
+
 export default function Temptation() {
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [checks, setChecks] = useState([false, false, false, false]);
   const [note, setNote] = useState("");
   const [showEmergency, setShowEmergency] = useState(false);
+  const [currentVerse, setCurrentVerse] = useState(escapeVerses[0]);
+
+  useEffect(() => {
+    setCurrentVerse(escapeVerses[Math.floor(Math.random() * escapeVerses.length)]);
+  }, []);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -67,9 +81,9 @@ export default function Temptation() {
         <div className="relative z-10 space-y-4">
           <h3 className="text-amber font-bold uppercase tracking-widest text-xs">A Promessa de Escape</h3>
           <p className="font-serif italic text-2xl md:text-3xl leading-snug">
-            "Não sobreveio a vocês tentação que não fosse comum aos homens. E Deus é fiel; ele não permitirá que vocês sejam tentados além do que podem suportar..."
+            "{currentVerse.text}"
           </p>
-          <p className="text-pearl/50 font-bold">1 Coríntios 10:13</p>
+          <p className="text-pearl/50 font-bold">{currentVerse.ref}</p>
         </div>
       </motion.div>
 
