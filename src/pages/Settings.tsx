@@ -42,40 +42,72 @@ export default function Settings() {
   const [hasLoaded, setHasLoaded] = useState(false);
 
   useEffect(() => {
-    if (user && !hasLoaded) {
-      console.log("DEBUG - DADO DO FIRESTORE NO useAuth:", user);
-      
-      let v = user.bibleVersion || "NVI";
-      let localData = null;
+    if (!hasLoaded) {
+      if (user) {
+        console.log("DEBUG - DADO DO FIRESTORE NO useAuth:", user);
+        
+        let v = user.bibleVersion || "NVI";
+        let localData = null;
 
-      if (isGuest) {
+        if (isGuest) {
+          const saved = localStorage.getItem("guestSettings");
+          if (saved) {
+            localData = JSON.parse(saved);
+            v = localData.bibleVersion || v;
+          }
+        }
+
+        setBibleVersionState(v);
+        
+        setFormData({
+          displayName: localData?.displayName || user.displayName || (isGuest ? "Visitante" : ""),
+          bio: localData?.bio || user.bio || "",
+          denomination: localData?.denomination || user.denomination || "Sem denominação",
+          bibleVersion: v,
+          isPublic: localData?.isPublic ?? (user.isPublic ?? true),
+          notifications: {
+            dailyDevotional: localData?.notifications?.dailyDevotional ?? (user.notifications?.dailyDevotional ?? true),
+            prayerRequests: localData?.notifications?.prayerRequests ?? (user.notifications?.prayerRequests ?? true),
+            communityActivity: localData?.notifications?.communityActivity ?? (user.notifications?.communityActivity ?? true),
+          },
+          privacy: {
+            showProfile: localData?.privacy?.showProfile ?? (user.privacy?.showProfile ?? true),
+            showStreak: localData?.privacy?.showStreak ?? (user.privacy?.showStreak ?? true),
+            showStruggles: localData?.privacy?.showStruggles ?? (user.privacy?.showStruggles ?? false),
+          }
+        });
+        setHasLoaded(true);
+      } else if (isGuest) {
+        // Guest mode but user is null
         const saved = localStorage.getItem("guestSettings");
+        let v = "NVI";
+        let localData = null;
         if (saved) {
           localData = JSON.parse(saved);
           v = localData.bibleVersion || v;
         }
+        
+        setBibleVersionState(v);
+        setFormData(prev => ({
+          ...prev,
+          displayName: localData?.displayName || "Visitante",
+          bio: localData?.bio || "",
+          denomination: localData?.denomination || "Sem denominação",
+          bibleVersion: v,
+          isPublic: localData?.isPublic ?? true,
+          notifications: {
+            dailyDevotional: localData?.notifications?.dailyDevotional ?? true,
+            prayerRequests: localData?.notifications?.prayerRequests ?? true,
+            communityActivity: localData?.notifications?.communityActivity ?? true,
+          },
+          privacy: {
+            showProfile: localData?.privacy?.showProfile ?? true,
+            showStreak: localData?.privacy?.showStreak ?? true,
+            showStruggles: localData?.privacy?.showStruggles ?? false,
+          }
+        }));
+        setHasLoaded(true);
       }
-
-      setBibleVersionState(v);
-      
-      setFormData({
-        displayName: localData?.displayName || user.displayName || (isGuest ? "Visitante" : ""),
-        bio: localData?.bio || user.bio || "",
-        denomination: localData?.denomination || user.denomination || "Sem denominação",
-        bibleVersion: v,
-        isPublic: localData?.isPublic ?? (user.isPublic ?? true),
-        notifications: {
-          dailyDevotional: localData?.notifications?.dailyDevotional ?? (user.notifications?.dailyDevotional ?? true),
-          prayerRequests: localData?.notifications?.prayerRequests ?? (user.notifications?.prayerRequests ?? true),
-          communityActivity: localData?.notifications?.communityActivity ?? (user.notifications?.communityActivity ?? true),
-        },
-        privacy: {
-          showProfile: localData?.privacy?.showProfile ?? (user.privacy?.showProfile ?? true),
-          showStreak: localData?.privacy?.showStreak ?? (user.privacy?.showStreak ?? true),
-          showStruggles: localData?.privacy?.showStruggles ?? (user.privacy?.showStruggles ?? false),
-        }
-      });
-      setHasLoaded(true);
     }
   }, [user, hasLoaded, isGuest]);
 
@@ -108,7 +140,7 @@ export default function Settings() {
   };
 
   const handleSave = async () => {
-    if (!user || loading) return;
+    if ((!user && !isGuest) || loading) return;
     
     // Validation match with firestore.rules
     if (!formData.displayName || !formData.displayName.trim()) {
@@ -136,8 +168,8 @@ export default function Settings() {
           showStreak: formData.privacy?.showStreak ?? true,
           showStruggles: formData.privacy?.showStruggles ?? false,
         },
-        spiritualLevel: user.spiritualLevel || "Semente",
-        streak: user.streak ?? 0,
+        spiritualLevel: user?.spiritualLevel || "Semente",
+        streak: user?.streak ?? 0,
         updatedAt: isGuest ? new Date().toISOString() : serverTimestamp(),
       };
 
@@ -146,7 +178,7 @@ export default function Settings() {
         localStorage.setItem("guestSettings", JSON.stringify(updateData));
         localStorage.setItem("bibleVersion", bibleVersionState); // Global override for hooks
         console.log("[Settings] Salvo localmente no modo visitante");
-      } else {
+      } else if (user) {
         console.log("[Settings] Iniciando salvamento no Firestore...", { bibleVersion: bibleVersionState });
         const userRef = doc(db, "users", user.uid);
         const { withTimeout } = await import("../lib/firebase");
@@ -368,7 +400,7 @@ export default function Settings() {
                           </div>
                           <div>
                              <p className="text-sm font-bold">Chave de IA Privada (Gemini)</p>
-                             <p className="text-[10px] text-pearl/40 font-bold uppercase">Opcional para maior autonomia</p>
+                             <p className="text-[10px] text-pearl/40 font-bold uppercase">Opcional para maior autonomia (<a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-amber hover:underline">Pegue a sua aqui</a>)</p>
                           </div>
                        </div>
                        <input 

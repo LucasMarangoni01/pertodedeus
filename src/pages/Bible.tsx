@@ -49,7 +49,8 @@ export default function Bible() {
   
   // Initialize version from user profile or default to ARA
   const [selectedVersion, setSelectedVersion] = useState(() => {
-    const userVers = user?.bibleVersion;
+    // Priority: Profile > localStorage (Guest) > Default
+    const userVers = user?.bibleVersion || localStorage.getItem("bibleVersion");
     if (userVers) {
       const match = translations.find(t => t.alias === userVers || t.id === userVers);
       return match ? match.id : "ARA";
@@ -77,8 +78,6 @@ export default function Bible() {
         await Promise.race([operation, timeoutPromise]);
       } catch (err: any) {
         console.error("Save Progress Error:", err);
-        // We don't alert the user for background progress saving to avoid being annoying, 
-        // but we log it for diagnostics.
       }
     }
   };
@@ -90,8 +89,10 @@ export default function Bible() {
     })();
 
     if (saved) {
-      const { book, bookId, chapter, verse, version } = saved;
-      if (version && version !== selectedVersion) setSelectedVersion(version);
+      const { book, bookId, chapter, verse } = saved;
+      // We no longer override selectedVersion with saved.version here 
+      // to respect the version explicitly chosen in Settings or initialized from user preference.
+      // If the user wants to change version, they do it in settings and it should stick.
       setSelectedBook(book);
       setSelectedBookId(bookId);
       setSelectedChapter(chapter);
@@ -112,28 +113,37 @@ export default function Bible() {
     }
   }, [loadingBooks]);
 
-  // Persist version changes to user profile
+  // Persist version changes to user profile or localStorage (for guests)
   useEffect(() => {
-    if (user?.uid && selectedVersion) {
-      const currentPersisted = user.bibleVersion;
-      if (currentPersisted !== selectedVersion) {
-        const persistVersion = async () => {
-          try {
-            const operation = updateDoc(doc(db, "users", user.uid), {
-              bibleVersion: selectedVersion
-            });
-            const timeoutPromise = new Promise((_, reject) => 
-              setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 5000)
-            );
-            await Promise.race([operation, timeoutPromise]);
-          } catch (err) {
-            console.error("Error persisting version:", err);
-          }
-        };
-        persistVersion();
+    if (selectedVersion) {
+      if (user?.uid && !isGuest) {
+        const currentPersisted = user.bibleVersion;
+        const match = translations.find(t => t.id === selectedVersion);
+        const aliasToPersist = match?.alias || selectedVersion;
+
+        if (currentPersisted !== aliasToPersist) {
+          const persistVersion = async () => {
+            try {
+              const operation = updateDoc(doc(db, "users", user.uid), {
+                bibleVersion: aliasToPersist
+              });
+              const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 5000)
+              );
+              await Promise.race([operation, timeoutPromise]);
+            } catch (err) {
+              console.error("Error persisting version:", err);
+            }
+          };
+          persistVersion();
+        }
+      } else if (isGuest) {
+        const match = translations.find(t => t.id === selectedVersion);
+        const aliasToPersist = match?.alias || selectedVersion;
+        localStorage.setItem("bibleVersion", aliasToPersist);
       }
     }
-  }, [selectedVersion, user?.uid, user?.bibleVersion]);
+  }, [selectedVersion, user?.uid, user?.bibleVersion, isGuest]);
 
   // Sync version if user profile changes (e.g. from settings)
   useEffect(() => {

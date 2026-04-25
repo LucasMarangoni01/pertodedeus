@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 let genAI: GoogleGenerativeAI | null = null;
 let currentKey: string | null = null;
 
-const getAiModel = (modelName: string = "gemini-1.5-flash") => {
+const getAiModel = (modelName: string = "gemini-3-flash-preview") => {
   const localKey = localStorage.getItem("USER_GEMINI_KEY");
   const fallbackKey = "AIzaSyCIphL2465bVZN0fNpw-oe6PsDA2caLjIE"; // Placeholder key
   const envKey = typeof process !== 'undefined' && process.env ? process.env.GEMINI_API_KEY : null;
@@ -19,7 +19,7 @@ const getAiModel = (modelName: string = "gemini-1.5-flash") => {
 };
 
 export const generateDevotional = async (userProfile: any, passage?: string, simplify?: boolean) => {
-  const model = getAiModel("gemini-1.5-flash");
+  const model = getAiModel("gemini-3-flash-preview");
   const baseInstructions = `Gere um devocional cristão personalizado para hoje.
   Dados do Usuário:
   - Nome: ${userProfile.displayName}

@@ -11,7 +11,7 @@ import { db } from "../lib/firebase";
 let genAI: GoogleGenerativeAI | null = null;
 let currentKey: string | null = null;
 
-const getAiModel = (modelName: string = "gemini-1.5-flash") => {
+const getAiModel = (modelName: string = "gemini-3-flash-preview", systemInstruction?: string) => {
   const localKey = localStorage.getItem("USER_GEMINI_KEY");
   const fallbackKey = "AIzaSyCIphL2465bVZN0fNpw-oe6PsDA2caLjIE"; // Placeholder key
   const envKey = typeof process !== 'undefined' && process.env ? process.env.GEMINI_API_KEY : null;
@@ -23,7 +23,10 @@ const getAiModel = (modelName: string = "gemini-1.5-flash") => {
     genAI = new GoogleGenerativeAI(key || "");
     currentKey = key;
   }
-  return genAI.getGenerativeModel({ model: modelName });
+  return genAI.getGenerativeModel({ 
+    model: modelName,
+    ...(systemInstruction ? { systemInstruction } : {})
+  });
 };
 
 export default function Assistant() {
@@ -201,8 +204,6 @@ export default function Assistant() {
         }
       }
 
-      const model = getAiModel("gemini-1.5-flash");
-      
       const systemInstruction = `Você é um assistente bíblico sábio, acolhedor e profundo. Seu objetivo é ajudar ${user?.displayName || "o usuário"} em sua caminhada cristã.
       Responda a perguntas com base estritamente na Bíblia e teologia cristã protestante/evangélica equilibrada.
       
@@ -215,17 +216,43 @@ export default function Assistant() {
       Não dê conselhos médicos ou financeiros complexos, foque na sabedoria espiritual.
       Use Markdown para formatar as citações bíblicas.`;
 
+      const model = getAiModel("gemini-3-flash-preview", systemInstruction);
+
       const chatHistory = messages
         .filter(m => m.role === 'user' || m.role === 'assistant')
         .slice(-10) // More context
         .map(m => ({
           role: m.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: m.content }]
+          parts: [{ text: m.content?.trim() ? m.content : "(mensagem vazia)" }]
         }));
 
+      // A API do Gemini exige que o primeiro conteúdo seja 'user' e que as roles se alternem.
+      let normalizedHistory: any[] = [];
+      let lastRole = null;
+      
+      for (const msg of chatHistory) {
+        if (msg.role === lastRole) {
+          if (normalizedHistory.length > 0) {
+            normalizedHistory[normalizedHistory.length - 1].parts[0].text += "\n\n" + msg.parts[0].text;
+          }
+        } else {
+          normalizedHistory.push({ ...msg });
+          lastRole = msg.role;
+        }
+      }
+
+      // Remover mensagens iniciais que não sejam do usuário
+      while (normalizedHistory.length > 0 && normalizedHistory[0].role !== 'user') {
+        normalizedHistory.shift();
+      }
+
+      // O histórico deve terminar com 'model' para o próximo sendMessage dar certo (que será 'user')
+      if (normalizedHistory.length > 0 && normalizedHistory[normalizedHistory.length - 1].role === 'user') {
+        normalizedHistory.pop();
+      }
+
       const chat = model.startChat({
-        history: chatHistory,
-        systemInstruction: systemInstruction,
+        history: normalizedHistory
       });
 
       const response = await chat.sendMessage(userMessage);

@@ -9,7 +9,7 @@ const getAiModel = () => {
   const key = localKey || importedMetaKey || envKey || fallbackKey;
   const genAI = new GoogleGenerativeAI(key || "");
   return genAI.getGenerativeModel({ 
-    model: "gemini-1.5-flash",
+    model: "gemini-3-flash-preview",
     systemInstruction: "Você é um mentor cristão sábio e atencioso. Sua missão é guiar pessoas em seus jejuns espirituais, fornecendo orientações práticas e espirituais. Responda sempre em Português (Brasil) em formato JSON estruturado."
   });
 };
