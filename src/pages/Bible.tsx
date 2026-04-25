@@ -4,7 +4,7 @@ import { Search, Book, ChevronRight, Settings2, Share2, Copy, Highlighter, FileT
 import { cn } from "../lib/utils";
 import { useAuth } from "../context/AuthContext";
 import { bibleBooks } from "../constants/bibleData";
-import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, updateDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
 import { getBibleBooks, getBibleChapter, searchBible } from "../lib/bibleApi";
@@ -47,16 +47,13 @@ export default function Bible() {
   const [chapterTitle, setChapterTitle] = useState<string | null>(null);
   const lastSavedVerse = useRef<number | null>(null);
   
-  // Initialize version from user profile or default to ARA
-  const [selectedVersion, setSelectedVersion] = useState(() => {
-    // Priority: Profile > localStorage (Guest) > Default
-    const userVers = user?.bibleVersion || localStorage.getItem("bibleVersion");
-    if (userVers) {
-      const match = translations.find(t => t.alias === userVers || t.id === userVers);
-      return match ? match.id : "ARA";
-    }
-    return "ARA";
-  });
+  const getInitialVersion = () => {
+    const stored = localStorage.getItem("bibleVersion") || "NVI";
+    const match = translations.find(t => t.alias === stored || t.id === stored);
+    return match ? match.id : "ARA";
+  };
+
+  const [selectedVersion, setSelectedVersion] = useState(getInitialVersion);
 
   const saveReadingProgress = async (book: string, bookId: number, chapter: number, verse: number) => {
     const progress = { book, bookId, chapter, verse, version: selectedVersion, updatedAt: new Date().toISOString() };
@@ -113,47 +110,60 @@ export default function Bible() {
     }
   }, [loadingBooks]);
 
-  // Persist version changes to user profile or localStorage (for guests)
+  // 3. Sincronização automática com Firebase
   useEffect(() => {
-    if (selectedVersion) {
-      if (user?.uid && !isGuest) {
-        const currentPersisted = user.bibleVersion;
+    if (!selectedVersion || !user?.uid || isGuest) return;
+
+    const sync = async () => {
+      try {
         const match = translations.find(t => t.id === selectedVersion);
         const aliasToPersist = match?.alias || selectedVersion;
+        
+        const userRef = doc(db, "users", user.uid);
+        await updateDoc(userRef, {
+          bibleVersion: aliasToPersist
+        });
+        console.log("[Bible] Versão sincronizada com Firebase:", aliasToPersist);
+      } catch (err) {
+        console.error("[Bible] Erro ao sincronizar versão:", err);
+      }
+    };
 
-        if (currentPersisted !== aliasToPersist) {
-          const persistVersion = async () => {
-            try {
-              const operation = updateDoc(doc(db, "users", user.uid), {
-                bibleVersion: aliasToPersist
-              });
-              const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 5000)
-              );
-              await Promise.race([operation, timeoutPromise]);
-            } catch (err) {
-              console.error("Error persisting version:", err);
+    sync();
+  }, [selectedVersion, user?.uid, isGuest]);
+
+  // 4. Carregar do Firebase (UMA VEZ no login)
+  useEffect(() => {
+    const load = async () => {
+      if (!user?.uid || isGuest) return;
+      
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (snap.exists()) {
+          const version = snap.data().bibleVersion;
+          if (version) {
+            const match = translations.find(t => t.alias === version || t.id === version);
+            if (match && match.id !== selectedVersion) {
+              setSelectedVersion(match.id);
+              localStorage.setItem("bibleVersion", version);
             }
-          };
-          persistVersion();
+          }
         }
-      } else if (isGuest) {
-        const match = translations.find(t => t.id === selectedVersion);
-        const aliasToPersist = match?.alias || selectedVersion;
-        localStorage.setItem("bibleVersion", aliasToPersist);
+      } catch (err) {
+        console.error("[Bible] Erro ao carregar versão do Firebase:", err);
       }
-    }
-  }, [selectedVersion, user?.uid, user?.bibleVersion, isGuest]);
+    };
 
-  // Sync version if user profile changes (e.g. from settings)
-  useEffect(() => {
-    if (user?.bibleVersion) {
-      const match = translations.find(t => t.alias === user.bibleVersion || t.id === user.bibleVersion);
-      if (match && match.id !== selectedVersion) {
-        setSelectedVersion(match.id);
-      }
-    }
-  }, [user?.bibleVersion]);
+    if (user?.uid) load();
+  }, [user?.uid, isGuest]);
+
+  // Handle version change internal to Bible.tsx
+  const handleVersionChange = (versionId: string) => {
+    setSelectedVersion(versionId);
+    const match = translations.find(t => t.id === versionId);
+    const alias = match?.alias || versionId;
+    localStorage.setItem("bibleVersion", alias);
+  };
 
   // Debounced real-time search
   useEffect(() => {
@@ -695,7 +705,7 @@ export default function Bible() {
                                  {translations.map(v => (
                                    <button 
                                      key={v.id}
-                                     onClick={() => setSelectedVersion(v.id)}
+                                     onClick={() => handleVersionChange(v.id)}
                                      className={cn(
                                        "w-full text-left px-3 py-2 rounded-lg text-xs transition-colors",
                                        selectedVersion === v.id ? "bg-amber/20 text-amber font-bold" : "hover:bg-white/5 text-pearl/60"

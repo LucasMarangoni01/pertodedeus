@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { db } from "../lib/firebase";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { Save, User, Bell, Lock, Globe, LogOut, ChevronRight, Moon, Sun, Languages, RefreshCw, AlertTriangle } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useTheme } from "../context/ThemeContext";
@@ -18,13 +18,16 @@ export default function Settings() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'app' | 'notif' | 'privacy' | 'advanced'>('profile');
-  const [bibleVersionState, setBibleVersionState] = useState("NVI");
+  const getInitialVersion = () => {
+    return localStorage.getItem("bibleVersion") || "NVI";
+  };
+
+  const [bibleVersionState, setBibleVersionState] = useState(getInitialVersion);
 
   const [formData, setFormData] = useState({
     displayName: "",
     bio: "",
     denomination: "Sem denominação",
-    bibleVersion: "NVI",
     isPublic: true,
     notifications: {
       dailyDevotional: true,
@@ -46,7 +49,7 @@ export default function Settings() {
       if (user) {
         console.log("DEBUG - DADO DO FIRESTORE NO useAuth:", user);
         
-        let v = user.bibleVersion || "NVI";
+        let v = localStorage.getItem("bibleVersion") || user.bibleVersion || "NVI";
         let localData = null;
 
         if (isGuest) {
@@ -63,7 +66,6 @@ export default function Settings() {
           displayName: localData?.displayName || user.displayName || (isGuest ? "Visitante" : ""),
           bio: localData?.bio || user.bio || "",
           denomination: localData?.denomination || user.denomination || "Sem denominação",
-          bibleVersion: v,
           isPublic: localData?.isPublic ?? (user.isPublic ?? true),
           notifications: {
             dailyDevotional: localData?.notifications?.dailyDevotional ?? (user.notifications?.dailyDevotional ?? true),
@@ -93,7 +95,6 @@ export default function Settings() {
           displayName: localData?.displayName || "Visitante",
           bio: localData?.bio || "",
           denomination: localData?.denomination || "Sem denominação",
-          bibleVersion: v,
           isPublic: localData?.isPublic ?? true,
           notifications: {
             dailyDevotional: localData?.notifications?.dailyDevotional ?? true,
@@ -111,8 +112,52 @@ export default function Settings() {
     }
   }, [user, hasLoaded, isGuest]);
 
-  // Log state on every render for debugging
-  console.log("DEBUG - STATE bibleVersion local:", bibleVersionState);
+  // 3. Sincronização automática com Firebase
+  useEffect(() => {
+    if (!user?.uid || isGuest) return;
+
+    const sync = async () => {
+      try {
+        const userRef = doc(db, "users", user.uid);
+        await setDoc(userRef, {
+          bibleVersion: bibleVersionState
+        }, { merge: true });
+        console.log("[Settings] Versão da Bíblia sincronizada com Firebase:", bibleVersionState);
+      } catch (err) {
+        console.error("[Settings] Erro ao sincronizar versão da Bíblia:", err);
+      }
+    };
+
+    sync();
+  }, [bibleVersionState, user?.uid, isGuest]);
+
+  // 4. Carregar do Firebase (UMA VEZ no login)
+  useEffect(() => {
+    const load = async () => {
+      if (!user?.uid || isGuest) return;
+      
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (snap.exists()) {
+          const version = snap.data().bibleVersion;
+          if (version) {
+            setBibleVersionState(version);
+            localStorage.setItem("bibleVersion", version);
+          }
+        }
+      } catch (err) {
+        console.error("[Settings] Erro ao carregar versão do Firebase:", err);
+      }
+    };
+
+    if (user?.uid) load();
+  }, [user?.uid, isGuest]);
+
+  // 2. Atualização imediata (SEM botão salvar)
+  const handleVersionChange = (version: string) => {
+    setBibleVersionState(version);
+    localStorage.setItem("bibleVersion", version);
+  };
 
   if (authLoading) return null;
 
@@ -156,7 +201,6 @@ export default function Settings() {
         displayName: formData.displayName.trim(),
         bio: formData.bio || "",
         denomination: formData.denomination || "Sem denominação",
-        bibleVersion: bibleVersionState,
         isPublic: formData.isPublic ?? true,
         notifications: {
           dailyDevotional: formData.notifications?.dailyDevotional ?? true,
@@ -176,10 +220,9 @@ export default function Settings() {
       if (isGuest) {
         // Save locally for guests
         localStorage.setItem("guestSettings", JSON.stringify(updateData));
-        localStorage.setItem("bibleVersion", bibleVersionState); // Global override for hooks
         console.log("[Settings] Salvo localmente no modo visitante");
       } else if (user) {
-        console.log("[Settings] Iniciando salvamento no Firestore...", { bibleVersion: bibleVersionState });
+        console.log("[Settings] Iniciando salvamento no perfil...");
         const userRef = doc(db, "users", user.uid);
         const { withTimeout } = await import("../lib/firebase");
         await withTimeout(setDoc(userRef, updateData, { merge: true }), 12000);
@@ -329,7 +372,7 @@ export default function Settings() {
                          {bibleVersions.map((v) => (
                            <button
                              key={v}
-                             onClick={() => setBibleVersionState(v)}
+                             onClick={() => handleVersionChange(v)}
                              className={cn(
                                "px-4 py-2 rounded-xl border text-xs transition-all",
                                bibleVersionState === v 

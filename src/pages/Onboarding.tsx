@@ -20,7 +20,7 @@ export default function Onboarding() {
   const [formData, setFormData] = useState({
     displayName: user?.displayName || "",
     denomination: "Sem denominação",
-    bibleVersion: "NVI",
+    bibleVersion: localStorage.getItem("bibleVersion") || "NVI",
     yearsAsChristian: 0,
     challenges: [] as string[],
   });
@@ -35,6 +35,9 @@ export default function Onboarding() {
     if (loading) return;
     setLoading(true);
     try {
+      // Ensure localStorage is updated as well
+      localStorage.setItem("bibleVersion", formData.bibleVersion);
+
       const operation = setDoc(doc(db, "users", user.uid), {
         ...formData,
         photoURL: user.photoURL,
