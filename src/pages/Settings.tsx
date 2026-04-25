@@ -12,12 +12,13 @@ const denominations = ["Católico", "Evangélico", "Batista", "Presbiteriano", "
 const bibleVersions = ["NVI", "ARA", "NVT", "NAA", "NTLH"];
 
 export default function Settings() {
-  const { user, loading: authLoading, signOut, refreshUserProfile } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'app' | 'notif' | 'privacy'>('profile');
+  const [bibleVersionState, setBibleVersionState] = useState("NVI");
 
   const [formData, setFormData] = useState({
     displayName: "",
@@ -37,14 +38,21 @@ export default function Settings() {
     }
   });
 
-  // Sync formData with user profile
+  // Sync formData with user profile once on load
+  const [hasLoaded, setHasLoaded] = useState(false);
+
   useEffect(() => {
-    if (user) {
+    if (user && !hasLoaded) {
+      console.log("DEBUG - DADO DO FIRESTORE NO useAuth:", user);
+      
+      const v = user.bibleVersion || "NVI";
+      setBibleVersionState(v);
+      
       setFormData({
         displayName: user.displayName || "",
         bio: user.bio || "",
         denomination: user.denomination || "Sem denominação",
-        bibleVersion: user.bibleVersion || "NVI",
+        bibleVersion: v,
         isPublic: user.isPublic ?? true,
         notifications: {
           dailyDevotional: user.notifications?.dailyDevotional ?? true,
@@ -57,8 +65,12 @@ export default function Settings() {
           showStruggles: user.privacy?.showStruggles ?? false,
         }
       });
+      setHasLoaded(true);
     }
-  }, [user]);
+  }, [user, hasLoaded]);
+
+  // Log state on every render for debugging
+  console.log("DEBUG - STATE bibleVersion local:", bibleVersionState);
 
   if (authLoading) return null;
 
@@ -86,34 +98,66 @@ export default function Settings() {
   };
 
   const handleSave = async () => {
-    if (!user) return;
+    if (!user || loading) return;
     
+    // Validation match with firestore.rules
+    if (!formData.displayName || !formData.displayName.trim()) {
+      alert("O nome de exibição não pode estar vazio.");
+      return;
+    }
+
     setLoading(true);
     setSuccess(false);
 
     try {
+      console.log("DEBUG - SALVANDO bibleVersion:", bibleVersionState);
+      console.log("DEBUG - UID PARA SALVAR:", user.uid);
+
       const updateData = {
-        displayName: formData.displayName || user.displayName || "",
+        displayName: formData.displayName.trim(),
         bio: formData.bio || "",
-        denomination: formData.denomination,
-        bibleVersion: formData.bibleVersion,
-        isPublic: formData.isPublic,
-        notifications: formData.notifications,
-        privacy: formData.privacy,
+        denomination: formData.denomination || "Sem denominação",
+        bibleVersion: bibleVersionState,
+        isPublic: formData.isPublic ?? true,
+        notifications: {
+          dailyDevotional: formData.notifications?.dailyDevotional ?? true,
+          prayerRequests: formData.notifications?.prayerRequests ?? true,
+          communityActivity: formData.notifications?.communityActivity ?? true,
+        },
+        privacy: {
+          showProfile: formData.privacy?.showProfile ?? true,
+          showStreak: formData.privacy?.showStreak ?? true,
+          showStruggles: formData.privacy?.showStruggles ?? false,
+        },
+        spiritualLevel: user.spiritualLevel || "Semente",
+        streak: user.streak ?? 0,
         updatedAt: serverTimestamp(),
       };
 
-      await setDoc(doc(db, "users", user.uid), updateData, { merge: true });
+      console.log("DEBUG - PAYLOAD COMPLETO:", updateData);
       
+      const userRef = doc(db, "users", user.uid);
+      await setDoc(userRef, updateData, { merge: true });
+      
+      console.log("DEBUG - SALVO NO FIRESTORE COM SUCESSO");
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
-      
-      if (typeof refreshUserProfile === 'function') {
-        await refreshUserProfile();
-      }
     } catch (error: any) {
-      console.error("Error updating settings:", error);
-      alert(`Erro ao salvar configurações: ${error.message || error}`);
+      console.error("DEBUG - ERRO AO SALVAR:", error);
+      
+      // Implement handleFirestoreError as instructed in the system rules
+      const errInfo = {
+        error: error instanceof Error ? error.message : String(error),
+        operationType: 'write',
+        path: `users/${user.uid}`,
+        authInfo: {
+          userId: user.uid,
+          email: user.email,
+        }
+      };
+      console.error('Firestore Error Payload:', JSON.stringify(errInfo));
+      
+      alert(`Erro de permissão ou rede ao salvar. Verifique se seu perfil está completo.`);
     } finally {
       setLoading(false);
     }
@@ -240,10 +284,10 @@ export default function Settings() {
                          {bibleVersions.map((v) => (
                            <button
                              key={v}
-                             onClick={() => handleFieldChange("bibleVersion", v)}
+                             onClick={() => setBibleVersionState(v)}
                              className={cn(
                                "px-4 py-2 rounded-xl border text-xs transition-all",
-                               formData.bibleVersion === v 
+                               bibleVersionState === v 
                                  ? "bg-amber border-amber text-navy font-bold" 
                                  : "bg-white/5 border-amber/10 text-pearl/60 hover:border-amber/40"
                              )}

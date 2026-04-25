@@ -24,29 +24,34 @@ service cloud.firestore {
       allow create: if isOwner(userId) 
                     && isValidId(userId)
                     && isValidUser(incoming())
-                    && incoming().streak == 0;
+                    && incoming().get('streak', 0) == 0;
 
        allow update: if isOwner(userId) 
                      && isValidUser(incoming())
                      && (
                        // Profile Update Action
-                       incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'denomination', 'yearsAsChristian', 'bio', 'spiritualLevel', 'streak', 'lastCheckIn', 'bibleVersion', 'isPublic', 'updatedAt', 'readingPlans', 'notifications', 'privacy', 'bibleProgress'])
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'displayName', 'photoURL', 'denomination', 'yearsAsChristian', 
+                         'bio', 'spiritualLevel', 'streak', 'lastCheckIn', 'bibleVersion', 
+                         'isPublic', 'updatedAt', 'readingPlans', 'notifications', 
+                         'privacy', 'bibleProgress', 'challenges'
+                       ])
                      );
 
       function isValidUser(data) {
-        return data.displayName is string && data.displayName.size() > 0 && data.displayName.size() <= 100
-          && (data.photoURL == null || (data.photoURL is string && data.photoURL.size() <= 1024))
-          && (data.denomination == null || (data.denomination is string && data.denomination.size() <= 100))
-          && (data.bibleVersion == null || (data.bibleVersion is string && data.bibleVersion.size() <= 20))
-          && (data.yearsAsChristian == null || (data.yearsAsChristian is int && data.yearsAsChristian >= 0))
-          && (data.isPublic == null || data.isPublic is bool)
-          && (data.bio == null || (data.bio is string && data.bio.size() <= 1000))
-          && (data.updatedAt == null || data.updatedAt is timestamp)
-          && (data.notifications == null || data.notifications is map)
-          && (data.privacy == null || data.privacy is map)
-          && (data.bibleProgress == null || data.bibleProgress is map)
-          && data.spiritualLevel in ['Semente', 'Raiz', 'Árvore', 'Fruto', 'Luz']
-          && (data.streak == null || (data.streak is int && data.streak >= 0));
+        return data.get('displayName', '') is string && data.get('displayName', '').size() > 0 && data.get('displayName', '').size() <= 100
+          && (data.get('photoURL', null) == null || (data.get('photoURL', '') is string && data.get('photoURL', '').size() <= 1024))
+          && (data.get('denomination', null) == null || (data.get('denomination', '') is string && data.get('denomination', '').size() <= 100))
+          && (data.get('bibleVersion', null) == null || (data.get('bibleVersion', '') is string && data.get('bibleVersion', '').size() <= 20))
+          && (data.get('yearsAsChristian', null) == null || (data.get('yearsAsChristian', 0) is int && data.get('yearsAsChristian', 0) >= 0))
+          && (data.get('isPublic', null) == null || data.get('isPublic', true) is bool)
+          && (data.get('bio', null) == null || (data.get('bio', '') is string && data.get('bio', '').size() <= 1000))
+          && (data.get('updatedAt', null) == null || data.get('updatedAt', request.time) is timestamp)
+          && (data.get('notifications', null) == null || data.get('notifications', {}) is map)
+          && (data.get('privacy', null) == null || data.get('privacy', {}) is map)
+          && (data.get('bibleProgress', null) == null || data.get('bibleProgress', {}) is map)
+          && (data.get('spiritualLevel', 'Semente') in ['Semente', 'Raiz', 'Árvore', 'Fruto', 'Luz'])
+          && (data.get('streak', null) == null || (data.get('streak', 0) is int && data.get('streak', 0) >= 0));
       }
 
       // --- Private Journal ---

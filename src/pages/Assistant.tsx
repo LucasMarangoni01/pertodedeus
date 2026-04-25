@@ -2,16 +2,16 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { MessageSquare, Send, Sparkles, User, ShieldCheck, Heart, Info, RefreshCw, Trash2, Plus, Menu, X, ChevronRight, MessageCircle } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import ReactMarkdown from "react-markdown";
 import { cn } from "../lib/utils";
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, limit, writeBatch, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
-let aiInstance: GoogleGenAI | null = null;
+let genAI: GoogleGenerativeAI | null = null;
 let currentKey: string | null = null;
 
-const getAi = () => {
+const getAiModel = (modelName: string = "gemini-1.5-flash") => {
   const localKey = localStorage.getItem("USER_GEMINI_KEY");
   const fallbackKey = "AIzaSyCIphL2465bVZN0fNpw-oe6PsDA2caLjIE"; // Placeholder key
   const envKey = typeof process !== 'undefined' && process.env ? process.env.GEMINI_API_KEY : null;
@@ -19,11 +19,11 @@ const getAi = () => {
   
   const key = localKey || importedMetaKey || envKey || fallbackKey;
   
-  if (!aiInstance || currentKey !== key) {
-    aiInstance = new GoogleGenAI({ apiKey: key });
+  if (!genAI || currentKey !== key) {
+    genAI = new GoogleGenerativeAI(key || "");
     currentKey = key;
   }
-  return aiInstance;
+  return genAI.getGenerativeModel({ model: modelName });
 };
 
 export default function Assistant() {
@@ -180,7 +180,7 @@ export default function Assistant() {
         }
       }
 
-      const ai = getAi();
+      const model = getAiModel("gemini-1.5-flash");
       
       const systemInstruction = `Você é um assistente bíblico sábio, acolhedor e profundo. Seu objetivo é ajudar ${user?.displayName || "o usuário"} em sua caminhada cristã.
       Responda a perguntas com base estritamente na Bíblia e teologia cristã protestante/evangélica equilibrada.
@@ -202,18 +202,13 @@ export default function Assistant() {
           parts: [{ text: m.content }]
         }));
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: [
-          ...chatHistory,
-          { role: "user", parts: [{ text: userMessage }] }
-        ],
-        config: {
-          systemInstruction,
-        }
+      const chat = model.startChat({
+        history: chatHistory,
+        systemInstruction: systemInstruction,
       });
 
-      const assistantMessage = response.text;
+      const response = await chat.sendMessage(userMessage);
+      const assistantMessage = response.response.text();
       
       if (!user) {
         setMessages(prev => [...prev, { role: "assistant", content: assistantMessage }]);

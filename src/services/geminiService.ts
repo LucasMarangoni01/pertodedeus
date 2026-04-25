@@ -1,9 +1,9 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-let aiInstance: GoogleGenAI | null = null;
+let genAI: GoogleGenerativeAI | null = null;
 let currentKey: string | null = null;
 
-const getAi = () => {
+const getAiModel = (modelName: string = "gemini-1.5-flash") => {
   const localKey = localStorage.getItem("USER_GEMINI_KEY");
   const fallbackKey = "AIzaSyCIphL2465bVZN0fNpw-oe6PsDA2caLjIE"; // Placeholder key
   const envKey = typeof process !== 'undefined' && process.env ? process.env.GEMINI_API_KEY : null;
@@ -11,15 +11,15 @@ const getAi = () => {
   
   const key = localKey || importedMetaKey || envKey || fallbackKey;
   
-  if (!aiInstance || currentKey !== key) {
-    aiInstance = new GoogleGenAI({ apiKey: key });
+  if (!genAI || currentKey !== key) {
+    genAI = new GoogleGenerativeAI(key || "");
     currentKey = key;
   }
-  return aiInstance;
+  return genAI.getGenerativeModel({ model: modelName });
 };
 
 export const generateDevotional = async (userProfile: any, passage?: string, simplify?: boolean) => {
-  const ai = getAi();
+  const model = getAiModel("gemini-1.5-flash");
   const baseInstructions = `Gere um devocional cristão personalizado para hoje.
   Dados do Usuário:
   - Nome: ${userProfile.displayName}
@@ -49,28 +49,15 @@ export const generateDevotional = async (userProfile: any, passage?: string, sim
   Sempre baseie-se estritamente na Bíblia.`;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt,
-      config: {
+    const response = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
         responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING },
-            verse: { type: Type.STRING },
-            explanation: { type: Type.STRING },
-            reflection: { type: Type.STRING },
-            question: { type: Type.STRING },
-            practicalAction: { type: Type.STRING },
-            suggestedPrayer: { type: Type.STRING },
-          },
-          required: ["title", "verse", "explanation", "reflection", "question", "practicalAction", "suggestedPrayer"]
-        },
       },
     });
 
-    return JSON.parse(response.text);
+    const text = response.response.text();
+    return JSON.parse(text);
   } catch (error: any) {
     console.error("Error generating devotional:", error);
     let errorMessage = error.message;

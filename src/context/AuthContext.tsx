@@ -47,7 +47,6 @@ interface AuthContextType {
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
-  refreshUserProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -70,16 +69,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       if (!isMounted) return;
-      clearTimeout(timeoutId);
-
+      
       if (unsubscribeProfile) {
         unsubscribeProfile();
         unsubscribeProfile = null;
       }
 
       if (firebaseUser) {
+        // Clear initial timeout as we have an active auth session
+        clearTimeout(timeoutId);
+
         // Set up real-time listener for user profile
         unsubscribeProfile = onSnapshot(doc(db, "users", firebaseUser.uid), (userDoc) => {
+          if (!isMounted) return;
+          
           if (userDoc.exists()) {
             const data = userDoc.data();
             setUser({
@@ -100,9 +103,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setLoading(false);
         }, (err) => {
           console.error("[Auth] Profile listener error:", err);
-          setLoading(false);
+          if (isMounted) setLoading(false);
         });
       } else {
+        clearTimeout(timeoutId);
         setUser(null);
         setLoading(false);
       }
@@ -134,25 +138,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const refreshUserProfile = async () => {
-    if (auth.currentUser) {
-      // With onSnapshot, this might be redundant but keeping for compatibility
-      const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        setUser({
-          uid: auth.currentUser.uid,
-          email: auth.currentUser.email,
-          displayName: data.displayName || auth.currentUser.displayName,
-          photoURL: data.photoURL || auth.currentUser.photoURL,
-          ...data as any
-        });
-      }
-    }
-  };
-
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut, refreshUserProfile }}>
+    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut }}>
       {loading ? (
         <div className="min-h-screen bg-navy flex flex-col items-center justify-center p-6 text-center">
            <div className="w-12 h-12 border-4 border-amber/20 border-t-amber rounded-full animate-spin mb-6" />

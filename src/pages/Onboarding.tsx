@@ -12,7 +12,7 @@ const bibleVersions = ["NVI", "ARA", "NVT", "NAA", "NTLH"];
 const challengesList = ["Oração constante", "Leitura bíblica", "Fé em momentos difíceis", "Perdão", "Vícios", "Relacionamentos", "Propósito de vida"];
 
 export default function Onboarding() {
-  const { user, refreshUserProfile } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -42,7 +42,6 @@ export default function Onboarding() {
         lastCheckIn: serverTimestamp(),
         createdAt: serverTimestamp(),
       });
-      await refreshUserProfile();
       navigate("/");
     } catch (error) {
       console.error("Error creating profile:", error);
