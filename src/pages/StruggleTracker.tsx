@@ -148,9 +148,17 @@ export default function StruggleTracker() {
       closeModal();
     } catch (error: any) {
       console.error("[Struggles] Error saving:", error);
-      alert(error.message === "TIMEOUT_FIREBASE" 
-        ? "Tempo de conexão esgotado ao salvar luta em produção." 
-        : "Erro ao salvar acompanhamento.");
+      
+      let msg = "Erro ao salvar acompanhamento.";
+      if (error.message === "TIMEOUT_FIREBASE") {
+        msg = "Tempo de conexão esgotado (Timeout) em produção.";
+      } else if (error.code) {
+        msg = `Erro Firebase (${error.code}): ${error.message}`;
+      } else if (error.message) {
+        msg = `Erro: ${error.message}`;
+      }
+      
+      alert(msg);
     } finally {
       console.log("[Struggles] Loading reset in handleSubmit");
       setLoading(false);
@@ -196,9 +204,13 @@ export default function StruggleTracker() {
       await withTimeout(Promise.all([updates, historyLog]), 8000);
     } catch (error: any) {
       console.error("[Struggles] Error registering fall:", error);
+      let msg = "Erro ao registrar queda.";
       if (error.message === "TIMEOUT_FIREBASE") {
-        alert("A conexão com o servidor falhou. Tente novamente em instantes.");
+        msg = "A conexão com o servidor falhou (Timeout).";
+      } else if (error.code) {
+        msg = `Erro Firebase (${error.code})`;
       }
+      alert(msg);
     } finally {
       console.log("[Struggles] Resetting updatingId after fall");
       setUpdatingId(null);
@@ -227,9 +239,13 @@ export default function StruggleTracker() {
       await withTimeout(Promise.all([updates, historyLog]), 8000);
     } catch (error: any) {
       console.error("[Struggles] Error registering victory:", error);
+      let msg = "Erro ao registrar vitória.";
       if (error.message === "TIMEOUT_FIREBASE") {
-        alert("A conexão com o servidor falhou. Tente novamente em instantes.");
+        msg = "A conexão com o servidor falhou (Timeout).";
+      } else if (error.code) {
+        msg = `Erro Firebase (${error.code})`;
       }
+      alert(msg);
     } finally {
       console.log("[Struggles] Resetting updatingId after victory");
       setUpdatingId(null);
@@ -249,18 +265,18 @@ export default function StruggleTracker() {
         batch.delete(d.ref);
       });
       
-      const operation = batch.commit();
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 10000)
-      );
-
-      await Promise.race([operation, timeoutPromise]);
+      const { withTimeout } = await import("../lib/firebase");
+      await withTimeout(batch.commit(), 10000);
       setShowClearConfirm(false);
     } catch (error: any) {
-      console.error("Error clearing history:", error);
-      alert(error.message === "TIMEOUT_FIREBASE" 
-        ? "Tempo de limite atingido ao limpar histórico." 
-        : "Erro ao limpar histórico.");
+      console.error("[Struggles] Error clearing history:", error);
+      let msg = "Erro ao limpar histórico.";
+      if (error.message === "TIMEOUT_FIREBASE") {
+        msg = "Tempo de limite atingido (Timeout) ao limpar histórico.";
+      } else if (error.code) {
+        msg = `Erro Firebase (${error.code}): ${error.message}`;
+      }
+      alert(msg);
     } finally {
       setIsDeletingHistory(false);
     }

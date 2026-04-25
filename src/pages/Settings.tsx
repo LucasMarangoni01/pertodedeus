@@ -161,9 +161,11 @@ export default function Settings() {
       
       let errorMsg = "Erro ao salvar alterações.";
       if (error.message === "TIMEOUT_FIREBASE") {
-        errorMsg = "O servidor demorou muito para responder em produção. Isso geralmente ocorre por domínio não autorizado no Firebase ou conexão lenta.";
-      } else if (error.code === 'permission-denied') {
-        errorMsg = "Permissão negada pelas regras do banco de dados.";
+        errorMsg = "Tempo de resposta excedido (Timeout). Verifique sua conexão ou se o domínio está autorizado.";
+      } else if (error.code) {
+        errorMsg = `Erro Firebase (${error.code}): ${error.message}`;
+      } else if (error.message) {
+        errorMsg = `Erro: ${error.message}`;
       }
 
       alert(errorMsg);

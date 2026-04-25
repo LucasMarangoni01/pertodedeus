@@ -91,9 +91,17 @@ export default function Prayer() {
       setNewRequest({ title: "", description: "", category: "Família", urgency: "Média", isPublic: false });
     } catch (error: any) {
       console.error("[Prayer] Error saving request:", error);
-      alert(error.message === "TIMEOUT_FIREBASE" 
-        ? "Tempo de conexão esgotado em produção. Verifique se o domínio do app está autorizado no Firebase." 
-        : "Erro ao salvar oração.");
+      
+      let msg = "Erro ao salvar oração.";
+      if (error.message === "TIMEOUT_FIREBASE") {
+        msg = "Tempo de conexão esgotado (Timeout).";
+      } else if (error.code) {
+        msg = `Erro Firebase (${error.code}): ${error.message}`;
+      } else if (error.message) {
+        msg = `Erro: ${error.message}`;
+      }
+      
+      alert(msg);
     } finally {
       console.log("[Prayer] Loading set to false");
       setLoading(false);

@@ -127,9 +127,17 @@ export default function Diary() {
       resetForm();
     } catch (error: any) {
       console.error("[Diary] Error saving entry:", error);
-      alert(error.message === "TIMEOUT_FIREBASE" 
-        ? "Tempo esgotado ao salvar o diário em produção." 
-        : "Erro ao salvar entrada.");
+      
+      let msg = "Erro ao salvar entrada.";
+      if (error.message === "TIMEOUT_FIREBASE") {
+        msg = "Tempo esgotado (Timeout) ao salvar no servidor.";
+      } else if (error.code) {
+        msg = `Erro Firebase (${error.code}): ${error.message}`;
+      } else if (error.message) {
+        msg = `Erro: ${error.message}`;
+      }
+
+      alert(msg);
     } finally {
       console.log("[Diary] Finalizando loading");
       setLoading(false);
