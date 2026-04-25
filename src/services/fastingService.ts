@@ -1,6 +1,14 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const getAi = () => {
+  const localKey = localStorage.getItem("USER_GEMINI_KEY");
+  const fallbackKey = "AIzaSyCIphL2465bVZN0fNpw-oe6PsDA2caLjIE"; // Placeholder key
+  const envKey = typeof process !== 'undefined' && process.env ? process.env.GEMINI_API_KEY : null;
+  const importedMetaKey = (import.meta as any).env ? (import.meta as any).env.VITE_GEMINI_API_KEY : null;
+  
+  const key = localKey || importedMetaKey || envKey || fallbackKey;
+  return new GoogleGenAI({ apiKey: key });
+};
 
 export interface FastingInput {
   experience: string;
@@ -17,6 +25,7 @@ export interface FastingPlan {
 
 export async function generateFastingPlan(input: FastingInput, type: string): Promise<FastingPlan | null> {
   try {
+    const ai = getAi();
     const prompt = `Gere um guia detalhado para um jejum cristão do tipo: ${type}.
       
       Perfil do Usuário:

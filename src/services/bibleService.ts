@@ -1,6 +1,14 @@
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const getAi = () => {
+  const localKey = localStorage.getItem("USER_GEMINI_KEY");
+  const fallbackKey = "AIzaSyCIphL2465bVZN0fNpw-oe6PsDA2caLjIE"; // Placeholder key
+  const envKey = typeof process !== 'undefined' && process.env ? process.env.GEMINI_API_KEY : null;
+  const importedMetaKey = (import.meta as any).env ? (import.meta as any).env.VITE_GEMINI_API_KEY : null;
+  
+  const key = localKey || importedMetaKey || envKey || fallbackKey;
+  return new GoogleGenAI({ apiKey: key });
+};
 
 // Simple in-memory cache for titles
 const titleCache: Record<string, string> = {};
@@ -10,6 +18,7 @@ export async function getChapterTitle(book: string, chapter: number, version: st
   if (titleCache[cacheKey]) return titleCache[cacheKey];
 
   try {
+    const ai = getAi();
     const prompt = `For the Bible book "${book}", chapter ${chapter} (version: ${version}), 
     provide a short, poetic and descriptive title in Portuguese that captures the main theme of this chapter. 
     Examples: 

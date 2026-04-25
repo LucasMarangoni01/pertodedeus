@@ -58,8 +58,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let unsubscribeProfile: (() => void) | null = null;
+    let isMounted = true;
+
+    // Safety timeout: If auth hasn't loaded in 8 seconds, force loading to false
+    const timeoutId = setTimeout(() => {
+      if (isMounted && loading) {
+        console.warn("[Auth] Initialization timeout reached. Forcing loading to false.");
+        setLoading(false);
+      }
+    }, 8000);
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (!isMounted) return;
+      clearTimeout(timeoutId);
+
       if (unsubscribeProfile) {
         unsubscribeProfile();
         unsubscribeProfile = null;
@@ -97,6 +109,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
       unsubscribeAuth();
       if (unsubscribeProfile) unsubscribeProfile();
     };
@@ -140,8 +154,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
     <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut, refreshUserProfile }}>
       {loading ? (
-        <div className="min-h-screen bg-navy flex items-center justify-center">
-           <div className="w-12 h-12 border-4 border-amber/20 border-t-amber rounded-full animate-spin" />
+        <div className="min-h-screen bg-navy flex flex-col items-center justify-center p-6 text-center">
+           <div className="w-12 h-12 border-4 border-amber/20 border-t-amber rounded-full animate-spin mb-6" />
+           <p className="text-amber/40 text-xs font-bold uppercase tracking-widest animate-pulse">Iniciando ambiente de fé...</p>
+           
+           <div className="mt-12 max-w-xs transition-all duration-1000 opacity-0 animate-in fade-in slide-in-from-bottom-4 fill-mode-forwards" style={{ animationDelay: '5s' }}>
+             <p className="text-pearl/20 text-[10px] mb-4 uppercase tracking-wider">A conexão está demorando mais que o esperado</p>
+             <button 
+                onClick={() => setLoading(false)}
+                className="text-amber border border-amber/30 px-6 py-2 rounded-full text-xs hover:bg-amber/10 transition-colors"
+             >
+                Continuar mesmo assim
+             </button>
+           </div>
         </div>
       ) : children}
     </AuthContext.Provider>
