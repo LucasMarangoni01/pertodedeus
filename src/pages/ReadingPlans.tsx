@@ -148,32 +148,50 @@ export default function ReadingPlans() {
     setNewPlanItems(newPlanItems.filter((_, i) => i !== index));
   };
 
+  const [isCreating, setIsCreating] = useState(false);
+
   const handleCreatePlan = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !newPlanTitle.trim()) return;
+    if (!user || !newPlanTitle.trim() || isCreating) return;
 
-    const items: CustomPlanItem[] = newPlanItems.map((item, idx) => ({
-      day: idx + 1,
-      passage: `${item.book} ${item.chapters}${item.verses ? ":" + item.verses : ""}`,
-      isCompleted: false
-    }));
+    setIsCreating(true);
+    try {
+      const items: CustomPlanItem[] = newPlanItems.map((item, idx) => ({
+        day: idx + 1,
+        passage: `${item.book} ${item.chapters}${item.verses ? ":" + item.verses : ""}`,
+        isCompleted: false
+      }));
 
-    const planData = {
-      userId: user.uid,
-      title: newPlanTitle,
-      description: newPlanDesc,
-      items: items,
-      totalItems: items.length,
-      completedItems: 0,
-      createdAt: serverTimestamp(),
-      durationDays: items.length // Assuming 1 move/day for simple logic
-    };
+      const planData = {
+        userId: user.uid,
+        title: newPlanTitle,
+        description: newPlanDesc,
+        items: items,
+        totalItems: items.length,
+        completedItems: 0,
+        createdAt: serverTimestamp(),
+        durationDays: items.length // Assuming 1 move/day for simple logic
+      };
 
-    await addDoc(collection(db, "users", user.uid, "custom_plans"), planData);
-    setIsModalOpen(false);
-    setNewPlanTitle("");
-    setNewPlanDesc("");
-    setNewPlanItems([{ book: bibleBooks[0].name, chapters: "1" }]);
+      const operation = addDoc(collection(db, "users", user.uid, "custom_plans"), planData);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 10000)
+      );
+
+      await Promise.race([operation, timeoutPromise]);
+      
+      setIsModalOpen(false);
+      setNewPlanTitle("");
+      setNewPlanDesc("");
+      setNewPlanItems([{ book: bibleBooks[0].name, chapters: "1" }]);
+    } catch (error: any) {
+      console.error("Error creating plan:", error);
+      alert(error.message === "TIMEOUT_FIREBASE" 
+        ? "Tempo de conexão esgotado. Verifique sua rede." 
+        : "Erro ao criar plano. Tente novamente.");
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   if (selectedPlan) {
@@ -486,9 +504,10 @@ export default function ReadingPlans() {
                 <div className="pt-4">
                   <button 
                     type="submit"
-                    className="w-full bg-amber text-navy font-bold py-4 rounded-xl shadow-[0_10px_20px_rgba(201,168,76,0.2)] hover:scale-[1.02] transition-all"
+                    disabled={isCreating}
+                    className="w-full bg-amber text-navy font-bold py-4 rounded-xl shadow-[0_10px_20px_rgba(201,168,76,0.2)] hover:scale-[1.02] transition-all disabled:opacity-50"
                   >
-                    CRIAR MEU PLANO PERSONALIZADO
+                    {isCreating ? "CRIANDO PLANO..." : "CRIAR MEU PLANO PERSONALIZADO"}
                   </button>
                 </div>
               </form>

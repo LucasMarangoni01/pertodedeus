@@ -107,17 +107,26 @@ export default function Assistant() {
   }, [user, activeId]);
 
   const createNewChat = async () => {
-    if (!user) return;
+    if (!user || loading) return;
     try {
-      const docRef = await addDoc(collection(db, "users", user.uid, "assistant_conversations"), {
+      const operation = addDoc(collection(db, "users", user.uid, "assistant_conversations"), {
         title: "Nova Conversa",
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
+
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 10000)
+      );
+
+      const docRef: any = await Promise.race([operation, timeoutPromise]);
       setActiveId(docRef.id);
       setIsSidebarOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating chat:", error);
+      alert(error.message === "TIMEOUT_FIREBASE" 
+        ? "Não foi possível criar o chat agora." 
+        : "Erro ao criar chat.");
     }
   };
 
@@ -125,10 +134,15 @@ export default function Assistant() {
     if (!user) return;
     try {
       if (activeId === id) setActiveId(null);
-      await deleteDoc(doc(db, "users", user.uid, "assistant_conversations", id));
+      const operation = deleteDoc(doc(db, "users", user.uid, "assistant_conversations", id));
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 8000)
+      );
+      await Promise.race([operation, timeoutPromise]);
       setDeletingId(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting conversation:", error);
+      alert("Erro ao apagar conversa.");
       setDeletingId(null);
     }
   };
@@ -149,14 +163,18 @@ export default function Assistant() {
 
     try {
       let currentConvId = activeId;
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 15000)
+      );
 
       // Create a conversation if none exists for logged users
       if (!currentConvId && user) {
-        const docRef = await addDoc(collection(db, "users", user.uid, "assistant_conversations"), {
+        const createOp = addDoc(collection(db, "users", user.uid, "assistant_conversations"), {
           title: userMessage.substring(0, 30) + (userMessage.length > 30 ? "..." : ""),
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         });
+        const docRef: any = await Promise.race([createOp, timeoutPromise]);
         currentConvId = docRef.id;
         setActiveId(currentConvId);
       }
@@ -165,18 +183,21 @@ export default function Assistant() {
       if (!user) {
         setMessages(prev => [...prev, { role: "user", content: userMessage }]);
       } else if (currentConvId) {
-        await addDoc(collection(db, "users", user.uid, "assistant_conversations", currentConvId, "messages"), {
+        const saveMsgOp = addDoc(collection(db, "users", user.uid, "assistant_conversations", currentConvId, "messages"), {
           role: "user",
           content: userMessage,
           createdAt: serverTimestamp()
         });
         
+        await Promise.race([saveMsgOp, timeoutPromise]);
+        
         // Update conversation title if it's the first message
         if (messages.length <= 1) {
-          await updateDoc(doc(db, "users", user.uid, "assistant_conversations", currentConvId), {
+          const updateTitleOp = updateDoc(doc(db, "users", user.uid, "assistant_conversations", currentConvId), {
             title: userMessage.substring(0, 40) + (userMessage.length > 40 ? "..." : ""),
             updatedAt: serverTimestamp()
           });
+          await Promise.race([updateTitleOp, timeoutPromise]);
         }
       }
 
@@ -213,21 +234,25 @@ export default function Assistant() {
       if (!user) {
         setMessages(prev => [...prev, { role: "assistant", content: assistantMessage }]);
       } else if (currentConvId) {
-        await addDoc(collection(db, "users", user.uid, "assistant_conversations", currentConvId, "messages"), {
+        const saveAssistantMsgOp = addDoc(collection(db, "users", user.uid, "assistant_conversations", currentConvId, "messages"), {
           role: "assistant",
           content: assistantMessage,
           createdAt: serverTimestamp()
         });
 
-        await updateDoc(doc(db, "users", user.uid, "assistant_conversations", currentConvId), {
+        const updateConvOp = updateDoc(doc(db, "users", user.uid, "assistant_conversations", currentConvId), {
            lastMessage: assistantMessage.substring(0, 60),
            updatedAt: serverTimestamp()
         });
+
+        await Promise.race([Promise.all([saveAssistantMsgOp, updateConvOp]), timeoutPromise]);
       }
       } catch (error: any) {
         console.error("Error in assistant chat:", error);
-        let errorMessage = error.message || "Desconhecido";
-        setMessages(prev => [...prev, { role: "assistant", content: `Erro: ${errorMessage}` }]);
+        let errorMessage = error.message === "TIMEOUT_FIREBASE" 
+          ? "A conexão com o servidor de dados expirou." 
+          : (error.message || "Desconhecido");
+        setMessages(prev => [...prev, { role: "assistant", content: `Erro: ${errorMessage}. Verifique sua rede e tente novamente.` }]);
       } finally {
       setLoading(false);
     }

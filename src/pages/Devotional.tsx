@@ -74,16 +74,24 @@ export default function Devotional() {
     try {
       const data = await generateDevotional(user, passage, simplify);
       const todayStr = new Date().toISOString().split('T')[0];
-      await addDoc(collection(db, "users", user.uid, "devotionals"), {
+      const operation = addDoc(collection(db, "users", user.uid, "devotionals"), {
         userId: user.uid,
         date: todayStr,
         ...data,
         createdAt: serverTimestamp(),
       });
+
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 15000)
+      );
+
+      await Promise.race([operation, timeoutPromise]);
       // O onSnapshot cuidará de setar o devotional e esconder o loading/gerador
     } catch (error: any) {
-      console.error("Error generating devotional:", error);
-      setErrorMsg(error.message || "Erro desconhecido ao gerar devocional.");
+      console.error("Error generating or saving devotional:", error);
+      setErrorMsg(error.message === "TIMEOUT_FIREBASE" 
+        ? "O servidor de banco de dados demorou muito para responder. Tente novamente." 
+        : (error.message || "Erro desconhecido ao gerar devocional."));
       setLoading(false); // Importante: se falhar, para o loading para mostrar o erro
     }
   };
@@ -92,10 +100,21 @@ export default function Devotional() {
     if (!devotional || !user) return;
     setIsCompleting(true);
     try {
-      await updateDoc(doc(db, "users", user.uid, "devotionals", devotional.id), {
+      const operation = updateDoc(doc(db, "users", user.uid, "devotionals", devotional.id), {
         userResponse: userResponse,
         updatedAt: serverTimestamp()
       });
+
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 10000)
+      );
+
+      await Promise.race([operation, timeoutPromise]);
+    } catch (error: any) {
+      console.error("Error saving response:", error);
+      alert(error.message === "TIMEOUT_FIREBASE" 
+        ? "O salvamento demorou demais. Verifique sua conexão." 
+        : "Erro ao salvar meditação.");
     } finally {
       setIsCompleting(false);
     }

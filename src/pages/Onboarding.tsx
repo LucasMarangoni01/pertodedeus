@@ -32,9 +32,10 @@ export default function Onboarding() {
   const handleBack = () => setStep(s => s - 1);
 
   const handleSubmit = async () => {
+    if (loading) return;
     setLoading(true);
     try {
-      await setDoc(doc(db, "users", user.uid), {
+      const operation = setDoc(doc(db, "users", user.uid), {
         ...formData,
         photoURL: user.photoURL,
         spiritualLevel: "Semente",
@@ -42,9 +43,18 @@ export default function Onboarding() {
         lastCheckIn: serverTimestamp(),
         createdAt: serverTimestamp(),
       });
+
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 15000)
+      );
+
+      await Promise.race([operation, timeoutPromise]);
       navigate("/");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating profile:", error);
+      alert(error.message === "TIMEOUT_FIREBASE" 
+        ? "O servidor demorou muito para responder. Verifique sua conexão e tente novamente." 
+        : "Ocorreu um erro ao criar seu perfil. Tente novamente.");
     } finally {
       setLoading(false);
     }

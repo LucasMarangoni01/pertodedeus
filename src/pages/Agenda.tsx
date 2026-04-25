@@ -134,18 +134,25 @@ export default function Agenda() {
         updatedAt: serverTimestamp()
       };
 
-      if (editingEvent) {
-        await updateDoc(doc(db, "users", user.uid, "calendar_events", editingEvent.id), eventData);
-      } else {
-        await addDoc(collection(db, "users", user.uid, "calendar_events"), {
-          ...eventData,
-          userId: user.uid,
-          createdAt: serverTimestamp()
-        });
-      }
+      const operation = editingEvent 
+        ? updateDoc(doc(db, "users", user.uid, "calendar_events", editingEvent.id), eventData)
+        : addDoc(collection(db, "users", user.uid, "calendar_events"), {
+            ...eventData,
+            userId: user.uid,
+            createdAt: serverTimestamp()
+          });
+
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 10000)
+      );
+
+      await Promise.race([operation, timeoutPromise]);
       closeModal();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving event:", error);
+      alert(error.message === "TIMEOUT_FIREBASE" 
+        ? "Tempo de conexão esgotado. Verifique sua internet." 
+        : "Erro ao salvar compromisso. Verifique se todos os campos estão corretos.");
     } finally {
       setLoading(false);
     }

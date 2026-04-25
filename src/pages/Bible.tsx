@@ -63,14 +63,22 @@ export default function Bible() {
 
     if (user?.uid) {
       try {
-        await updateDoc(doc(db, "users", user.uid), {
+        const operation = updateDoc(doc(db, "users", user.uid), {
           bibleProgress: {
             ...progress,
             updatedAt: serverTimestamp()
           }
         });
-      } catch (err) {
+
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 5000)
+        );
+
+        await Promise.race([operation, timeoutPromise]);
+      } catch (err: any) {
         console.error("Save Progress Error:", err);
+        // We don't alert the user for background progress saving to avoid being annoying, 
+        // but we log it for diagnostics.
       }
     }
   };
@@ -109,9 +117,20 @@ export default function Bible() {
     if (user?.uid && selectedVersion) {
       const currentPersisted = user.bibleVersion;
       if (currentPersisted !== selectedVersion) {
-        updateDoc(doc(db, "users", user.uid), {
-          bibleVersion: selectedVersion
-        }).catch(err => console.error("Error persisting version:", err));
+        const persistVersion = async () => {
+          try {
+            const operation = updateDoc(doc(db, "users", user.uid), {
+              bibleVersion: selectedVersion
+            });
+            const timeoutPromise = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 5000)
+            );
+            await Promise.race([operation, timeoutPromise]);
+          } catch (err) {
+            console.error("Error persisting version:", err);
+          }
+        };
+        persistVersion();
       }
     }
   }, [selectedVersion, user?.uid, user?.bibleVersion]);

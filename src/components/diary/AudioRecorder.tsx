@@ -128,6 +128,15 @@ export function AudioRecorder({ onAudioUploaded, userId, existingAudioUrl, onDel
           const uploadTask = uploadBytesResumable(fileRef, finalBlob, { contentType: mimeType });
           uploadTaskRef.current = uploadTask;
 
+          const timeoutId = setTimeout(() => {
+            if (uploadTaskRef.current) {
+              console.warn("Upload timeout reached. Canceling...");
+              uploadTask.cancel();
+              setIsUploading(false);
+              alert("O upload demorou muito e foi cancelado. Verifique sua conexão.");
+            }
+          }, 45000); // 45 seconds for audio upload
+          
           uploadTask.on('state_changed', 
             (snapshot) => {
               const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
@@ -135,6 +144,7 @@ export function AudioRecorder({ onAudioUploaded, userId, existingAudioUrl, onDel
               console.log(`Upload progress: ${progress.toFixed(2)}%`);
             }, 
             (error) => {
+              clearTimeout(timeoutId);
               if (error.code === 'storage/canceled') {
                 console.log("Upload canceled.");
                 return;
@@ -144,11 +154,18 @@ export function AudioRecorder({ onAudioUploaded, userId, existingAudioUrl, onDel
               alert("Falha no upload do áudio. Verifique sua conexão.");
             }, 
             async () => {
-              const downloadUrl = await getDownloadURL(fileRef);
-              console.log("Upload complete. Download URL:", downloadUrl);
-              onAudioUploaded(downloadUrl);
-              setIsUploading(false);
-              uploadTaskRef.current = null;
+              clearTimeout(timeoutId);
+              try {
+                const downloadUrl = await getDownloadURL(fileRef);
+                console.log("Upload complete. Download URL:", downloadUrl);
+                onAudioUploaded(downloadUrl);
+              } catch (err) {
+                console.error("Error getting download URL:", err);
+                alert("Erro ao processar o áudio após o upload.");
+              } finally {
+                setIsUploading(false);
+                uploadTaskRef.current = null;
+              }
             }
           );
         } catch (uploadErr) {

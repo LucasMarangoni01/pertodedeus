@@ -43,37 +43,53 @@ export default function Community() {
     if (!testimonyContent.trim()) return;
 
     try {
-      await addDoc(collection(db, "testimonials"), {
+      const operation = addDoc(collection(db, "testimonials"), {
         userId: user.uid,
         userName: user.displayName || "Irmão(ã)",
         title: testimonyTitle.trim() || "Testemunho",
         content: testimonyContent.trim(),
-        likes: 0,
+        likes: 0, // Placeholder for legacy compat
         createdAt: serverTimestamp()
       });
+
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 10000)
+      );
+
+      await Promise.race([operation, timeoutPromise]);
+      
       setIsTestimonyModalOpen(false);
       setTestimonyTitle("");
       setTestimonyContent("");
       setActiveTab("testemunhos");
       setNotification("Testemunho publicado com sucesso! Aleluia!");
       setTimeout(() => setNotification(null), 3000);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      setNotification("Erro ao publicar testemunho.");
-      setTimeout(() => setNotification(null), 3000);
+      setNotification(error.message === "TIMEOUT_FIREBASE" 
+        ? "Conexão lenta. Tente publicar novamente." 
+        : "Erro ao publicar testemunho.");
+      setTimeout(() => setNotification(null), 4000);
     }
   };
 
   const handleDeleteTestimony = async (id: string) => {
     if (!user) return;
     try {
-      await deleteDoc(doc(db, "testimonials", id));
+      const operation = deleteDoc(doc(db, "testimonials", id));
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 8000)
+      );
+      await Promise.race([operation, timeoutPromise]);
+
       setNotification("Testemunho removido.");
       setDeletingTestimonyId(null);
       setTimeout(() => setNotification(null), 3000);
     } catch (err: any) {
       console.error(err);
-      setNotification(`Erro ao deletar: ${err.message || "Sem permissão"}`);
+      setNotification(err.message === "TIMEOUT_FIREBASE" 
+        ? "O servidor demorou para responder." 
+        : `Erro ao deletar: ${err.message || "Sem permissão"}`);
       setTimeout(() => setNotification(null), 5000);
     }
   };
@@ -82,11 +98,16 @@ export default function Community() {
     e.preventDefault();
     if (!user || !editingTestimonyId || !testimonyContent.trim()) return;
     try {
-      await updateDoc(doc(db, "testimonials", editingTestimonyId), {
+      const operation = updateDoc(doc(db, "testimonials", editingTestimonyId), {
         title: testimonyTitle.trim() || "Testemunho",
         content: testimonyContent.trim(),
         updatedAt: serverTimestamp()
       });
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 10000)
+      );
+      await Promise.race([operation, timeoutPromise]);
+
       setIsTestimonyModalOpen(false);
       setEditingTestimonyId(null);
       setTestimonyTitle("");
@@ -95,7 +116,9 @@ export default function Community() {
       setTimeout(() => setNotification(null), 3000);
     } catch (err: any) {
       console.error(err);
-      setNotification(`Erro ao atualizar: ${err.message || "Sem permissão"}`);
+      setNotification(err.message === "TIMEOUT_FIREBASE" 
+        ? "Tempo limite de atualização excedido." 
+        : `Erro ao atualizar: ${err.message || "Sem permissão"}`);
       setTimeout(() => setNotification(null), 5000);
     }
   };
@@ -108,12 +131,17 @@ export default function Community() {
     }
     try {
       const requestRef = doc(db, "prayer_requests", requestId);
-      await updateDoc(requestRef, {
+      const operation = updateDoc(requestRef, {
         intercessorCount: increment(1)
       });
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 5000)
+      );
+      await Promise.race([operation, timeoutPromise]);
+
       setNotification("Amém! Você está intercedendo por esta causa.");
       setTimeout(() => setNotification(null), 3000);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao dar amém:", error);
     }
   };
@@ -169,31 +197,44 @@ export default function Community() {
   const handleSendChat = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !chatInput.trim()) return;
+    const currentInput = chatInput.trim();
+    setChatInput(""); 
     try {
-      await addDoc(collection(db, "global_chat"), {
+      const operation = addDoc(collection(db, "global_chat"), {
         userId: user.uid,
         userName: user.displayName || "Irmão(ã)",
-        text: chatInput.trim(),
+        text: currentInput,
         createdAt: serverTimestamp()
       });
-      setChatInput("");
-    } catch (e) {
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 8000)
+      );
+      await Promise.race([operation, timeoutPromise]);
+    } catch (e: any) {
       console.error(e);
-      setNotification("Erro ao enviar mensagem.");
-      setTimeout(() => setNotification(null), 3000);
+      setNotification(e.message === "TIMEOUT_FIREBASE" 
+        ? "Conexão lenta. Verifique se a mensagem foi enviada." 
+        : "Erro ao enviar mensagem.");
+      setTimeout(() => setNotification(null), 4000);
+      setChatInput(currentInput); // devolve o texto se falhar
     }
   };
 
   const handleDeleteChat = async (id: string) => {
     if (!user) return;
     try {
-      await deleteDoc(doc(db, "global_chat", id));
+      const operation = deleteDoc(doc(db, "global_chat", id));
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 7000)
+      );
+      await Promise.race([operation, timeoutPromise]);
+
       setNotification("Mensagem removida.");
       setDeletingChatId(null);
       setTimeout(() => setNotification(null), 3000);
     } catch (err: any) {
       console.error("Erro ao deletar:", err);
-      setNotification(`Erro ao deletar: ${err.message || "Sem permissão"}`);
+      setNotification(err.message === "TIMEOUT_FIREBASE" ? "O servidor demorou demais." : `Erro ao deletar.`);
       setTimeout(() => setNotification(null), 5000);
     }
   };
@@ -202,17 +243,22 @@ export default function Community() {
     e.preventDefault();
     if (!user || !editingChatId || !editingChatText.trim()) return;
     try {
-      await updateDoc(doc(db, "global_chat", editingChatId), {
+      const operation = updateDoc(doc(db, "global_chat", editingChatId), {
         text: editingChatText.trim(),
         updatedAt: serverTimestamp()
       });
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 8000)
+      );
+      await Promise.race([operation, timeoutPromise]);
+
       setEditingChatId(null);
       setEditingChatText("");
       setNotification("Mensagem editada com sucesso.");
       setTimeout(() => setNotification(null), 3000);
     } catch (err: any) {
       console.error("Erro ao editar:", err);
-      setNotification(`Erro ao editar: ${err.message || "Sem permissão"}`);
+      setNotification(err.message === "TIMEOUT_FIREBASE" ? "O servidor demorou demais." : "Erro ao editar.");
       setTimeout(() => setNotification(null), 5000);
     }
   };

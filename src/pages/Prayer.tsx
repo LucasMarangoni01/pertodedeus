@@ -66,45 +66,66 @@ export default function Prayer() {
     if (!user) return;
     setLoading(true);
     try {
-      if (editingRequest) {
-        await updateDoc(doc(db, "prayer_requests", editingRequest.id), {
+      const operation = editingRequest ? 
+        updateDoc(doc(db, "prayer_requests", editingRequest.id), {
           ...newRequest,
           updatedAt: serverTimestamp()
-        });
-      } else {
-        await addDoc(collection(db, "prayer_requests"), {
+        }) :
+        addDoc(collection(db, "prayer_requests"), {
           userId: user.uid,
           ...newRequest,
           status: "Em oração",
           intercessorCount: 0,
           createdAt: serverTimestamp(),
         });
-      }
+
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 10000)
+      );
+
+      await Promise.race([operation, timeoutPromise]);
+      
       setIsModalOpen(false);
       setEditingRequest(null);
       setNewRequest({ title: "", description: "", category: "Família", urgency: "Média", isPublic: false });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving prayer request:", error);
-      alert("Erro ao salvar oração. Tente novamente.");
+      alert(error.message === "TIMEOUT_FIREBASE" 
+        ? "O servidor demorou muito para responder. Verifique sua conexão." 
+        : "Erro ao salvar oração. Tente novamente.");
     } finally {
       setLoading(false);
     }
   };
 
+  const [isSavingAnswer, setIsSavingAnswer] = useState(false);
+
   const markAsAnswered = async () => {
-    if (!answeringId || !testimonyDraft.trim()) return;
+    if (!answeringId || !testimonyDraft.trim() || isSavingAnswer) return;
     
+    setIsSavingAnswer(true);
     try {
-      await updateDoc(doc(db, "prayer_requests", answeringId), {
+      const operation = updateDoc(doc(db, "prayer_requests", answeringId), {
         status: "Respondido",
         testimony: testimonyDraft,
         updatedAt: serverTimestamp()
       });
+
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 10000)
+      );
+
+      await Promise.race([operation, timeoutPromise]);
+
       setAnsweringId(null);
       setTestimonyDraft("");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error marking as answered:", error);
-      alert("Erro ao salvar testemunho.");
+      alert(error.message === "TIMEOUT_FIREBASE" 
+        ? "Tempo de conexão esgotado." 
+        : "Erro ao salvar testemunho.");
+    } finally {
+      setIsSavingAnswer(false);
     }
   };
 

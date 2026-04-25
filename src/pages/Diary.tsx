@@ -96,6 +96,7 @@ export default function Diary() {
         updatedAt: serverTimestamp()
       };
 
+      let operation;
       if (selectedEntry?.id) {
         // If audio was deleted, cleanup in background
         if (selectedEntry.audioUrl && !audioUrl) {
@@ -104,7 +105,7 @@ export default function Diary() {
         }
 
         const entryRef = doc(db, "users", user.uid, "journal", selectedEntry.id);
-        await updateDoc(entryRef, payload);
+        operation = updateDoc(entryRef, payload);
       } else {
         const newEntry = {
           ...payload,
@@ -113,13 +114,22 @@ export default function Diary() {
           createdAt: serverTimestamp()
         };
         delete newEntry.updatedAt; // Don't send updatedAt on creation
-        await addDoc(collection(db, "users", user.uid, "journal"), newEntry);
+        operation = addDoc(collection(db, "users", user.uid, "journal"), newEntry);
       }
+
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 10000)
+      );
+
+      await Promise.race([operation, timeoutPromise]);
+      
       closeEditor();
       resetForm();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving entry:", error);
-      alert("Erro ao salvar entrada. Verifique sua conexão.");
+      alert(error.message === "TIMEOUT_FIREBASE" 
+        ? "O servidor demorou muito para responder. Verifique sua conexão." 
+        : "Erro ao salvar entrada. Verifique sua conexão.");
     } finally {
       setLoading(false);
     }

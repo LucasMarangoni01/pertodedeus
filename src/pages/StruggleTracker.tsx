@@ -64,6 +64,7 @@ export default function StruggleTracker() {
   const [selectedSuns, setSelectedSuns] = useState<any[]>([]);
 
   // Form State
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [formData, setFormData] = useState({
     sinType: "",
     biblicalAdvice: "",
@@ -102,11 +103,12 @@ export default function StruggleTracker() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || loading) return;
     setLoading(true);
     try {
+      let operation;
       if (editingId) {
-        await updateDoc(doc(db, "users", user.uid, "struggles", editingId), {
+        operation = updateDoc(doc(db, "users", user.uid, "struggles", editingId), {
           sinType: formData.sinType,
           biblicalAdvice: formData.biblicalAdvice,
           verse: formData.verse,
@@ -125,9 +127,9 @@ export default function StruggleTracker() {
             createdAt: serverTimestamp(),
           })
         );
-        await Promise.all(batchPromise);
+        operation = Promise.all(batchPromise);
       } else {
-        await addDoc(collection(db, "users", user.uid, "struggles"), {
+        operation = addDoc(collection(db, "users", user.uid, "struggles"), {
           userId: user.uid,
           sinType: formData.sinType,
           biblicalAdvice: formData.biblicalAdvice,
@@ -137,9 +139,18 @@ export default function StruggleTracker() {
           createdAt: serverTimestamp(),
         });
       }
+
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 10000)
+      );
+
+      await Promise.race([operation, timeoutPromise]);
       closeModal();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving struggle:", error);
+      alert(error.message === "TIMEOUT_FIREBASE" 
+        ? "Tempo de conexão esgotado. Verifique sua rede." 
+        : "Erro ao salvar. Tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -166,21 +177,30 @@ export default function StruggleTracker() {
     if (!user || updatingId) return;
     setUpdatingId(id);
     try {
-      await updateDoc(doc(db, "users", user.uid, "struggles", id), {
+      const updates = updateDoc(doc(db, "users", user.uid, "struggles", id), {
         totalFalls: increment(1),
         lastFall: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
 
       // Record to history
-      await addDoc(collection(db, "users", user.uid, "struggle_history"), {
+      const historyLog = addDoc(collection(db, "users", user.uid, "struggle_history"), {
         userId: user.uid,
         sinType: sinType,
         type: 'fall',
         createdAt: serverTimestamp()
       });
-    } catch (error) {
+
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 8000)
+      );
+
+      await Promise.race([Promise.all([updates, historyLog]), timeoutPromise]);
+    } catch (error: any) {
       console.error("Error registering fall:", error);
+      if (error.message === "TIMEOUT_FIREBASE") {
+        alert("A conexão com o banco de dados falhou. Tente novamente.");
+      }
     } finally {
       setUpdatingId(null);
     }
@@ -190,30 +210,37 @@ export default function StruggleTracker() {
     if (!user || updatingId) return;
     setUpdatingId(id);
     try {
-      await updateDoc(doc(db, "users", user.uid, "struggles", id), {
+      const updates = updateDoc(doc(db, "users", user.uid, "struggles", id), {
         totalVictories: increment(1),
         lastVictory: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
 
       // Record to history
-      await addDoc(collection(db, "users", user.uid, "struggle_history"), {
+      const historyLog = addDoc(collection(db, "users", user.uid, "struggle_history"), {
         userId: user.uid,
         sinType: sinType,
         type: 'victory',
         createdAt: serverTimestamp()
       });
-    } catch (error) {
+
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 8000)
+      );
+
+      await Promise.race([Promise.all([updates, historyLog]), timeoutPromise]);
+    } catch (error: any) {
       console.error("Error registering victory:", error);
+      if (error.message === "TIMEOUT_FIREBASE") {
+        alert("A conexão com o banco de dados falhou. Tente novamente.");
+      }
     } finally {
       setUpdatingId(null);
     }
   };
 
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
-
   const clearHistory = async () => {
-    if (!user || isDeletingHistory || history.length === 0) return;
+    if (!user || isDeletingHistory) return;
     
     setIsDeletingHistory(true);
     try {
@@ -224,10 +251,19 @@ export default function StruggleTracker() {
       snapshot.docs.forEach((d) => {
         batch.delete(d.ref);
       });
-      await batch.commit();
+      
+      const operation = batch.commit();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 10000)
+      );
+
+      await Promise.race([operation, timeoutPromise]);
       setShowClearConfirm(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error clearing history:", error);
+      alert(error.message === "TIMEOUT_FIREBASE" 
+        ? "Tempo de limite atingido ao limpar histórico." 
+        : "Erro ao limpar histórico.");
     } finally {
       setIsDeletingHistory(false);
     }

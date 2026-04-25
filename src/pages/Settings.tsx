@@ -110,9 +110,8 @@ export default function Settings() {
     setSuccess(false);
 
     try {
-      console.log("DEBUG - SALVANDO bibleVersion:", bibleVersionState);
-      console.log("DEBUG - UID PARA SALVAR:", user.uid);
-
+      console.log("DEBUG - INICIANDO SALVAMENTO. BibleVersion:", bibleVersionState);
+      
       const updateData = {
         displayName: formData.displayName.trim(),
         bio: formData.bio || "",
@@ -134,31 +133,43 @@ export default function Settings() {
         updatedAt: serverTimestamp(),
       };
 
-      console.log("DEBUG - PAYLOAD COMPLETO:", updateData);
+      console.log("DEBUG - PAYLOAD:", JSON.stringify(updateData));
       
       const userRef = doc(db, "users", user.uid);
-      await setDoc(userRef, updateData, { merge: true });
       
-      console.log("DEBUG - SALVO NO FIRESTORE COM SUCESSO");
+      // Implementação de timeout manual para evitar travamento infinito em produção (Vercel)
+      const savePromise = setDoc(userRef, updateData, { merge: true });
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 15000)
+      );
+
+      await Promise.race([savePromise, timeoutPromise]);
+      
+      console.log("DEBUG - SALVO COM SUCESSO");
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (error: any) {
-      console.error("DEBUG - ERRO AO SALVAR:", error);
+      console.error("DEBUG - ERRO CAPTURADO NO handleSave:", error);
       
-      // Implement handleFirestoreError as instructed in the system rules
+      let errorMsg = "Erro ao salvar alterações.";
+      if (error.message === "TIMEOUT_FIREBASE") {
+        errorMsg = "O servidor demorou muito para responder. Verifique sua conexão.";
+      } else if (error.code === 'permission-denied') {
+        errorMsg = "Permissão negada. Verifique se você está logado corretamente.";
+      }
+
+      alert(errorMsg);
+      
       const errInfo = {
         error: error instanceof Error ? error.message : String(error),
+        code: error.code || 'unknown',
         operationType: 'write',
         path: `users/${user.uid}`,
-        authInfo: {
-          userId: user.uid,
-          email: user.email,
-        }
+        timestamp: new Date().toISOString()
       };
-      console.error('Firestore Error Payload:', JSON.stringify(errInfo));
-      
-      alert(`Erro de permissão ou rede ao salvar. Verifique se seu perfil está completo.`);
+      console.error('Firestore Diagnostic:', JSON.stringify(errInfo));
     } finally {
+      console.log("DEBUG - FINALIZANDO ESTADO DE LOADING");
       setLoading(false);
     }
   };
