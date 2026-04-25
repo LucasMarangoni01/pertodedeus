@@ -1,13 +1,14 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const getAi = () => {
+const getAiModel = () => {
   const localKey = localStorage.getItem("USER_GEMINI_KEY");
   const fallbackKey = "AIzaSyCIphL2465bVZN0fNpw-oe6PsDA2caLjIE"; // Placeholder key
   const envKey = typeof process !== 'undefined' && process.env ? process.env.GEMINI_API_KEY : null;
   const importedMetaKey = (import.meta as any).env ? (import.meta as any).env.VITE_GEMINI_API_KEY : null;
   
   const key = localKey || importedMetaKey || envKey || fallbackKey;
-  return new GoogleGenAI({ apiKey: key });
+  const genAI = new GoogleGenerativeAI(key || "");
+  return genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 };
 
 // Simple in-memory cache for titles
@@ -18,7 +19,7 @@ export async function getChapterTitle(book: string, chapter: number, version: st
   if (titleCache[cacheKey]) return titleCache[cacheKey];
 
   try {
-    const ai = getAi();
+    const model = getAiModel();
     const prompt = `For the Bible book "${book}", chapter ${chapter} (version: ${version}), 
     provide a short, poetic and descriptive title in Portuguese that captures the main theme of this chapter. 
     Examples: 
@@ -26,12 +27,9 @@ export async function getChapterTitle(book: string, chapter: number, version: st
     - Salmos 23: "O Descanso no Pastor"
     Return ONLY the title string, no extra words, no quotes. Use at most 4-5 words.`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt,
-    });
-
-    const title = response.text?.trim() || "";
+    const response = await model.generateContent(prompt);
+    const title = response.response.text()?.trim() || "";
+    
     if (title) titleCache[cacheKey] = title;
     return title;
   } catch (error) {
