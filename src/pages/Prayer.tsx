@@ -12,7 +12,7 @@ type PrayerStatus = "Em oração" | "Respondido" | "Arquivado";
 type Tab = "requests" | "guide" | "history";
 
 export default function Prayer() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("requests");
   const [requests, setRequests] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -34,7 +34,7 @@ export default function Prayer() {
   });
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || isGuest) return;
     const q = query(
       collection(db, "prayer_requests"),
       where("userId", "==", user.uid),
@@ -64,6 +64,10 @@ export default function Prayer() {
   const handleCreateOrUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    if (isGuest) {
+      alert("No Modo Visitante os pedidos não são salvos. Faça login para guardar suas orações.");
+      return;
+    }
     setLoading(true);
     try {
       const operation = editingRequest ? 

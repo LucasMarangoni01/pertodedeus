@@ -47,13 +47,27 @@ interface AuthContextType {
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
+  isGuest: boolean;
+  enterGuestMode: () => void;
+  exitGuestMode: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
+  const [isGuest, setIsGuest] = useState(() => localStorage.getItem("pd_guest_mode") === "true");
   const [loading, setLoading] = useState(true);
+
+  const enterGuestMode = () => {
+    setIsGuest(true);
+    localStorage.setItem("pd_guest_mode", "true");
+  };
+
+  const exitGuestMode = () => {
+    setIsGuest(false);
+    localStorage.removeItem("pd_guest_mode");
+  };
 
   useEffect(() => {
     let unsubscribeProfile: (() => void) | null = null;
@@ -132,6 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
+      exitGuestMode();
       await firebaseSignOut(auth);
     } catch (error) {
       console.error("Error signing out:", error);
@@ -139,7 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut, isGuest, enterGuestMode, exitGuestMode }}>
       {loading ? (
         <div className="min-h-screen bg-navy flex flex-col items-center justify-center p-6 text-center">
            <div className="w-12 h-12 border-4 border-amber/20 border-t-amber rounded-full animate-spin mb-6" />

@@ -23,7 +23,7 @@ const moods = [
 ];
 
 export default function Diary() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const [entries, setEntries] = useState<any[]>([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -59,7 +59,7 @@ export default function Diary() {
   };
 
   useEffect(() => {
-    if (!user) {
+    if (!user || isGuest) {
       setIsInitialLoading(false);
       return;
     }
@@ -81,6 +81,10 @@ export default function Diary() {
 
   const handleSave = async () => {
     if (!user || !content.trim()) return;
+    if (isGuest) {
+      alert("No Modo Visitante suas reflexões não são salvas no servidor. Faça login para manter seu diário eterno.");
+      return;
+    }
     setLoading(true);
     try {
       const today = new Date().toISOString().split('T')[0];

@@ -57,7 +57,7 @@ const navigationGroups = [
 ];
 
 export default function MainLayout() {
-  const { user, signOut, loading } = useAuth();
+  const { user, signOut, loading, isGuest, exitGuestMode } = useAuth();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
@@ -81,6 +81,7 @@ export default function MainLayout() {
       navigate("/login");
     } catch (error) {
       console.error("Logout failed:", error);
+      exitGuestMode();
       localStorage.clear();
       window.location.href = "/";
     }
@@ -94,7 +95,7 @@ export default function MainLayout() {
     );
   }
 
-  if (!user) {
+  if (!user && !isGuest) {
     return <Navigate to="/login" replace />;
   }
 
@@ -124,9 +125,14 @@ export default function MainLayout() {
           <div className="w-10 h-10 bg-amber rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(201,168,76,0.3)]">
              <Heart className="text-navy w-6 h-6" fill="currentColor" />
           </div>
-          <h1 className="text-xl font-display font-bold tracking-tight text-amber">
-            Perto de Deus
-          </h1>
+          <div className="flex flex-col">
+            <h1 className="text-xl font-display font-bold tracking-tight text-amber leading-none">
+              Perto de Deus
+            </h1>
+            {isGuest && (
+              <span className="text-[10px] font-bold text-amber/40 tracking-widest mt-1">MODO VISITANTE</span>
+            )}
+          </div>
         </div>
 
         {/* Global Search Bar */}
@@ -186,7 +192,7 @@ export default function MainLayout() {
             className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-pearl/30 hover:text-red-400 hover:bg-red-400/10 transition-all duration-300"
           >
             <LogOut className="w-5 h-5" />
-            <span className="font-medium text-sm">Sair da Conta</span>
+            <span className="font-medium text-sm">{isGuest ? "Fazer Login" : "Sair da Conta"}</span>
           </button>
           <div className="mt-6 text-[10px] text-pearl/20 text-center font-medium">
             © {new Date().getFullYear()} Perto de Deus<br />
@@ -283,7 +289,7 @@ export default function MainLayout() {
                 onClick={handleLogout}
                 className="w-full flex items-center justify-center gap-3 py-5 rounded-2xl bg-red-500/10 text-red-500 font-bold"
               >
-                <LogOut className="w-5 h-5" /> Sair da Conta
+                <LogOut className="w-5 h-5" /> {isGuest ? "Fazer Login" : "Sair da Conta"}
               </button>
 
               <div className="text-center text-[10px] text-pearl/20 pb-10">

@@ -19,7 +19,7 @@ const translations = [
 ];
 
 export default function Bible() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const [selectedBook, setSelectedBook] = useState<string | null>(null);
   const [selectedBookId, setSelectedBookId] = useState<number | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
@@ -61,7 +61,7 @@ export default function Bible() {
     const progress = { book, bookId, chapter, verse, version: selectedVersion, updatedAt: new Date().toISOString() };
     localStorage.setItem("bibleProgress", JSON.stringify(progress));
 
-    if (user?.uid) {
+    if (user?.uid && !isGuest) {
       try {
         const operation = updateDoc(doc(db, "users", user.uid), {
           bibleProgress: {

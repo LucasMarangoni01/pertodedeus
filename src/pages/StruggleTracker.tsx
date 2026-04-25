@@ -50,7 +50,7 @@ const struggleCategories = [
 ];
 
 export default function StruggleTracker() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const [struggles, setStruggles] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -72,7 +72,7 @@ export default function StruggleTracker() {
   });
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || isGuest) return;
     const q = query(
       collection(db, "users", user.uid, "struggles"),
       orderBy("createdAt", "desc")
@@ -99,11 +99,15 @@ export default function StruggleTracker() {
       unsubscribe();
       unsubscribeHistory();
     };
-  }, [user]);
+  }, [user, isGuest]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || loading) return;
+    if (isGuest) {
+      alert("No Modo Visitante suas lutas não são salvas. Faça login para acompanhar sua jornada de libertação.");
+      return;
+    }
     setLoading(true);
     try {
       let operation;
@@ -175,6 +179,7 @@ export default function StruggleTracker() {
 
   const registerFall = async (id: string, sinType: string) => {
     if (!user || updatingId) return;
+    if (isGuest) return;
     setUpdatingId(id);
     try {
       const updates = updateDoc(doc(db, "users", user.uid, "struggles", id), {
@@ -208,6 +213,7 @@ export default function StruggleTracker() {
 
   const registerVictory = async (id: string, sinType: string) => {
     if (!user || updatingId) return;
+    if (isGuest) return;
     setUpdatingId(id);
     try {
       const updates = updateDoc(doc(db, "users", user.uid, "struggles", id), {

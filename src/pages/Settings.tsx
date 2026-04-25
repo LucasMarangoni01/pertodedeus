@@ -12,7 +12,7 @@ const denominations = ["Católico", "Evangélico", "Batista", "Presbiteriano", "
 const bibleVersions = ["NVI", "ARA", "NVT", "NAA", "NTLH"];
 
 export default function Settings() {
-  const { user, loading: authLoading, signOut } = useAuth();
+  const { user, loading: authLoading, signOut, isGuest } = useAuth();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const [loading, setLoading] = useState(false);
@@ -100,6 +100,10 @@ export default function Settings() {
   const handleSave = async () => {
     if (!user || loading) return;
     
+    if (isGuest) {
+      alert("No Modo Visitante as configurações não são salvas no servidor. Faça login para personalizar seu perfil permanentemente.");
+      return;
+    }
     // Validation match with firestore.rules
     if (!formData.displayName || !formData.displayName.trim()) {
       alert("O nome de exibição não pode estar vazio.");

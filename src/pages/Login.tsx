@@ -5,12 +5,11 @@ import { useNavigate, Navigate } from "react-router-dom";
 import { Heart, Chrome } from "lucide-react";
 
 export default function Login() {
-  const { user, signInWithGoogle, loading: authLoading } = useAuth();
+  const { user, signInWithGoogle, loading: authLoading, isGuest, enterGuestMode } = useAuth();
   const navigate = useNavigate();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  // If already logged in, the component will render the Navigate below.
-  // We use the top-level returns for redirection to ensure it happens immediately when the state changes.
+  // If already logged in or in guest mode, redirect
   
   if (authLoading) {
     return (
@@ -20,9 +19,14 @@ export default function Login() {
     );
   }
 
-  if (user && user.spiritualLevel) {
+  if (isGuest || (user && user.spiritualLevel)) {
     return <Navigate to="/" replace />;
   }
+
+  const handleGuestEnter = () => {
+    enterGuestMode();
+    navigate("/");
+  };
 
   if (user && !user.spiritualLevel) {
     return <Navigate to="/onboarding" replace />;
@@ -77,18 +81,28 @@ export default function Login() {
         </div>
 
         <div className="space-y-6">
-          <button 
-            onClick={handleLogin}
-            disabled={isLoggingIn}
-            className="w-full flex items-center justify-center gap-3 bg-white text-navy font-bold py-4 px-6 rounded-2xl transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-xl disabled:opacity-50"
-          >
-            {isLoggingIn ? (
-              <div className="w-5 h-5 border-2 border-navy border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <Chrome className="w-6 h-6" />
-            )}
-            {isLoggingIn ? "Autenticando..." : "Entrar com Google"}
-          </button>
+          <div className="flex flex-col gap-4">
+            <button 
+              onClick={handleLogin}
+              disabled={isLoggingIn}
+              className="w-full flex items-center justify-center gap-3 bg-white text-navy font-bold py-4 px-6 rounded-2xl transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-xl disabled:opacity-50"
+            >
+              {isLoggingIn ? (
+                <div className="w-5 h-5 border-2 border-navy border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Chrome className="w-6 h-6" />
+              )}
+              {isLoggingIn ? "Autenticando..." : "Entrar com Google"}
+            </button>
+
+            <button 
+              onClick={handleGuestEnter}
+              disabled={isLoggingIn}
+              className="w-full py-4 text-pearl/40 font-bold hover:text-amber transition-colors text-sm uppercase tracking-widest"
+            >
+              Entrar como Visitante
+            </button>
+          </div>
           
           <p className="text-pearl/40 text-sm">
             Ao entrar, você concorda com nossos <br />

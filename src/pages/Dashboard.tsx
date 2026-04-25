@@ -8,7 +8,7 @@ import { useNavigate, useOutletContext } from "react-router-dom";
 import { cn } from "../lib/utils";
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const navigate = useNavigate();
   const { openSearch } = useOutletContext<{ openSearch: () => void }>();
   const [lastPrayer, setLastPrayer] = useState<any>(null);
@@ -34,11 +34,11 @@ export default function Dashboard() {
   ];
 
   useEffect(() => {
-    if (!user) return;
-
-    // Pick a random verse
+    // Pick a random verse regardless of user status
     const randomIndex = Math.floor(Math.random() * bibleVerses.length);
     setRandomVerse(bibleVerses[randomIndex]);
+
+    if (!user || isGuest) return;
 
     // Fetch latest active prayer
     const qPrayer = query(
@@ -64,10 +64,28 @@ export default function Dashboard() {
     });
 
     return () => { unsubPrayer(); unsubDevo(); };
-  }, [user]);
+  }, [user, isGuest]);
 
   return (
     <div className="space-y-10">
+      {isGuest && (
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-amber/10 border border-amber/20 p-4 rounded-2xl flex items-center justify-between"
+        >
+          <div className="flex items-center gap-3">
+            <Sparkles className="text-amber w-5 h-5" />
+            <p className="text-xs font-bold text-amber/80">MODO VISITANTE: Algumas funções de salvamento estão desativadas.</p>
+          </div>
+          <button 
+            onClick={() => navigate("/login")}
+            className="text-[10px] font-bold bg-amber text-navy px-3 py-1.5 rounded-lg hover:scale-105 transition-transform"
+          >
+            FAZER LOGIN
+          </button>
+        </motion.div>
+      )}
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-2">
           <motion.p 
@@ -75,7 +93,7 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             className="text-amber font-medium tracking-widest uppercase text-xs"
           >
-            Bom dia em Cristo
+            {isGuest ? "Bem-vindo ao Perto de Deus" : "Bom dia em Cristo"}
           </motion.p>
           <motion.h1 
             initial={{ opacity: 0, y: 10 }}
@@ -83,7 +101,7 @@ export default function Dashboard() {
             transition={{ delay: 0.1 }}
             className="text-4xl md:text-5xl font-display font-bold leading-tight"
           >
-            Olá, {user?.displayName?.split(' ')[0] || "viajante"}
+            Olá, {user?.displayName?.split(' ')[0] || "Visitante"}
           </motion.h1>
         </div>
 
