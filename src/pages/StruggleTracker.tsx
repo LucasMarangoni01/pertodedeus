@@ -110,6 +110,7 @@ export default function StruggleTracker() {
     }
     setLoading(true);
     try {
+      const { withTimeout } = await import("../lib/firebase");
       let operation;
       if (editingId) {
         operation = updateDoc(doc(db, "users", user.uid, "struggles", editingId), {
@@ -119,7 +120,6 @@ export default function StruggleTracker() {
           updatedAt: serverTimestamp(),
         });
       } else if (selectedSuns.length > 0) {
-        // Bulk Add
         const batchPromise = selectedSuns.map(s => 
           addDoc(collection(db, "users", user!.uid, "struggles"), {
             userId: user!.uid,
@@ -144,18 +144,15 @@ export default function StruggleTracker() {
         });
       }
 
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 10000)
-      );
-
-      await Promise.race([operation, timeoutPromise]);
+      await withTimeout(operation, 15000);
       closeModal();
     } catch (error: any) {
-      console.error("Error saving struggle:", error);
+      console.error("[Struggles] Error saving:", error);
       alert(error.message === "TIMEOUT_FIREBASE" 
-        ? "Tempo de conexão esgotado. Verifique sua rede." 
-        : "Erro ao salvar. Tente novamente.");
+        ? "Tempo de conexão esgotado ao salvar luta em produção." 
+        : "Erro ao salvar acompanhamento.");
     } finally {
+      console.log("[Struggles] Loading reset in handleSubmit");
       setLoading(false);
     }
   };
@@ -182,13 +179,13 @@ export default function StruggleTracker() {
     if (isGuest) return;
     setUpdatingId(id);
     try {
+      const { withTimeout } = await import("../lib/firebase");
       const updates = updateDoc(doc(db, "users", user.uid, "struggles", id), {
         totalFalls: increment(1),
         lastFall: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
 
-      // Record to history
       const historyLog = addDoc(collection(db, "users", user.uid, "struggle_history"), {
         userId: user.uid,
         sinType: sinType,
@@ -196,17 +193,14 @@ export default function StruggleTracker() {
         createdAt: serverTimestamp()
       });
 
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 8000)
-      );
-
-      await Promise.race([Promise.all([updates, historyLog]), timeoutPromise]);
+      await withTimeout(Promise.all([updates, historyLog]), 8000);
     } catch (error: any) {
-      console.error("Error registering fall:", error);
+      console.error("[Struggles] Error registering fall:", error);
       if (error.message === "TIMEOUT_FIREBASE") {
-        alert("A conexão com o banco de dados falhou. Tente novamente.");
+        alert("A conexão com o servidor falhou. Tente novamente em instantes.");
       }
     } finally {
+      console.log("[Struggles] Resetting updatingId after fall");
       setUpdatingId(null);
     }
   };
@@ -216,13 +210,13 @@ export default function StruggleTracker() {
     if (isGuest) return;
     setUpdatingId(id);
     try {
+      const { withTimeout } = await import("../lib/firebase");
       const updates = updateDoc(doc(db, "users", user.uid, "struggles", id), {
         totalVictories: increment(1),
         lastVictory: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
 
-      // Record to history
       const historyLog = addDoc(collection(db, "users", user.uid, "struggle_history"), {
         userId: user.uid,
         sinType: sinType,
@@ -230,17 +224,14 @@ export default function StruggleTracker() {
         createdAt: serverTimestamp()
       });
 
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 8000)
-      );
-
-      await Promise.race([Promise.all([updates, historyLog]), timeoutPromise]);
+      await withTimeout(Promise.all([updates, historyLog]), 8000);
     } catch (error: any) {
-      console.error("Error registering victory:", error);
+      console.error("[Struggles] Error registering victory:", error);
       if (error.message === "TIMEOUT_FIREBASE") {
-        alert("A conexão com o banco de dados falhou. Tente novamente.");
+        alert("A conexão com o servidor falhou. Tente novamente em instantes.");
       }
     } finally {
+      console.log("[Struggles] Resetting updatingId after victory");
       setUpdatingId(null);
     }
   };

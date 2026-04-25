@@ -114,7 +114,7 @@ export default function Settings() {
     setSuccess(false);
 
     try {
-      console.log("DEBUG - INICIANDO SALVAMENTO. BibleVersion:", bibleVersionState);
+      console.log("[Settings] Iniciando salvamento...", { bibleVersion: bibleVersionState });
       
       const updateData = {
         displayName: formData.displayName.trim(),
@@ -137,43 +137,28 @@ export default function Settings() {
         updatedAt: serverTimestamp(),
       };
 
-      console.log("DEBUG - PAYLOAD:", JSON.stringify(updateData));
-      
       const userRef = doc(db, "users", user.uid);
       
-      // Implementação de timeout manual para evitar travamento infinito em produção (Vercel)
-      const savePromise = setDoc(userRef, updateData, { merge: true });
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 15000)
-      );
-
-      await Promise.race([savePromise, timeoutPromise]);
+      // Using centralized timeout helper
+      const { withTimeout } = await import("../lib/firebase");
+      await withTimeout(setDoc(userRef, updateData, { merge: true }), 12000);
       
-      console.log("DEBUG - SALVO COM SUCESSO");
+      console.log("[Settings] Salvo com sucesso no Firestore");
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (error: any) {
-      console.error("DEBUG - ERRO CAPTURADO NO handleSave:", error);
+      console.error("[Settings] Erro fatal no salvamento:", error);
       
       let errorMsg = "Erro ao salvar alterações.";
       if (error.message === "TIMEOUT_FIREBASE") {
-        errorMsg = "O servidor demorou muito para responder. Verifique sua conexão.";
+        errorMsg = "O servidor demorou muito para responder em produção. Isso geralmente ocorre por domínio não autorizado no Firebase ou conexão lenta.";
       } else if (error.code === 'permission-denied') {
-        errorMsg = "Permissão negada. Verifique se você está logado corretamente.";
+        errorMsg = "Permissão negada pelas regras do banco de dados.";
       }
 
       alert(errorMsg);
-      
-      const errInfo = {
-        error: error instanceof Error ? error.message : String(error),
-        code: error.code || 'unknown',
-        operationType: 'write',
-        path: `users/${user.uid}`,
-        timestamp: new Date().toISOString()
-      };
-      console.error('Firestore Diagnostic:', JSON.stringify(errInfo));
     } finally {
-      console.log("DEBUG - FINALIZANDO ESTADO DE LOADING");
+      console.log("[Settings] Resetando loading para false");
       setLoading(false);
     }
   };

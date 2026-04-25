@@ -87,6 +87,8 @@ export default function Diary() {
     }
     setLoading(true);
     try {
+      console.log("[Diary] Iniciando salvamento...");
+      const { withTimeout } = await import("../lib/firebase");
       const today = new Date().toISOString().split('T')[0];
       const payload: any = {
         content: content.trim(),
@@ -102,12 +104,10 @@ export default function Diary() {
 
       let operation;
       if (selectedEntry?.id) {
-        // If audio was deleted, cleanup in background
         if (selectedEntry.audioUrl && !audioUrl) {
            const oldRef = ref(storage, selectedEntry.audioUrl);
            deleteObject(oldRef).catch(e => console.warn("Background cleanup failed", e));
         }
-
         const entryRef = doc(db, "users", user.uid, "journal", selectedEntry.id);
         operation = updateDoc(entryRef, payload);
       } else {
@@ -117,24 +117,21 @@ export default function Diary() {
           date: today,
           createdAt: serverTimestamp()
         };
-        delete newEntry.updatedAt; // Don't send updatedAt on creation
+        delete newEntry.updatedAt;
         operation = addDoc(collection(db, "users", user.uid, "journal"), newEntry);
       }
 
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 10000)
-      );
-
-      await Promise.race([operation, timeoutPromise]);
+      await withTimeout(operation, 12000);
       
       closeEditor();
       resetForm();
     } catch (error: any) {
-      console.error("Error saving entry:", error);
+      console.error("[Diary] Error saving entry:", error);
       alert(error.message === "TIMEOUT_FIREBASE" 
-        ? "O servidor demorou muito para responder. Verifique sua conexão." 
-        : "Erro ao salvar entrada. Verifique sua conexão.");
+        ? "Tempo esgotado ao salvar o diário em produção." 
+        : "Erro ao salvar entrada.");
     } finally {
+      console.log("[Diary] Finalizando loading");
       setLoading(false);
     }
   };

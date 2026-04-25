@@ -5,6 +5,16 @@ import { getStorage } from 'firebase/storage';
 import { getMessaging, onMessage } from 'firebase/messaging';
 import firebaseConfigLocal from '../../firebase-applet-config.json';
 
+// Centralized timeout helper for production resilience
+export const withTimeout = <T>(promise: Promise<T>, ms: number = 10000): Promise<T> => {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), ms)
+    ),
+  ]);
+};
+
 // Hybrid configuration: Priority to VITE_ environment variables (Vercel/Production),
 // then fallback to the local json file (AI Studio).
 const config = {

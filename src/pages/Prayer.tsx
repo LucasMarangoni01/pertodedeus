@@ -70,7 +70,8 @@ export default function Prayer() {
     }
     setLoading(true);
     try {
-      const operation = editingRequest ? 
+      const { withTimeout } = await import("../lib/firebase");
+      const operation = (editingRequest ? 
         updateDoc(doc(db, "prayer_requests", editingRequest.id), {
           ...newRequest,
           updatedAt: serverTimestamp()
@@ -81,23 +82,20 @@ export default function Prayer() {
           status: "Em oração",
           intercessorCount: 0,
           createdAt: serverTimestamp(),
-        });
+        })) as Promise<any>;
 
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("TIMEOUT_FIREBASE")), 10000)
-      );
-
-      await Promise.race([operation, timeoutPromise]);
+      await withTimeout(operation, 10000);
       
       setIsModalOpen(false);
       setEditingRequest(null);
       setNewRequest({ title: "", description: "", category: "Família", urgency: "Média", isPublic: false });
     } catch (error: any) {
-      console.error("Error saving prayer request:", error);
+      console.error("[Prayer] Error saving request:", error);
       alert(error.message === "TIMEOUT_FIREBASE" 
-        ? "O servidor demorou muito para responder. Verifique sua conexão." 
-        : "Erro ao salvar oração. Tente novamente.");
+        ? "Tempo de conexão esgotado em produção. Verifique se o domínio do app está autorizado no Firebase." 
+        : "Erro ao salvar oração.");
     } finally {
+      console.log("[Prayer] Loading set to false");
       setLoading(false);
     }
   };

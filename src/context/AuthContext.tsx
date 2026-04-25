@@ -137,9 +137,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-    } catch (error) {
-      console.error("Error signing in with Google:", error);
+      // Usar import dinâmico para evitar dependência circular
+      const { withTimeout } = await import("../lib/firebase");
+      // Damos 60 segundos pois depende da interação do usuário com o popup
+      await withTimeout(signInWithPopup(auth, provider), 60000);
+    } catch (error: any) {
+      console.error("[Auth] Error signing in with Google:", error);
+      if (error.message === "TIMEOUT_FIREBASE") {
+        throw new Error("A autenticação demorou muito. Verifique se o popup foi bloqueado pelo navegador.");
+      }
       throw error; 
     }
   };
