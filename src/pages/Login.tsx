@@ -118,6 +118,14 @@ export default function Login() {
             <p className="text-pearl/60 font-serif text-base leading-relaxed italic">
               {mode === 'email-register' ? "Comece sua jornada espiritual" : "\"Permanecerei em vós, e vós em mim.\""}
             </p>
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="text-amber/80 font-bold text-xl md:text-2xl mt-4 tracking-tighter uppercase"
+            >
+              Desenvolvido por Lucas Marangoni
+            </motion.p>
           </div>
         </div>
 

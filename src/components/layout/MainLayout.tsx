@@ -200,9 +200,10 @@ export default function MainLayout() {
             <LogOut className="w-5 h-5" />
             <span className="font-medium text-sm">{isGuest ? "Fazer Login" : "Sair da Conta"}</span>
           </button>
-          <div className="mt-6 text-[10px] text-pearl/20 text-center font-medium">
+          <div className="mt-6 text-[10px] text-pearl/20 text-center font-medium leading-relaxed">
             © {new Date().getFullYear()} Perto de Deus<br />
-            Todos os direitos reservados
+            Todos os direitos reservados<br />
+            <span className="text-amber/40">Desenvolvido por Lucas Marangoni</span>
           </div>
         </div>
       </aside>
@@ -298,8 +299,9 @@ export default function MainLayout() {
                 <LogOut className="w-5 h-5" /> {isGuest ? "Fazer Login" : "Sair da Conta"}
               </button>
 
-              <div className="text-center text-[10px] text-pearl/20 pb-10">
-                © {new Date().getFullYear()} Perto de Deus • Todos os direitos reservados
+              <div className="text-center text-[10px] text-pearl/20 pb-10 leading-relaxed">
+                © {new Date().getFullYear()} Perto de Deus • Todos os direitos reservados<br />
+                <span className="text-amber/40">Desenvolvido por Lucas Marangoni</span>
               </div>
             </div>
           </motion.div>
