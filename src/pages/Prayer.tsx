@@ -7,6 +7,7 @@ import { collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp,
 import { cn } from "../lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { handleFirestoreError, OperationType } from "../lib/firestoreErrorHandler";
 
 type PrayerStatus = "Em oração" | "Respondido" | "Arquivado";
 type Tab = "requests" | "guide" | "history";
@@ -44,6 +45,8 @@ export default function Prayer() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setRequests(docs);
+    }, (err) => {
+      handleFirestoreError(err, OperationType.LIST, "prayer_requests");
     });
 
     return () => unsubscribe();

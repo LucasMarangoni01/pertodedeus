@@ -8,6 +8,7 @@ import { db } from "../lib/firebase";
 import { collection, query, where, orderBy, limit, onSnapshot, addDoc, serverTimestamp, updateDoc, doc } from "firebase/firestore";
 import ReactMarkdown from "react-markdown";
 import { cn } from "../lib/utils";
+import { handleFirestoreError, OperationType } from "../lib/firestoreErrorHandler";
 
 export default function Devotional() {
   const { user, loading: authLoading } = useAuth();
@@ -43,7 +44,8 @@ export default function Devotional() {
         handleNewDevotional();
       }
     }, (err) => {
-      console.error("Firestore error:", err);
+      handleFirestoreError(err, OperationType.LIST, `users/${user.uid}/devotionals`);
+      
       // Se der erro de índice, tentamos sem o orderBy para não quebrar o app
       if (err.code === "failed-precondition") {
         const fallbackQ = query(
@@ -60,6 +62,8 @@ export default function Devotional() {
             } else {
                 handleNewDevotional();
             }
+        }, (fallbackErr) => {
+          handleFirestoreError(fallbackErr, OperationType.LIST, `users/${user.uid}/devotionals`);
         });
       }
     });

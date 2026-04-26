@@ -7,6 +7,7 @@ import { Heart, MessageSquare, Share2, Plus, Users, User, ChevronRight, Send, X,
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "../lib/utils";
+import { handleFirestoreError, OperationType } from "../lib/firestoreErrorHandler";
 
 export default function Community() {
   const { user } = useAuth();
@@ -162,6 +163,8 @@ export default function Community() {
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setPublicRequests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (err) => {
+      handleFirestoreError(err, OperationType.LIST, "prayer_requests");
     });
 
     const qChat = query(
@@ -177,6 +180,8 @@ export default function Community() {
           chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
         }
       }, 100);
+    }, (err) => {
+      handleFirestoreError(err, OperationType.LIST, "global_chat");
     });
 
     const qTestimonials = query(
@@ -186,6 +191,8 @@ export default function Community() {
     );
     const unsubscribeTestimonials = onSnapshot(qTestimonials, (snapshot) => {
       setTestimonials(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (err) => {
+      handleFirestoreError(err, OperationType.LIST, "testimonials");
     });
 
     return () => {

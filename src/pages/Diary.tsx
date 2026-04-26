@@ -4,6 +4,7 @@ import { PenTool, Calendar, Plus, Save, Hash, Smile, Search, ChevronLeft, Chevro
 import { useAuth } from "../context/AuthContext";
 import { db } from "../lib/firebase";
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { handleFirestoreError, OperationType } from "../lib/firestoreErrorHandler";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { cn } from "../lib/utils";
 import { storage } from "../lib/firebase";
@@ -72,7 +73,9 @@ export default function Diary() {
       setEntries(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       setIsInitialLoading(false);
     }, (err) => {
-      console.error("Journal Error:", err);
+      if (user) {
+        handleFirestoreError(err, OperationType.LIST, `users/${user.uid}/journal`);
+      }
       setIsInitialLoading(false);
     });
 

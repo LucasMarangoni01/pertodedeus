@@ -6,6 +6,7 @@ import { db } from "../lib/firebase";
 import { collection, query, where, limit, onSnapshot, orderBy } from "firebase/firestore";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { cn } from "../lib/utils";
+import { handleFirestoreError, OperationType } from "../lib/firestoreErrorHandler";
 
 export default function Dashboard() {
   const { user, isGuest } = useAuth();
@@ -52,6 +53,8 @@ export default function Dashboard() {
     );
     const unsubPrayer = onSnapshot(qPrayer, (s) => {
       if (!s.empty) setLastPrayer({ id: s.docs[0].id, ...s.docs[0].data() });
+    }, (err) => {
+      handleFirestoreError(err, OperationType.LIST, "prayer_requests");
     });
 
     // Fetch today's devotional
@@ -63,6 +66,8 @@ export default function Dashboard() {
     );
     const unsubDevo = onSnapshot(qDevo, (s) => {
       if (!s.empty) setTodaysDevotional({ id: s.docs[0].id, ...s.docs[0].data() });
+    }, (err) => {
+      handleFirestoreError(err, OperationType.LIST, `users/${user.uid}/devotionals`);
     });
 
     // Fetch latest active announcement
@@ -79,6 +84,8 @@ export default function Dashboard() {
       } else {
         setAnnouncement(null);
       }
+    }, (err) => {
+      handleFirestoreError(err, OperationType.LIST, "global_announcements");
     });
 
     return () => { 
@@ -141,6 +148,14 @@ export default function Dashboard() {
       )}
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-2">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex items-center gap-2 mb-2"
+          >
+            <div className="h-[1px] w-6 bg-amber/30" />
+            <span className="text-[10px] font-black text-amber uppercase tracking-[0.3em]">Lucas Marangoni Edition</span>
+          </motion.div>
           <motion.p 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}

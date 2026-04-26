@@ -584,6 +584,25 @@ export default function Settings() {
               </section>
             )}
           </motion.div>
+          
+          <div className="mt-16 pt-8 border-t border-white/5 text-center pb-8">
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              className="space-y-2"
+            >
+              <p className="text-[10px] text-pearl/20 uppercase tracking-[0.4em] font-bold">Desenvolvido por</p>
+              <h2 className="text-4xl md:text-5xl font-display font-black text-amber tracking-tighter hover:scale-105 transition-transform cursor-default">
+                LUCAS MARANGONI
+              </h2>
+              <div className="flex items-center justify-center gap-2 text-pearl/40 text-[10px] uppercase font-bold tracking-widest">
+                <div className="h-[1px] w-8 bg-white/10" />
+                Special Edition Platform
+                <div className="h-[1px] w-8 bg-white/10" />
+              </div>
+            </motion.div>
+          </div>
         </main>
       </div>
     </div>

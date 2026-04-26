@@ -10,6 +10,7 @@ import {
 } from "firebase/auth";
 import { auth, db } from "../lib/firebase";
 import { doc, onSnapshot, getDoc } from "firebase/firestore";
+import { handleFirestoreError, OperationType } from "../lib/firestoreErrorHandler";
 
 interface AppUser {
   uid: string;
@@ -127,8 +128,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           setLoading(false);
         }, (err) => {
-          console.error("[Auth] Profile listener error:", err);
-          if (isMounted) setLoading(false);
+          if (isMounted) {
+            handleFirestoreError(err, OperationType.GET, `users/${firebaseUser.uid}`);
+            setLoading(false);
+          }
         });
       } else {
         clearTimeout(timeoutId);

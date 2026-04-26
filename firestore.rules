@@ -11,11 +11,14 @@ service cloud.firestore {
     function isEmailVerified() { return request.auth.token.email_verified == true; }
     function isAdmin() { 
       return isSignedIn() && (
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-        request.auth.token.email == "lukete135467@gmail.com"
+        request.auth.token.email == "lukete135467@gmail.com" ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'user') == 'admin')
       );
     }
     function isOwner(userId) { return isSignedIn() && (request.auth.uid == userId || isAdmin()); }
+    function isVerifiedOwner(userId) { return isOwner(userId) && isEmailVerified(); }
+    
     // IDs must be reasonably sized and safe
     function isValidId(id) { return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
     function incoming() { return request.resource.data; }
@@ -27,12 +30,12 @@ service cloud.firestore {
       allow get: if isSignedIn() && isValidId(userId);
       allow list: if isAdmin(); // Prevent scraping all users except for admins
 
-      allow create: if isOwner(userId) 
+      allow create: if isVerifiedOwner(userId) 
                     && isValidId(userId)
                     && isValidUser(incoming())
                     && incoming().get('streak', 0) == 0;
 
-       allow update: if isOwner(userId) 
+       allow update: if isVerifiedOwner(userId) 
                      && isValidUser(incoming())
                      && (
                        // Profile Update Action
