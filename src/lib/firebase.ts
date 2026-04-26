@@ -15,36 +15,36 @@ export const withTimeout = <T>(promise: Promise<T>, ms: number = 10000): Promise
   ]);
 };
 
-// Hybrid configuration: Priority to VITE_ environment variables (Vercel/Production),
-// then fallback to the local json file (AI Studio).
-const config = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || firebaseConfigLocal.apiKey,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || firebaseConfigLocal.authDomain,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || firebaseConfigLocal.projectId,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || firebaseConfigLocal.storageBucket,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseConfigLocal.messagingSenderId,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || firebaseConfigLocal.appId,
-  firestoreDatabaseId: import.meta.env.VITE_FIREBASE_DATABASE_ID || import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || (firebaseConfigLocal as any).firestoreDatabaseId
+// configuration helper to safely merge env vars with fallback config
+const getFirebaseConfig = () => {
+  const env = import.meta.env;
+  
+  // Try to use environment variables first (good for Vercel/Production)
+  // Then fallback to the local config (good for AI Studio)
+  const config = {
+    apiKey: env.VITE_FIREBASE_API_KEY || firebaseConfigLocal.apiKey,
+    authDomain: env.VITE_FIREBASE_AUTH_DOMAIN || firebaseConfigLocal.authDomain,
+    projectId: env.VITE_FIREBASE_PROJECT_ID || firebaseConfigLocal.projectId,
+    storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET || firebaseConfigLocal.storageBucket,
+    messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseConfigLocal.messagingSenderId,
+    appId: env.VITE_FIREBASE_APP_ID || firebaseConfigLocal.appId,
+    firestoreDatabaseId: env.VITE_FIREBASE_DATABASE_ID || env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || (firebaseConfigLocal as any).firestoreDatabaseId
+  };
+
+  return config;
 };
 
-// Ensure no empty strings override valid local config
-const firebaseConfig = {
-  apiKey: config.apiKey || firebaseConfigLocal.apiKey,
-  authDomain: config.authDomain || firebaseConfigLocal.authDomain,
-  projectId: config.projectId || firebaseConfigLocal.projectId,
-  storageBucket: config.storageBucket || firebaseConfigLocal.storageBucket,
-  messagingSenderId: config.messagingSenderId || firebaseConfigLocal.messagingSenderId,
-  appId: config.appId || firebaseConfigLocal.appId,
-  firestoreDatabaseId: config.firestoreDatabaseId || (firebaseConfigLocal as any).firestoreDatabaseId
-};
+const firebaseConfig = getFirebaseConfig();
 
 if (import.meta.env.PROD) {
-  console.log("[Firebase] Production Mode. Project:", firebaseConfig.projectId);
-  if (!import.meta.env.VITE_FIREBASE_API_KEY) {
-    console.warn("[Firebase] Warning: VITE_FIREBASE_API_KEY is not set. Falling back to local internal config.");
-  }
+  console.log("[Firebase] Production Mode initialized.");
 } else {
-  console.log("[Firebase] Development Mode. Project:", firebaseConfig.projectId);
+  console.log("[Firebase] Development Mode initialized. Project:", firebaseConfig.projectId);
+}
+
+// Validate essential config
+if (!firebaseConfig.apiKey) {
+  console.error("[Firebase] Critical Error: API Key is missing. Check your .env or firebase-applet-config.json");
 }
 
 const app = initializeApp(firebaseConfig);
