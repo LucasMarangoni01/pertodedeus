@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useTheme } from "../context/ThemeContext";
+import { usePreference } from "../contexts/PreferenceContext";
 import { handleFirestoreError, OperationType } from "../lib/firestoreErrorHandler";
 
 const denominations = ["Católico", "Evangélico", "Batista", "Presbiteriano", "Pentecostal", "Sem denominação", "Outro"];
@@ -27,6 +28,7 @@ const BIBLE_VERSIONS = [
 
 export default function Settings() {
   const { user, loading: authLoading, signOut, isGuest } = useAuth();
+  const { preferences, togglePreference } = usePreference();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   
@@ -43,7 +45,6 @@ export default function Settings() {
     denomination: "Sem denominação",
     bibleVersion: "NVI",
     isPublic: true,
-    simplifyAI: false,
     notifications: {
       dailyDevotional: true,
       prayerRequests: true,
@@ -77,7 +78,6 @@ export default function Settings() {
         denomination: localData?.denomination || user.denomination || "Sem denominação",
         bibleVersion: v,
         isPublic: localData?.isPublic ?? (user.isPublic ?? true),
-        simplifyAI: localData?.simplifyAI ?? (user.simplifyAI ?? false),
         notifications: {
           dailyDevotional: localData?.notifications?.dailyDevotional ?? (user.notifications?.dailyDevotional ?? true),
           prayerRequests: localData?.notifications?.prayerRequests ?? (user.notifications?.prayerRequests ?? true),
@@ -452,14 +452,14 @@ export default function Settings() {
                                     </div>
                                  </div>
                                  <button 
-                                   onClick={() => handleFieldChange("simplifyAI", !formData.simplifyAI)}
+                                   onClick={() => togglePreference("simplifyAI")}
                                    className={cn(
                                      "w-14 h-7 rounded-full transition-all relative p-1.5",
-                                     formData.simplifyAI ? "bg-amber" : "bg-white/10"
+                                     preferences.simplifyAI ? "bg-amber" : "bg-white/10"
                                    )}
                                  >
                                     <motion.div 
-                                      animate={{ x: formData.simplifyAI ? 26 : 0 }}
+                                      animate={{ x: preferences.simplifyAI ? 26 : 0 }}
                                       className="w-4 h-4 rounded-full bg-white shadow-sm" 
                                     />
                                  </button>

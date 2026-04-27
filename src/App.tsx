@@ -2,6 +2,7 @@ import { HashRouter as Router, Routes, Route, Navigate } from "react-router-dom"
 import { lazy, Suspense } from "react";
 import { ThemeProvider } from "./context/ThemeContext";
 import { AuthProvider } from "./context/AuthContext";
+import { PreferenceProvider } from "./contexts/PreferenceContext";
 import MainLayout from "./components/layout/MainLayout";
 
 // Lazy Pages
@@ -38,37 +39,39 @@ export default function App() {
   return (
     <Router>
       <AuthProvider>
-        <ThemeProvider>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/onboarding" element={<Onboarding />} />
-              <Route path="/" element={<MainLayout />}>
-                <Route index element={<Dashboard />} />
-                <Route path="quiz" element={<ReligionQuiz />} />
-                <Route path="struggles" element={<StruggleTracker />} />
-                <Route path="jejum" element={<Fasting />} />
-                <Route path="agenda" element={<Agenda />} />
-                <Route path="bible" element={<Bible />} />
-                <Route path="plans" element={<ReadingPlans />} />
-                <Route path="calculator" element={<Calculator />} />
-                <Route path="prayer" element={<Prayer />} />
-                <Route path="diary" element={<Diary />} />
-                <Route path="churches" element={<FindChurches />} />
-                <Route path="study" element={<Study />} />
-                <Route path="community" element={<Community />} />
-                <Route path="assistant" element={<Assistant />} />
-                <Route path="admin" element={<Admin />} />
-                <Route path="settings" element={<Settings />} />
-                <Route path="devotional" element={<Devotional />} />
-                <Route path="profile" element={<Profile />} />
-                <Route path="guide" element={<Guide />} />
-                <Route path="sos" element={<Temptation />} />
-              </Route>
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Suspense>
-        </ThemeProvider>
+        <PreferenceProvider>
+          <ThemeProvider>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/onboarding" element={<Onboarding />} />
+                <Route path="/" element={<MainLayout />}>
+                  <Route index element={<Dashboard />} />
+                  <Route path="quiz" element={<ReligionQuiz />} />
+                  <Route path="struggles" element={<StruggleTracker />} />
+                  <Route path="jejum" element={<Fasting />} />
+                  <Route path="agenda" element={<Agenda />} />
+                  <Route path="bible" element={<Bible />} />
+                  <Route path="plans" element={<ReadingPlans />} />
+                  <Route path="calculator" element={<Calculator />} />
+                  <Route path="prayer" element={<Prayer />} />
+                  <Route path="diary" element={<Diary />} />
+                  <Route path="churches" element={<FindChurches />} />
+                  <Route path="study" element={<Study />} />
+                  <Route path="community" element={<Community />} />
+                  <Route path="assistant" element={<Assistant />} />
+                  <Route path="admin" element={<Admin />} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route path="devotional" element={<Devotional />} />
+                  <Route path="profile" element={<Profile />} />
+                  <Route path="guide" element={<Guide />} />
+                  <Route path="sos" element={<Temptation />} />
+                </Route>
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
+          </ThemeProvider>
+        </PreferenceProvider>
       </AuthProvider>
     </Router>
   );

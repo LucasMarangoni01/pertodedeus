@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Search, Book, ChevronRight, ChevronLeft, Settings2, Share2, Copy, Highlighter, FileText, X, Star, Volume2, Square, PlayCircle, Sparkles, Brain, Lightbulb, Compass, MessageSquareQuote } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useAuth } from "../context/AuthContext";
+import { usePreference } from "../contexts/PreferenceContext";
 import { bibleBooks } from "../constants/bibleData";
 import { doc, updateDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
@@ -24,6 +25,8 @@ const translations = [
 
 export default function Bible() {
   const { user, isGuest } = useAuth();
+  const { preferences, togglePreference } = usePreference();
+  const showNotes = preferences.showNotes;
   const [selectedBook, setSelectedBook] = useState<string | null>(null);
   const [selectedBookId, setSelectedBookId] = useState<number | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
@@ -43,9 +46,6 @@ export default function Bible() {
   const [searchQuery, setSearchQuery] = useState("");
   const [fontSize, setFontSize] = useState(18);
   const [audioSpeed, setAudioSpeed] = useState(1);
-  const [showNotes, setShowNotes] = useState(() => {
-    return localStorage.getItem("bibleShowNotes") === "true";
-  });
   const [selectedVerses, setSelectedVerses] = useState<number[]>([]);
   const [activeTestament, setActiveTestament] = useState<'Velho' | 'Novo'>('Velho');
   const [globalResults, setGlobalResults] = useState<any[]>([]);
@@ -124,7 +124,7 @@ export default function Bible() {
     }
   }, [loadingBooks]);
 
-  // 3. Sincronização automática com Firebase
+  // Sincronização automática com Firebase
   useEffect(() => {
     if (!selectedVersion || !user?.uid || isGuest) return;
 
@@ -146,22 +146,7 @@ export default function Bible() {
     sync();
   }, [selectedVersion, user?.uid, isGuest]);
 
-  // 5. Sincronização de Notas
-  useEffect(() => {
-    localStorage.setItem("bibleShowNotes", showNotes.toString());
-    if (user?.uid && !isGuest) {
-      updateDoc(doc(db, "users", user.uid), {
-        showBibleNotes: showNotes
-      }).catch(console.error);
-    }
-  }, [showNotes, user?.uid, isGuest]);
-
-  // Carregar Notas do Firebase
-  useEffect(() => {
-    if (user?.showBibleNotes !== undefined) {
-      setShowNotes(user.showBibleNotes);
-    }
-  }, [user?.showBibleNotes]);
+  // Sincronização de Notas - Handled by usePreference
 
   // Handle version change internal to Bible.tsx
   const handleVersionChange = (versionId: string) => {
@@ -874,7 +859,7 @@ export default function Bible() {
                                      <span className="text-[10px] text-pearl/40 uppercase font-bold tracking-widest">Exibir Notas</span>
                                   </div>
                                   <div 
-                                    onClick={() => setShowNotes(!showNotes)}
+                                    onClick={() => togglePreference('showNotes')}
                                     className={cn(
                                       "w-10 h-5 rounded-full relative transition-colors",
                                       showNotes ? "bg-amber" : "bg-white/10"

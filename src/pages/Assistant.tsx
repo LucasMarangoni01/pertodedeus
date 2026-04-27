@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Sparkles, Save, Share2, RefreshCw, Bookmark, BookmarkCheck, Send, CheckCircle, Heart, User, ShieldCheck, Info, Trash2, Plus, Menu, X, ChevronRight, MessageCircle } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { usePreference } from "../contexts/PreferenceContext";
 import { callGeminiProxy } from "../services/aiUtils";
 import ReactMarkdown from "react-markdown";
 import { cn } from "../lib/utils";
@@ -10,30 +11,15 @@ import { db } from "../lib/firebase";
 
 export default function Assistant() {
   const { user, loading: authLoading } = useAuth();
+  const { preferences, togglePreference } = usePreference();
+  const simplify = preferences.simplifyAI;
   const [conversations, setConversations] = useState<any[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [simplify, setSimplify] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  // Initialize simplify from user settings
-  useEffect(() => {
-    if (user?.simplifyAI !== undefined) {
-      setSimplify(user.simplifyAI);
-    } else {
-      const stored = localStorage.getItem("pd_simplify_ai") === "true";
-      setSimplify(stored);
-    }
-  }, [user?.simplifyAI]);
-
-  useEffect(() => {
-    if (!user) {
-      localStorage.setItem("pd_simplify_ai", simplify.toString());
-    }
-  }, [simplify, user]);
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -418,21 +404,7 @@ export default function Assistant() {
                   simplify ? "text-amber" : "text-white/20"
                 )}>Direto</span>
                 <div 
-                  onClick={async () => {
-                    const newValue = !simplify;
-                    setSimplify(newValue);
-                    if (user?.uid) {
-                      try {
-                        await updateDoc(doc(db, "users", user.uid), {
-                          simplifyAI: newValue
-                        });
-                      } catch (err) {
-                        console.error("Error saving simplify preference:", err);
-                      }
-                    } else {
-                      localStorage.setItem("pd_simplify_ai", newValue.toString());
-                    }
-                  }}
+                  onClick={() => togglePreference("simplifyAI")}
                   className={cn(
                     "w-10 h-5 rounded-full relative transition-colors",
                     simplify ? "bg-amber" : "bg-white/10"

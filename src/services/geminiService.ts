@@ -30,11 +30,10 @@ export const generateDevotional = async (userProfile: any, passage?: string, sim
   Sempre baseie-se estritamente na Bíblia.`;
 
   try {
-    const text = await callGeminiProxy({ prompt, model: "gemini-flash-latest", responseMimeType: "application/json" });
+    const text = await callGeminiProxy({ prompt, model: "gemini-flash-latest", responseMimeType: "application/json", simplify });
     return JSON.parse(text);
   } catch (error: any) {
     console.error("Error generating devotional:", error);
-    // ... rest of error handling
     throw error;
   }
 };
@@ -48,7 +47,7 @@ export const summarizeVerse = async (verseText: string) => {
   Saída: (apenas a frase do resumo, sem formatação adicional)`;
 
   try {
-    const text = await callGeminiProxy({ prompt, model: "gemini-flash-latest" });
+    const text = await callGeminiProxy({ prompt, model: "gemini-flash-latest", simplify: true });
     return text.trim();
   } catch (error) {
     console.error("Error summarizing verse:", error);
@@ -65,7 +64,7 @@ export const summarizeChapter = async (chapterText: string) => {
   Saída: (apenas o resumo, sem formatação adicional)`;
 
   try {
-    const text = await callGeminiProxy({ prompt, model: "gemini-flash-latest" });
+    const text = await callGeminiProxy({ prompt, model: "gemini-flash-latest", simplify: true });
     return text.trim();
   } catch (error) {
     console.error("Error summarizing chapter:", error);
@@ -84,7 +83,7 @@ export const explainPassage = async (passage: string, reference: string, userPro
   - Denominação: ${userProfile?.denomination || "Cristão"}
   - Desafios: ${userProfile?.challenges?.join(", ") || "Nenhum especificado"}
   
-  ${simplify ? 'MODO LINGUAGEM SIMPLES ATIVO: Use palavras extremamente simples, frases curtas e seja muito direto. Evite termos técnicos teológicos ou explicações longas. Foco em clareza absoluta para fácil compreensão.' : ''}
+  ${simplify ? 'Responda de forma extremamente direta, curta e com linguagem simples. Evite textos longos, termos difíceis ou explicações complexas.' : ''}
 
   Sua explicação deve incluir:
   1. Contexto histórico/literário breve.
@@ -102,7 +101,7 @@ export const explainPassage = async (passage: string, reference: string, userPro
   Use um tom acolhedor e encorajador.`;
 
   try {
-    const text = await callGeminiProxy({ prompt, model: "gemini-flash-latest", responseMimeType: "application/json" });
+    const text = await callGeminiProxy({ prompt, model: "gemini-flash-latest", responseMimeType: "application/json", simplify });
     return JSON.parse(text);
   } catch (error: any) {
     console.error("Error explaining passage:", error);
