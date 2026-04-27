@@ -9,8 +9,9 @@ import {
   createUserWithEmailAndPassword
 } from "firebase/auth";
 import { auth, db } from "../lib/firebase";
-import { doc, onSnapshot, getDoc } from "firebase/firestore";
+import { doc, onSnapshot, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { handleFirestoreError, OperationType } from "../lib/firestoreErrorHandler";
+import { checkDailyFaith } from "../services/userService";
 
 interface AppUser {
   uid: string;
@@ -27,6 +28,19 @@ interface AppUser {
   yearsAsChristian?: number;
   challenges?: string[];
   isPublic?: boolean;
+  experience?: number;
+  totalChaptersRead?: number;
+  totalPrayers?: number;
+  totalDevotionals?: number;
+  totalFaithDays?: number;
+  lastFaithDay?: string;
+  ministerialBalance?: {
+    oracao: number;
+    palavra: number;
+    caridade: number;
+    jejum: number;
+    louvor: number;
+  };
   notifications?: {
     dailyDevotional: boolean;
     prayerRequests: boolean;
@@ -116,14 +130,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               isAdmin: data.role === 'admin' || isAdminByEmail,
               ...data as any
             });
+
+            // Trigger daily check
+            checkDailyFaith(firebaseUser.uid).catch(err => {
+              console.error("[Auth] Daily check failed:", err);
+            });
           } else {
+            const newUser = {
+              displayName: firebaseUser.displayName || "Discípulo",
+              photoURL: firebaseUser.photoURL,
+              role: isAdminByEmail ? 'admin' : 'user',
+              spiritualLevel: "Semente",
+              experience: 0,
+              totalChaptersRead: 0,
+              totalPrayers: 0,
+              totalDevotionals: 0,
+              totalFaithDays: 0,
+              streak: 0,
+              ministerialBalance: {
+                oracao: 10,
+                palavra: 10,
+                caridade: 10,
+                jejum: 10,
+                louvor: 10
+              },
+              createdAt: serverTimestamp()
+            };
+            
             setUser({
               uid: firebaseUser.uid,
               email: firebaseUser.email,
-              displayName: firebaseUser.displayName,
-              photoURL: firebaseUser.photoURL,
               isAdmin: isAdminByEmail,
-              role: isAdminByEmail ? 'admin' : 'user'
+              ...newUser
+            } as any);
+
+            // Create document in Firestore
+            setDoc(doc(db, "users", firebaseUser.uid), newUser).catch(err => {
+              console.error("[Auth] Error creating initial user profile:", err);
             });
           }
           setLoading(false);

@@ -19,13 +19,19 @@ import {
   Megaphone,
   Plus,
   Trash2,
-  X as CloseIcon
+  X as CloseIcon,
+  ShieldCheck,
+  ShieldAlert as ShieldX,
+  UserPlus,
+  UserMinus,
+  Copy
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { 
   collection, 
   query, 
   getDocs, 
+  getDoc,
   limit, 
   orderBy, 
   where,
@@ -34,12 +40,14 @@ import {
   addDoc,
   serverTimestamp,
   deleteDoc,
-  doc
+  doc,
+  updateDoc
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { Navigate, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { handleFirestoreError, OperationType } from "../lib/firestoreErrorHandler";
 
 interface DashboardStats {
   totalUsers: number;
@@ -53,6 +61,7 @@ interface UserSummary {
   displayName: string;
   email: string;
   spiritualLevel: string;
+  role?: string;
   streak: number;
   lastCheckIn?: Timestamp | string;
   denomination?: string;
@@ -77,6 +86,8 @@ export default function Admin() {
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'info' | 'error'} | null>(null);
   const [showAnnounceModal, setShowAnnounceModal] = useState(false);
   const [newAnnounce, setNewAnnounce] = useState({ title: "", content: "", type: "info" as any });
+  const [deleteConfirm, setDeleteConfirm] = useState<UserSummary | null>(null);
+  const [deleteAnnounceConfirm, setDeleteAnnounceConfirm] = useState<Announcement | null>(null);
 
   const showNotification = (message: string, type: 'success' | 'info' | 'error' = 'info') => {
     setNotification({ message, type });
@@ -88,9 +99,18 @@ export default function Admin() {
       setLoading(true);
       
       // Stats
-      const usersSnapshot = await getCountFromServer(collection(db, "users"));
-      const prayersSnapshot = await getCountFromServer(collection(db, "prayer_requests"));
-      const testimonialsSnapshot = await getCountFromServer(collection(db, "testimonials"));
+      const usersSnapshot = await getCountFromServer(collection(db, "users")).catch(err => {
+        handleFirestoreError(err, OperationType.GET, "users");
+        throw err;
+      });
+      const prayersSnapshot = await getCountFromServer(collection(db, "prayer_requests")).catch(err => {
+        handleFirestoreError(err, OperationType.GET, "prayer_requests");
+        throw err;
+      });
+      const testimonialsSnapshot = await getCountFromServer(collection(db, "testimonials")).catch(err => {
+        handleFirestoreError(err, OperationType.GET, "testimonials");
+        throw err;
+      });
       
       setStats({
         totalUsers: usersSnapshot.data().count,
@@ -196,14 +216,178 @@ export default function Admin() {
   };
 
   const handleDeleteAnnouncement = async (id: string) => {
-    if (!confirm("Excluir este anúncio permanentemente?")) return;
+    if (!id) return;
     try {
+      setLoading(true);
+      // Optimistic update
+      setAnnouncements(prev => prev.filter(ann => ann.id !== id));
+      
       await deleteDoc(doc(db, "global_announcements", id));
-      showNotification("Anúncio removido", "success");
+      showNotification("Anúncio removido com sucesso", "success");
+      setDeleteAnnounceConfirm(null);
+      
+      // Refresh strictly to keep sync
       fetchStatsAndUsers();
     } catch (error) {
-      showNotification("Erro ao remover", "error");
+      console.error("Error deleting announcement:", error);
+      fetchStatsAndUsers(); // Revert on error
+      handleFirestoreError(error, OperationType.DELETE, `global_announcements/${id}`);
+      showNotification("Erro ao remover anúncio", "error");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleToggleAdmin = async (targetUser: UserSummary) => {
+    if (targetUser.email === "lukete135467@gmail.com") {
+      showNotification("As permissões do administrador mestre não podem ser alteradas.", "error");
+      return;
+    }
+
+    const isCurrentlyAdmin = targetUser.role === 'admin' || targetUser.spiritualLevel === 'admin';
+    const newRole = isCurrentlyAdmin ? 'user' : 'admin';
+    
+    // spiritualLevel fallback to something valid
+    const newLevel = isCurrentlyAdmin ? 'Semente' : 'Fruto'; 
+
+    console.log(`[Admin] Toggling admin for ${targetUser.uid}. Current: ${isCurrentlyAdmin}, New Role: ${newRole}`);
+
+    if (!confirm(`Deseja ${isCurrentlyAdmin ? 'REMOVER' : 'CONCEDER'} acesso administrativo para ${targetUser.displayName}?`)) return;
+
+    try {
+      setLoading(true);
+      
+      // Use setDoc with merge to ensure it works even if field is missing
+      const userRef = doc(db, "users", targetUser.uid);
+      await updateDoc(userRef, {
+        role: newRole,
+        spiritualLevel: newLevel,
+        updatedAt: serverTimestamp()
+      });
+      
+      // Update local state immediately
+      setUsers(prev => prev.map(u => 
+        u.uid === targetUser.uid 
+          ? { ...u, role: newRole, spiritualLevel: newLevel } 
+          : u
+      ));
+
+      console.log(`[Admin] Successfully updated ${targetUser.uid} to ${newRole}`);
+      showNotification(`${targetUser.displayName} agora é ${newRole === 'admin' ? 'Administrador' : 'Membro'}!`, "success");
+      
+      // Wait a bit before refreshing to let Firestore propagate
+      setTimeout(() => fetchStatsAndUsers(), 1000);
+    } catch (error: any) {
+      console.error(`[Admin] Error updating ${targetUser.uid}:`, error);
+      
+      if (error.code === 'permission-denied') {
+        showNotification("Erro: Permissão negada. Você ainda é admin?", "error");
+      } else {
+        showNotification("Erro ao atualizar privilégios. Verifique conexão.", "error");
+      }
+      
+      try {
+        handleFirestoreError(error, OperationType.UPDATE, `users/${targetUser.uid}`);
+      } catch (e) {
+        console.error("Rules detailed error:", e);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async (targetUser: UserSummary) => {
+    if (!targetUser) return;
+    console.log(`[Admin] Finalizing deletion of user ${targetUser.uid}`);
+    
+    try {
+      setLoading(true);
+      
+      // Delete the document
+      await deleteDoc(doc(db, "users", targetUser.uid));
+      
+      // Update local state immediately for better UX
+      setUsers(prev => prev.filter(u => u.uid !== targetUser.uid));
+      
+      console.log(`[Admin] Successfully deleted ${targetUser.uid}`);
+      showNotification(`Perfil de ${targetUser.displayName} removido com sucesso da base de dados.`, "success");
+      
+      // Close modal
+      setDeleteConfirm(null);
+
+      // Refresh stats to reflect new count
+      await fetchStatsAndUsers(); 
+    } catch (error) {
+      console.error(`[Admin] Error deleting ${targetUser.uid}:`, error);
+      showNotification("Falha crítica ao excluir usuário. Verifique se você tem permissões de admin.", "error");
+      try {
+        handleFirestoreError(error, OperationType.DELETE, `users/${targetUser.uid}`);
+      } catch (e) {
+        console.error("Rules analysis for delete:", e);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const findUserByEmail = async (searchText: string) => {
+    if (!searchText || searchText.length < 3) {
+      showNotification("Digite um e-mail ou UID válido", "error");
+      return;
+    }
+    
+    const searchClean = searchText.trim();
+    
+    try {
+      setLoading(true);
+      
+      // 1. Try search by UID first (if it looks like a UID)
+      if (searchClean.length > 20 && !searchClean.includes("@")) {
+        const userRef = doc(db, "users", searchClean);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          const foundUser = { uid: userSnap.id, ...userSnap.data() } as UserSummary;
+          updateUsersList(foundUser);
+          return;
+        }
+      }
+
+      // 2. Search by exact email
+      const q = query(collection(db, "users"), where("email", "==", searchClean.toLowerCase()), limit(1));
+      const snap = await getDocs(q);
+      
+      if (snap.empty) {
+        // 3. Fallback: try searching by Case-sensitive Email (some old apps might have it)
+        const q2 = query(collection(db, "users"), where("email", "==", searchClean), limit(1));
+        const snap2 = await getDocs(q2);
+        
+        if (snap2.empty) {
+           showNotification("Usuário não encontrado. Tente o UID se o e-mail falhar.", "error");
+           return;
+        }
+        
+        const foundUser = { uid: snap2.docs[0].id, ...snap2.docs[0].data() } as UserSummary;
+        updateUsersList(foundUser);
+      } else {
+        const foundUser = { uid: snap.docs[0].id, ...snap.docs[0].data() } as UserSummary;
+        updateUsersList(foundUser);
+      }
+    } catch (error) {
+      console.error("Search error:", error);
+      showNotification("Erro ao buscar usuário", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateUsersList = (foundUser: UserSummary) => {
+    setUsers(prev => {
+      const exists = prev.find(u => u.uid === foundUser.uid);
+      if (exists) return prev;
+      return [foundUser, ...prev];
+    });
+    setSearchTerm(foundUser.displayName || "");
+    showNotification(`Usuário ${foundUser.displayName} localizado!`, "success");
   };
 
   if (authLoading) return null;
@@ -379,8 +563,9 @@ export default function Admin() {
                       </div>
                     </div>
                     <button 
-                      onClick={() => handleDeleteAnnouncement(ann.id)}
-                      className="p-2 opacity-0 group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-500 rounded-lg transition-all"
+                      onClick={() => setDeleteAnnounceConfirm(ann)}
+                      className="p-2 bg-red-500/5 hover:bg-red-500/10 text-pearl/30 hover:text-red-500 rounded-lg transition-all"
+                      title="Excluir comunicação"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -391,16 +576,42 @@ export default function Admin() {
 
             <div className="glow-card">
               <div className="p-6 border-b border-pearl/5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <h3 className="text-lg font-display font-bold">Membros da Comunidade</h3>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-pearl/30" />
-                  <input 
-                    type="text"
-                    placeholder="Buscar usuários..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="bg-navy/50 border border-pearl/10 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-amber/50 transition-all w-64"
-                  />
+                <h3 className="text-lg font-display font-bold">Gerenciar Membros</h3>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="relative group">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-pearl/30 group-focus-within:text-amber transition-colors" />
+                    <form 
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const input = (e.currentTarget.elements.namedItem("searchEmail") as HTMLInputElement).value;
+                        findUserByEmail(input);
+                      }}
+                      className="flex gap-2"
+                    >
+                      <input 
+                        name="searchEmail"
+                        type="text"
+                        placeholder="Buscar por e-mail exato..."
+                        className="bg-navy/50 border border-pearl/10 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-amber/50 transition-all w-64"
+                      />
+                      <button 
+                        type="submit"
+                        className="px-3 py-2 bg-pearl/5 hover:bg-amber hover:text-navy border border-pearl/10 rounded-xl text-xs font-bold transition-all"
+                      >
+                        Localizar
+                      </button>
+                    </form>
+                  </div>
+                  <div className="relative">
+                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-pearl/30" />
+                    <input 
+                      type="text"
+                      placeholder="Filtrar nesta lista..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="bg-navy/50 border border-pearl/10 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-amber/50 transition-all w-48"
+                    />
+                  </div>
                 </div>
               </div>
               
@@ -482,15 +693,45 @@ export default function Admin() {
                           </span>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <button 
-                            onClick={() => {
-                              navigator.clipboard.writeText(u.uid);
-                              showNotification("ID do usuário copiado!");
-                            }}
-                            className="p-2 hover:bg-amber/10 rounded-lg text-pearl/40 hover:text-amber transition-colors"
-                          >
-                            <MoreHorizontal className="w-5 h-5" />
-                          </button>
+                          <div className="flex items-center justify-end gap-1">
+                            <button 
+                              onClick={() => {
+                                navigator.clipboard.writeText(u.uid);
+                                showNotification("ID do usuário copiado!");
+                                console.log("User ID copied:", u.uid);
+                              }}
+                              title="Copiar ID"
+                              className="p-2 hover:bg-white/5 rounded-lg text-pearl/40 hover:text-amber transition-colors"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                            
+                            <button 
+                              onClick={() => handleToggleAdmin(u)}
+                              title={u.role === 'admin' ? "Remover Admin" : "Tornar Admin"}
+                              className={`p-2 rounded-lg transition-colors ${
+                                u.role === 'admin' 
+                                  ? "bg-amber/10 text-amber hover:bg-amber/20" 
+                                  : "text-pearl/40 hover:bg-white/5 hover:text-amber"
+                              }`}
+                            >
+                              {u.role === 'admin' ? <ShieldCheck className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
+                            </button>
+
+                            <button 
+                              onClick={() => {
+                                if (u.email === "lukete135467@gmail.com") {
+                                  showNotification("O administrador mestre não pode ser excluído.", "error");
+                                  return;
+                                }
+                                setDeleteConfirm(u);
+                              }}
+                              title="Excluir Perfil"
+                              className="p-2 hover:bg-red-500/10 rounded-lg text-pearl/40 hover:text-red-500 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     )))}
@@ -604,6 +845,96 @@ export default function Admin() {
           </aside>
         </div>
       </main>
+
+      {/* Modal: Delete User Confirmation */}
+      <AnimatePresence>
+        {deleteConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/90 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="w-full max-w-md bg-navy-light border border-red-500/30 rounded-2xl p-8 shadow-2xl relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-full h-1 bg-red-500/30" />
+              
+              <div className="flex flex-col items-center text-center">
+                <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 mb-6 border border-red-500/20">
+                  <AlertCircle className="w-8 h-8" />
+                </div>
+                
+                <h3 className="text-xl font-display font-bold mb-2">Confirmar Exclusão</h3>
+                <p className="text-pearl/60 text-sm mb-6">
+                  Você está prestes a excluir permanentemente o perfil de <span className="text-pearl font-bold">{deleteConfirm.displayName}</span> ({deleteConfirm.email}).<br />
+                  <span className="text-red-500/80 font-bold mt-2 block">ESTA AÇÃO NÃO PODE SER DESFEITA.</span>
+                </p>
+
+                <div className="flex flex-col w-full gap-3">
+                  <button
+                    onClick={() => handleDeleteUser(deleteConfirm)}
+                    disabled={loading}
+                    className="w-full py-4 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {loading ? "Excluindo..." : "Sim, excluir permanentemente"}
+                  </button>
+                  <button
+                    onClick={() => setDeleteConfirm(null)}
+                    disabled={loading}
+                    className="w-full py-4 bg-pearl/5 hover:bg-pearl/10 border border-pearl/10 rounded-xl font-bold transition-all"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal: Delete Announcement Confirmation */}
+      <AnimatePresence>
+        {deleteAnnounceConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/90 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="w-full max-w-md bg-navy-light border border-red-500/30 rounded-2xl p-8 shadow-2xl relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-full h-1 bg-red-500/30" />
+              
+              <div className="flex flex-col items-center text-center">
+                <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 mb-6 border border-red-500/20">
+                  <Megaphone className="w-8 h-8" />
+                </div>
+                
+                <h3 className="text-xl font-display font-bold mb-2">Excluir Comunicação?</h3>
+                <p className="text-pearl/60 text-sm mb-6">
+                  Título: <span className="text-pearl font-bold">"{deleteAnnounceConfirm.title}"</span><br />
+                  Este anúncio será removido para todos os usuários do aplicativo.
+                </p>
+
+                <div className="flex flex-col w-full gap-3">
+                  <button
+                    onClick={() => handleDeleteAnnouncement(deleteAnnounceConfirm.id)}
+                    disabled={loading}
+                    className="w-full py-4 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {loading ? "Removendo..." : "Sim, confirmar exclusão"}
+                  </button>
+                  <button
+                    onClick={() => setDeleteAnnounceConfirm(null)}
+                    disabled={loading}
+                    className="w-full py-4 bg-pearl/5 hover:bg-pearl/10 border border-pearl/10 rounded-xl font-bold transition-all"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

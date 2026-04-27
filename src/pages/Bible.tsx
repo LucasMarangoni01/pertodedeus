@@ -9,13 +9,16 @@ import { db } from "../lib/firebase";
 
 import { getBibleBooks, getBibleChapter, searchBible } from "../lib/bibleApi";
 import { getChapterTitle } from "../services/bibleService";
+import { trackSpiritualAction } from "../services/userService";
 
 const translations = [
   { id: "ARA", name: "ARA - Almeida Revista e Atualizada" },
   { id: "NVIPT", name: "NVI - Nova Versão Internacional", alias: "NVI" },
   { id: "NTLH", name: "NTLH - Nova Tradução na Linguagem de Hoje" },
   { id: "NVT", name: "NVT - Nova Versão Transformadora" },
-  { id: "NAA", name: "NAA - Nova Almeida Atualizada" }
+  { id: "NAA", name: "NAA - Nova Almeida Atualizada" },
+  { id: "ACF", name: "ACF - Almeida Corrigida Fiel" },
+  { id: "AA", name: "AA - Almeida Atualizada" }
 ];
 
 export default function Bible() {
@@ -46,6 +49,7 @@ export default function Bible() {
   const [showGlobalResults, setShowGlobalResults] = useState(false);
   const [chapterTitle, setChapterTitle] = useState<string | null>(null);
   const lastSavedVerse = useRef<number | null>(null);
+  const lastTrackedChapter = useRef<string>("");
   
   const getInitialVersion = () => {
     const stored = localStorage.getItem("bibleVersion") || "NVI";
@@ -416,6 +420,13 @@ export default function Bible() {
           getChapterTitle(selectedBook, selectedChapter, selectedVersion).then(title => {
             if (title) setChapterTitle(title);
           });
+
+          // Track spiritual action (only once per chapter per session)
+          const chapterKey = `${selectedBook}-${selectedChapter}`;
+          if (lastTrackedChapter.current !== chapterKey && user?.uid && !isGuest) {
+            trackSpiritualAction(user.uid, "bibleRead").catch(console.error);
+            lastTrackedChapter.current = chapterKey;
+          }
         } catch (e) {
           const msg = e instanceof Error ? e.message : "Erro desconhecido";
           setError(`Erro: ${msg}. Verifique se o livro está disponível nesta versão.`);

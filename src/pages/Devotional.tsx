@@ -9,6 +9,7 @@ import { collection, query, where, orderBy, limit, onSnapshot, addDoc, serverTim
 import ReactMarkdown from "react-markdown";
 import { cn } from "../lib/utils";
 import { handleFirestoreError, OperationType } from "../lib/firestoreErrorHandler";
+import { trackSpiritualAction } from "../services/userService";
 
 export default function Devotional() {
   const { user, loading: authLoading } = useAuth();
@@ -114,6 +115,9 @@ export default function Devotional() {
       );
 
       await Promise.race([operation, timeoutPromise]);
+      
+      // Track spiritual action
+      trackSpiritualAction(user.uid, "devotional").catch(console.error);
     } catch (error: any) {
       console.error("Error saving response:", error);
       alert(error.message === "TIMEOUT_FIREBASE" 

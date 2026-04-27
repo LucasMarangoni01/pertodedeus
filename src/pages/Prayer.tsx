@@ -8,6 +8,7 @@ import { cn } from "../lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { handleFirestoreError, OperationType } from "../lib/firestoreErrorHandler";
+import { trackSpiritualAction } from "../services/userService";
 
 type PrayerStatus = "Em oração" | "Respondido" | "Arquivado";
 type Tab = "requests" | "guide" | "history";
@@ -88,6 +89,11 @@ export default function Prayer() {
         })) as Promise<any>;
 
       await withTimeout(operation, 10000);
+      
+      // Track spiritual action
+      if (!editingRequest) {
+        trackSpiritualAction(user.uid, "prayer").catch(console.error);
+      }
       
       setIsModalOpen(false);
       setEditingRequest(null);

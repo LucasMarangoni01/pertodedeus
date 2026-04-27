@@ -40,7 +40,9 @@ export default function Onboarding() {
 
       const operation = setDoc(doc(db, "users", user.uid), {
         ...formData,
+        email: user.email,
         photoURL: user.photoURL,
+        role: "user",
         spiritualLevel: "Semente",
         streak: 0,
         lastCheckIn: serverTimestamp(),

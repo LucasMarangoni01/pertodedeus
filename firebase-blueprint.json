@@ -5,6 +5,7 @@
       "description": "Extended user profile information",
       "type": "object",
       "properties": {
+        "email": { "type": "string", "description": "User's email address" },
         "displayName": { "type": "string", "description": "User's display name" },
         "photoURL": { "type": "string", "description": "Profile picture URL" },
         "role": { "type": "string", "enum": ["admin", "user"], "description": "User role" },
@@ -12,6 +13,23 @@
         "bibleVersion": { "type": "string", "enum": ["NVI", "ARA", "NVT", "NAA", "NTLH"], "description": "Preferred Bible translation" },
         "yearsAsChristian": { "type": "number", "description": "Time as a Christian" },
         "spiritualLevel": { "type": "string", "enum": ["Semente", "Raiz", "Árvore", "Fruto", "Luz"], "description": "Gamified spiritual level" },
+        "experience": { "type": "integer", "description": "Total XP earned" },
+        "totalChaptersRead": { "type": "integer", "description": "Total Bible chapters read" },
+        "totalPrayers": { "type": "integer", "description": "Total prayers registered" },
+        "totalDevotionals": { "type": "integer", "description": "Total devotionals completed" },
+        "totalFaithDays": { "type": "integer", "description": "Total unique days of faith activity" },
+        "lastFaithDay": { "type": "string", "description": "Date of last faith day credit (YYYY-MM-DD)" },
+        "ministerialBalance": {
+          "type": "object",
+          "properties": {
+            "oracao": { "type": "integer" },
+            "palavra": { "type": "integer" },
+            "caridade": { "type": "integer" },
+            "jejum": { "type": "integer" },
+            "louvor": { "type": "integer" }
+          },
+          "description": "Ministry balance metrics for the radar chart (0-100)"
+        },
         "streak": { "type": "integer", "description": "Consecutive days of activity" },
         "lastCheckIn": { "type": "string", "format": "date-time", "description": "Last activity timestamp" },
         "bio": { "type": "string", "description": "Short bio or favorite verse" },
