@@ -36,14 +36,8 @@ async function startServer() {
         return res.status(500).json({ error: "Chave de API do sistema não configurada." });
       }
 
-      const genAI = new GoogleGenAI(key);
-      const modelName = model || "gemini-1.5-flash";
-      const modelInstance = genAI.getGenerativeModel({ 
-        model: modelName,
-        generationConfig: {
-          responseMimeType: responseMimeType || "text/plain"
-        }
-      });
+      const ai = new GoogleGenAI({ apiKey: key });
+      const modelName = model === "gemini-1.5-flash" ? "gemini-3-flash-preview" : (model || "gemini-3-flash-preview");
 
       // Prepare system instruction
       let finalSystemInstruction = systemInstruction || "";
@@ -54,27 +48,30 @@ async function startServer() {
           : simplifyInstruction;
       }
 
-      // We re-initialize model if systemInstruction changed since @google/genai 
-      // often takes it in the constructor or setup
-      const modelWithSystem = genAI.getGenerativeModel({ 
-        model: modelName,
-        systemInstruction: finalSystemInstruction || undefined,
-        generationConfig: {
-          responseMimeType: responseMimeType || "text/plain"
-        }
-      });
-
-      let result;
+      let response;
       if (contents) {
-        result = await modelWithSystem.generateContent({ contents });
+        response = await ai.models.generateContent({
+          model: modelName,
+          contents: contents,
+          config: {
+            systemInstruction: finalSystemInstruction || undefined,
+            responseMimeType: responseMimeType || "text/plain"
+          }
+        });
       } else if (prompt) {
-        result = await modelWithSystem.generateContent(prompt);
+        response = await ai.models.generateContent({
+          model: modelName,
+          contents: prompt,
+          config: {
+            systemInstruction: finalSystemInstruction || undefined,
+            responseMimeType: responseMimeType || "text/plain"
+          }
+        });
       } else {
         return res.status(400).json({ error: "Nenhum prompt ou conteúdo fornecido." });
       }
 
-      const response = await result.response;
-      const text = response.text();
+      const text = response.text;
       res.json({ text });
 
     } catch (error: any) {
