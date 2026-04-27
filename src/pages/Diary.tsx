@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { PenTool, Calendar, Plus, Save, Hash, Smile, Search, ChevronLeft, ChevronRight, Trash2, BookOpen, Mic } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { db } from "../lib/firebase";
+import { db, withTimeout } from "../lib/firebase";
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { handleFirestoreError, OperationType } from "../lib/firestoreErrorHandler";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
@@ -91,7 +91,6 @@ export default function Diary() {
     setLoading(true);
     try {
       console.log("[Diary] Iniciando salvamento...");
-      const { withTimeout } = await import("../lib/firebase");
       const today = new Date().toISOString().split('T')[0];
       const payload: any = {
         content: content.trim(),

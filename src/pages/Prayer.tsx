@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Plus, MessageCircle, CheckCircle2, History, Timer, Info, Send, Heart, BookOpen, Trash2, Search, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { db } from "../lib/firebase";
+import { db, withTimeout } from "../lib/firebase";
 import { collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, updateDoc, doc, deleteDoc } from "firebase/firestore";
 import { cn } from "../lib/utils";
 import { format } from "date-fns";
@@ -74,7 +74,6 @@ export default function Prayer() {
     }
     setLoading(true);
     try {
-      const { withTimeout } = await import("../lib/firebase");
       const operation = (editingRequest ? 
         updateDoc(doc(db, "prayer_requests", editingRequest.id), {
           ...newRequest,

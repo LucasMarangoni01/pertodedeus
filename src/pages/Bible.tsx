@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Search, Book, ChevronRight, Settings2, Share2, Copy, Highlighter, FileText, X, Star, Volume2, Square, PlayCircle, Sparkles, Brain, Lightbulb, Compass, MessageSquareQuote } from "lucide-react";
+import { Search, Book, ChevronRight, ChevronLeft, Settings2, Share2, Copy, Highlighter, FileText, X, Star, Volume2, Square, PlayCircle, Sparkles, Brain, Lightbulb, Compass, MessageSquareQuote } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useAuth } from "../context/AuthContext";
 import { bibleBooks } from "../constants/bibleData";
@@ -10,7 +10,7 @@ import { db } from "../lib/firebase";
 import { getBibleBooks, getBibleChapter, searchBible } from "../lib/bibleApi";
 import { getChapterTitle } from "../services/bibleService";
 import { trackSpiritualAction } from "../services/userService";
-import { explainPassage } from "../services/geminiService";
+import { explainPassage, summarizeVerse, summarizeChapter } from "../services/geminiService";
 
 const translations = [
   { id: "ARA", name: "ARA - Almeida Revista e Atualizada" },
@@ -43,6 +43,9 @@ export default function Bible() {
   const [searchQuery, setSearchQuery] = useState("");
   const [fontSize, setFontSize] = useState(18);
   const [audioSpeed, setAudioSpeed] = useState(1);
+  const [showNotes, setShowNotes] = useState(() => {
+    return localStorage.getItem("bibleShowNotes") === "true";
+  });
   const [selectedVerses, setSelectedVerses] = useState<number[]>([]);
   const [activeTestament, setActiveTestament] = useState<'Velho' | 'Novo'>('Velho');
   const [globalResults, setGlobalResults] = useState<any[]>([]);
@@ -51,6 +54,10 @@ export default function Bible() {
   const [chapterTitle, setChapterTitle] = useState<string | null>(null);
   const [aiExplanation, setAiExplanation] = useState<any | null>(null);
   const [loadingAi, setLoadingAi] = useState(false);
+  const [loadingSummary, setLoadingSummary] = useState(false);
+  const [verseSummary, setVerseSummary] = useState<string | null>(null);
+  const [loadingChapterSummary, setLoadingChapterSummary] = useState(false);
+  const [chapterSummary, setChapterSummary] = useState<string | null>(null);
   const lastSavedVerse = useRef<number | null>(null);
   const lastTrackedChapter = useRef<string>("");
   
@@ -139,30 +146,22 @@ export default function Bible() {
     sync();
   }, [selectedVersion, user?.uid, isGuest]);
 
-  // 4. Carregar do Firebase (UMA VEZ no login)
+  // 5. Sincronização de Notas
   useEffect(() => {
-    const load = async () => {
-      if (!user?.uid || isGuest) return;
-      
-      try {
-        const snap = await getDoc(doc(db, "users", user.uid));
-        if (snap.exists()) {
-          const version = snap.data().bibleVersion;
-          if (version) {
-            const match = translations.find(t => t.alias === version || t.id === version);
-            if (match && match.id !== selectedVersion) {
-              setSelectedVersion(match.id);
-              localStorage.setItem("bibleVersion", version);
-            }
-          }
-        }
-      } catch (err) {
-        console.error("[Bible] Erro ao carregar versão do Firebase:", err);
-      }
-    };
+    localStorage.setItem("bibleShowNotes", showNotes.toString());
+    if (user?.uid && !isGuest) {
+      updateDoc(doc(db, "users", user.uid), {
+        showBibleNotes: showNotes
+      }).catch(console.error);
+    }
+  }, [showNotes, user?.uid, isGuest]);
 
-    if (user?.uid) load();
-  }, [user?.uid, isGuest]);
+  // Carregar Notas do Firebase
+  useEffect(() => {
+    if (user?.showBibleNotes !== undefined) {
+      setShowNotes(user.showBibleNotes);
+    }
+  }, [user?.showBibleNotes]);
 
   // Handle version change internal to Bible.tsx
   const handleVersionChange = (versionId: string) => {
@@ -414,6 +413,38 @@ export default function Bible() {
     }
   };
 
+  const handleSummarize = async () => {
+    if (selectedVerses.length === 0) return;
+    
+    setLoadingSummary(true);
+    try {
+      const text = verses.filter(v => selectedVerses.includes(v.v)).map(v => v.t).join(' ');
+      const summary = await summarizeVerse(text);
+      setVerseSummary(summary);
+    } catch (err) {
+      console.error(err);
+      showNotification("Erro ao resumir versículos.");
+    } finally {
+      setLoadingSummary(false);
+    }
+  };
+
+  const handleSummarizeChapter = async () => {
+    if (verses.length === 0) return;
+    
+    setLoadingChapterSummary(true);
+    try {
+      const text = verses.map(v => v.t).join(' ');
+      const summary = await summarizeChapter(text);
+      setChapterSummary(summary);
+    } catch (err) {
+      console.error(err);
+      showNotification("Erro ao resumir capítulo.");
+    } finally {
+      setLoadingChapterSummary(false);
+    }
+  };
+
   useEffect(() => {
     if (selectedBook && selectedChapter) {
       const fetchVerses = async () => {
@@ -657,7 +688,7 @@ export default function Bible() {
               onClick={() => { setSelectedBook(null); setSelectedBookId(null); setSelectedChapter(null); }}
               className="text-amber text-xs font-bold uppercase flex items-center gap-2"
             >
-               <ArrowBack className="w-4 h-4" /> Voltar
+               <ChevronLeft className="w-4 h-4" /> Voltar
             </button>
             <h2 className="text-2xl font-display font-bold">{selectedBook}</h2>
             <div className="grid grid-cols-4 gap-2">
@@ -695,17 +726,29 @@ export default function Bible() {
                    onClick={() => setSelectedChapter(null)}
                    className="md:hidden p-2 -ml-2 rounded-lg text-pearl/60 hover:text-amber hover:bg-white/5 transition-colors"
                  >
-                   <ArrowBack className="w-5 h-5" />
+                   <ChevronLeft className="w-5 h-5" />
                  </button>
                  <div>
                    <h2 className="text-xl md:text-2xl font-display font-bold">{selectedBook} {selectedChapter}</h2>
+                   <button 
+                        onClick={handleSummarizeChapter}
+                        disabled={loadingChapterSummary}
+                        className="bg-amber/10 hover:bg-amber/20 text-amber px-2 py-1 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1.5 border border-amber/20 mb-1"
+                      >
+                        {loadingChapterSummary ? (
+                          <div className="w-2.5 h-2.5 border-2 border-amber border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <MessageSquareQuote className="w-3 h-3" />
+                        )}
+                        RESUMIR CAPÍTULO
+                      </button>
                    <p className="text-[10px] text-amber font-bold tracking-widest">
                      {currentVersionName} • 
                      <button 
                        onClick={() => handleUnderstandWithAi(verses.map(v => v.t).join(" "), `${selectedBook} ${selectedChapter}`)}
                        className="hover:text-pearl transition-colors inline-flex items-center gap-1 cursor-pointer"
                      >
-                       <Sparkles className="w-3 h-3" /> Entender com IA
+                       <Sparkles className="w-3 h-3" /> Entender com Insights
                      </button>
                    </p>
                  </div>
@@ -823,6 +866,27 @@ export default function Bible() {
                                  <span className="text-xs font-bold text-amber">{audioSpeed}x</span>
                                </div>
                             </div>
+
+                            <div className="pt-4 border-t border-white/5">
+                               <label className="flex items-center justify-between cursor-pointer group">
+                                  <div className="flex items-center gap-3">
+                                     <FileText className={cn("w-4 h-4 transition-colors", showNotes ? "text-amber" : "text-pearl/20")} />
+                                     <span className="text-[10px] text-pearl/40 uppercase font-bold tracking-widest">Exibir Notas</span>
+                                  </div>
+                                  <div 
+                                    onClick={() => setShowNotes(!showNotes)}
+                                    className={cn(
+                                      "w-10 h-5 rounded-full relative transition-colors",
+                                      showNotes ? "bg-amber" : "bg-white/10"
+                                    )}
+                                  >
+                                    <motion.div 
+                                      animate={{ x: showNotes ? 22 : 4 }}
+                                      className={cn("absolute top-1 w-3 h-3 rounded-full", showNotes ? "bg-navy" : "bg-white/40")}
+                                    />
+                                  </div>
+                               </label>
+                            </div>
                          </div>
                        </motion.div>
                      )}
@@ -898,8 +962,20 @@ export default function Bible() {
                        ) : (
                          <Sparkles className="w-4 h-4" />
                        )}
-                       IA
-                     </button>
+                       Insights
+                      </button>
+                    <button 
+                       onClick={handleSummarize}
+                       disabled={loadingSummary}
+                       className="flex items-center gap-2 bg-white/10 text-amber border border-amber/20 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-white/20 transition-colors disabled:opacity-50"
+                    >
+                       {loadingSummary ? (
+                         <div className="w-3 h-3 border-2 border-amber border-t-transparent rounded-full animate-spin" />
+                       ) : (
+                         <MessageSquareQuote className="w-3 h-3" />
+                       )}
+                       Resumir
+                    </button>
                      <button onClick={() => showNotification("Marcado!")} className="p-2 text-pearl/60 hover:text-amber transition-colors"><Highlighter className="w-5 h-5" /></button>
                      <button onClick={() => showNotification("Nota salva!")} className="p-2 text-pearl/60 hover:text-amber transition-colors"><FileText className="w-5 h-5" /></button>
                      <button 
@@ -921,6 +997,98 @@ export default function Bible() {
           </>
         )}
          <AnimatePresence>
+            {chapterSummary && (
+               <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+                 <motion.div 
+                   initial={{ opacity: 0 }}
+                   animate={{ opacity: 1 }}
+                   exit={{ opacity: 0 }}
+                   onClick={() => setChapterSummary(null)}
+                   className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                 />
+                 <motion.div 
+                   initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                   animate={{ scale: 1, opacity: 1, y: 0 }}
+                   exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                   className="relative w-full max-w-lg bg-[#0B1221] border border-amber/30 rounded-3xl p-8 shadow-2xl overflow-hidden"
+                 >
+                   <div className="absolute top-0 left-0 w-full h-1 bg-amber" />
+                   <div className="relative space-y-6">
+                      <div className="flex items-center justify-between">
+                         <div className="flex items-center gap-3 text-amber">
+                            <div className="p-2 bg-amber/10 rounded-xl">
+                               <MessageSquareQuote className="w-5 h-5" />
+                            </div>
+                            <h3 className="font-display font-bold text-xl">Resumo do Capítulo</h3>
+                         </div>
+                         <button onClick={() => setChapterSummary(null)} className="p-2 hover:bg-white/5 rounded-full text-pearl/40 transition-colors">
+                            <X className="w-5 h-5" />
+                         </button>
+                      </div>
+
+                      <div className="bg-white/5 p-6 rounded-2xl border border-white/5 shadow-inner">
+                         <p className="text-lg text-pearl font-serif italic leading-relaxed text-center">
+                            "{chapterSummary}"
+                         </p>
+                      </div>
+
+                      <button 
+                        onClick={() => setChapterSummary(null)}
+                        className="w-full bg-amber text-navy font-bold py-3 rounded-xl hover:bg-amber/80 transition-colors shadow-lg active:scale-95"
+                      >
+                        Concluído
+                      </button>
+                   </div>
+                 </motion.div>
+               </div>
+            )}
+
+            {verseSummary && (
+               <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+                 <motion.div 
+                   initial={{ opacity: 0 }}
+                   animate={{ opacity: 1 }}
+                   exit={{ opacity: 0 }}
+                   onClick={() => setVerseSummary(null)}
+                   className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                 />
+                 <motion.div 
+                   initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                   animate={{ scale: 1, opacity: 1, y: 0 }}
+                   exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                   className="relative w-full max-w-lg bg-[#0B1221] border border-amber/30 rounded-3xl p-8 shadow-2xl overflow-hidden"
+                 >
+                   <div className="absolute top-0 left-0 w-full h-1 bg-amber" />
+                   <div className="relative space-y-6">
+                      <div className="flex items-center justify-between">
+                         <div className="flex items-center gap-3 text-amber">
+                            <div className="p-2 bg-amber/10 rounded-xl">
+                               <MessageSquareQuote className="w-5 h-5" />
+                            </div>
+                            <h3 className="font-display font-bold text-xl">Resumo Direto</h3>
+                         </div>
+                         <button onClick={() => setVerseSummary(null)} className="p-2 hover:bg-white/5 rounded-full text-pearl/40 transition-colors">
+                            <X className="w-5 h-5" />
+                         </button>
+                      </div>
+
+                      <div className="bg-white/5 p-6 rounded-2xl border border-white/5 shadow-inner">
+                         <p className="text-lg text-pearl font-serif italic leading-relaxed text-center">
+                            "{verseSummary}"
+                         </p>
+                      </div>
+
+                      <button 
+                        onClick={() => setVerseSummary(null)}
+                        className="w-full bg-amber text-navy font-bold py-3 rounded-xl hover:bg-amber/80 transition-colors shadow-lg active:scale-95"
+                      >
+                        Concluído
+                      </button>
+                   </div>
+                 </motion.div>
+               </div>
+            )}
+
             {aiExplanation && (
               <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 text-pearl">
                 <motion.div 
@@ -965,6 +1133,18 @@ export default function Bible() {
                             {aiExplanation.context}
                           </p>
                        </section>
+                       {/* Adicionar resumo se existir */}
+                       {verseSummary && (
+                          <section className="bg-amber/5 p-6 rounded-3xl border border-amber/20">
+                             <div className="flex items-center gap-3 mb-4 text-amber">
+                                <MessageSquareQuote className="w-4 h-4" />
+                                <h4 className="text-[10px] font-bold uppercase tracking-widest">Resumo Direto</h4>
+                             </div>
+                             <p className="text-lg text-amber leading-relaxed font-medium">
+                                "{verseSummary}"
+                             </p>
+                          </section>
+                       )}
 
                        <section className="bg-white/5 p-6 rounded-3xl border border-white/5 group hover:border-amber/10 transition-colors">
                           <div className="flex items-center gap-3 mb-4 text-amber">

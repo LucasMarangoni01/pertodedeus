@@ -30,7 +30,7 @@ export const generateDevotional = async (userProfile: any, passage?: string, sim
   Sempre baseie-se estritamente na Bíblia.`;
 
   try {
-    const text = await callGeminiProxy({ prompt, model: "gemini-1.5-flash", responseMimeType: "application/json" });
+    const text = await callGeminiProxy({ prompt, model: "gemini-flash-latest", responseMimeType: "application/json" });
     return JSON.parse(text);
   } catch (error: any) {
     console.error("Error generating devotional:", error);
@@ -39,7 +39,42 @@ export const generateDevotional = async (userProfile: any, passage?: string, sim
   }
 };
 
+export const summarizeVerse = async (verseText: string) => {
+  const prompt = `Resuma o versículo bíblico abaixo em apenas uma frase curta, usando palavras simples e diretas, mantendo fielmente o significado original. 
+  Não adicione opiniões, interpretações complexas ou conteúdo fora do texto fornecido.
+  
+  Versículo: "${verseText}"
+  
+  Saída: (apenas a frase do resumo, sem formatação adicional)`;
+
+  try {
+    const text = await callGeminiProxy({ prompt, model: "gemini-flash-latest" });
+    return text.trim();
+  } catch (error) {
+    console.error("Error summarizing verse:", error);
+    throw error;
+  }
+};
+
+export const summarizeChapter = async (chapterText: string) => {
+  const prompt = `Resuma o capítulo completo da Bíblia em poucas linhas (3 a 5 linhas). 
+  Seja direto, use linguagem simples e foque apenas na mensagem principal do capítulo, sem detalhar versículo por versículo.
+  
+  Capítulo: "${chapterText}"
+  
+  Saída: (apenas o resumo, sem formatação adicional)`;
+
+  try {
+    const text = await callGeminiProxy({ prompt, model: "gemini-flash-latest" });
+    return text.trim();
+  } catch (error) {
+    console.error("Error summarizing chapter:", error);
+    throw error;
+  }
+};
+
 export const explainPassage = async (passage: string, reference: string, userProfile?: any) => {
+  const simplify = userProfile?.simplifyAI;
   const prompt = `Você é um erudito bíblico e mentor espiritual. Explique o seguinte trecho da Bíblia de forma clara, profunda e aplicável.
   
   Referência: ${reference}
@@ -49,6 +84,8 @@ export const explainPassage = async (passage: string, reference: string, userPro
   - Denominação: ${userProfile?.denomination || "Cristão"}
   - Desafios: ${userProfile?.challenges?.join(", ") || "Nenhum especificado"}
   
+  ${simplify ? 'MODO LINGUAGEM SIMPLES ATIVO: Use palavras extremamente simples, frases curtas e seja muito direto. Evite termos técnicos teológicos ou explicações longas. Foco em clareza absoluta para fácil compreensão.' : ''}
+
   Sua explicação deve incluir:
   1. Contexto histórico/literário breve.
   2. Significado central do trecho.
@@ -65,7 +102,7 @@ export const explainPassage = async (passage: string, reference: string, userPro
   Use um tom acolhedor e encorajador.`;
 
   try {
-    const text = await callGeminiProxy({ prompt, model: "gemini-1.5-flash", responseMimeType: "application/json" });
+    const text = await callGeminiProxy({ prompt, model: "gemini-flash-latest", responseMimeType: "application/json" });
     return JSON.parse(text);
   } catch (error: any) {
     console.error("Error explaining passage:", error);

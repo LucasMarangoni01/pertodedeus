@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Plus, Flame, Heart, AlertTriangle, CheckCircle2, History as HistoryIcon, Trash2, ArrowRight, BookOpen, Quote, Sparkles, RefreshCw, Info, Edit2, Search, X, MinusCircle } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { db } from "../lib/firebase";
+import { db, withTimeout } from "../lib/firebase";
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, updateDoc, doc, deleteDoc, increment, limit, getDocs, writeBatch } from "firebase/firestore";
 import { cn } from "../lib/utils";
 import { format } from "date-fns";
@@ -110,7 +110,6 @@ export default function StruggleTracker() {
     }
     setLoading(true);
     try {
-      const { withTimeout } = await import("../lib/firebase");
       let operation;
       if (editingId) {
         operation = updateDoc(doc(db, "users", user.uid, "struggles", editingId), {
@@ -187,7 +186,6 @@ export default function StruggleTracker() {
     if (isGuest) return;
     setUpdatingId(id);
     try {
-      const { withTimeout } = await import("../lib/firebase");
       const updates = updateDoc(doc(db, "users", user.uid, "struggles", id), {
         totalFalls: increment(1),
         lastFall: serverTimestamp(),
@@ -222,7 +220,6 @@ export default function StruggleTracker() {
     if (isGuest) return;
     setUpdatingId(id);
     try {
-      const { withTimeout } = await import("../lib/firebase");
       const updates = updateDoc(doc(db, "users", user.uid, "struggles", id), {
         totalVictories: increment(1),
         lastVictory: serverTimestamp(),
@@ -260,12 +257,14 @@ export default function StruggleTracker() {
       const q = query(collection(db, "users", user.uid, "struggle_history"));
       const snapshot = await getDocs(q);
       
+      const batchSize = snapshot.docs.length;
+      console.log(`[Struggles] Clearing ${batchSize} history items`);
+
       const batch = writeBatch(db);
       snapshot.docs.forEach((d) => {
         batch.delete(d.ref);
       });
       
-      const { withTimeout } = await import("../lib/firebase");
       await withTimeout(batch.commit(), 10000);
       setShowClearConfirm(false);
     } catch (error: any) {

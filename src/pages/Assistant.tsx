@@ -19,6 +19,22 @@ export default function Assistant() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Initialize simplify from user settings
+  useEffect(() => {
+    if (user?.simplifyAI !== undefined) {
+      setSimplify(user.simplifyAI);
+    } else {
+      const stored = localStorage.getItem("pd_simplify_ai") === "true";
+      setSimplify(stored);
+    }
+  }, [user?.simplifyAI]);
+
+  useEffect(() => {
+    if (!user) {
+      localStorage.setItem("pd_simplify_ai", simplify.toString());
+    }
+  }, [simplify, user]);
+
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Fetch Conversations List
@@ -190,7 +206,7 @@ export default function Assistant() {
       Você DEVE usar OBRIGATORIAMENTE a versão "${user?.bibleVersion || "NVI"}" da Bíblia para todas as citações, textos e referências, a menos que o usuário peça explicitamente outra versão nesta conversa. 
       Sempre inclua referências bíblicas (Livro Capítulo:Versículo).
       
-      ${simplify ? "MODO LINGUAGEM SIMPLES: Você DEVE ser extremamente direto, curto e usar palavras muito simples. Evite termos técnicos, palavras difíceis ou textos longos. Resuma o máximo possível para facilitar o entendimento imediato sem 'enrolação'." : ""}
+      ${simplify ? "MODO LINGUAGEM SIMPLES: Você DEVE ser extremamente direto, curto e usar palavras muito simples de fácil compreensão, evitando textos longos ou palavras difíceis. Resuma o máximo possível para facilitar o entendimento imediato sem 'enrolação'." : ""}
       Se o usuário expressar tristeza profunda, depressão ou pensamentos suicidas, responda com extrema compaixão e recomende imediatamente que procurem um pastor ou profissional de saúde mental cristão.
       Não dê conselhos médicos ou financeiros complexos, foque na sabedoria espiritual.
       Use Markdown para formatar as citações bíblicas.`;
@@ -231,7 +247,7 @@ export default function Assistant() {
 
       const assistantMessage = await callGeminiProxy({
         contents: normalizedHistory,
-        model: "gemini-1.5-flash",
+        model: "gemini-flash-latest",
         systemInstruction
       });
       
@@ -402,7 +418,21 @@ export default function Assistant() {
                   simplify ? "text-amber" : "text-white/20"
                 )}>Direto</span>
                 <div 
-                  onClick={() => setSimplify(!simplify)}
+                  onClick={async () => {
+                    const newValue = !simplify;
+                    setSimplify(newValue);
+                    if (user?.uid) {
+                      try {
+                        await updateDoc(doc(db, "users", user.uid), {
+                          simplifyAI: newValue
+                        });
+                      } catch (err) {
+                        console.error("Error saving simplify preference:", err);
+                      }
+                    } else {
+                      localStorage.setItem("pd_simplify_ai", newValue.toString());
+                    }
+                  }}
                   className={cn(
                     "w-10 h-5 rounded-full relative transition-colors",
                     simplify ? "bg-amber" : "bg-white/10"
@@ -488,7 +518,7 @@ export default function Assistant() {
                 <span className="w-1.5 h-1.5 bg-white/5 rounded-full" />
                 <span>Histórico protegido na sua conta</span>
                 <span className="w-1.5 h-1.5 bg-white/5 rounded-full" />
-                <span className="text-amber/40">Gemini 1.5 Flash</span>
+                <span className="text-amber/40">Gemini Flash</span>
                </div>
             </div>
           </form>

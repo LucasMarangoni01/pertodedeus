@@ -8,7 +8,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword
 } from "firebase/auth";
-import { auth, db } from "../lib/firebase";
+import { auth, db, withTimeout } from "../lib/firebase";
 import { doc, onSnapshot, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { handleFirestoreError, OperationType } from "../lib/firestoreErrorHandler";
 import { checkDailyFaith } from "../services/userService";
@@ -28,6 +28,8 @@ interface AppUser {
   yearsAsChristian?: number;
   challenges?: string[];
   isPublic?: boolean;
+  simplifyAI?: boolean;
+  showBibleNotes?: boolean;
   experience?: number;
   totalChaptersRead?: number;
   totalPrayers?: number;
@@ -194,7 +196,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     try {
-      const { withTimeout } = await import("../lib/firebase");
       await withTimeout(signInWithPopup(auth, provider), 60000);
     } catch (error: any) {
       console.error("[Auth] Error signing in with Google:", error);
@@ -207,7 +208,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithEmail = async (email: string, pass: string) => {
     try {
-      const { withTimeout } = await import("../lib/firebase");
       await withTimeout(signInWithEmailAndPassword(auth, email, pass), 15000);
     } catch (error: any) {
       console.error("[Auth] Error with email login:", error);
@@ -217,7 +217,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const registerWithEmail = async (email: string, pass: string) => {
     try {
-      const { withTimeout } = await import("../lib/firebase");
       await withTimeout(createUserWithEmailAndPassword(auth, email, pass), 15000);
     } catch (error: any) {
       console.error("[Auth] Error with email register:", error);

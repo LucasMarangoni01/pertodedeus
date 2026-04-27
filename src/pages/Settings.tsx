@@ -2,12 +2,13 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { db } from "../lib/firebase";
+import { db, withTimeout } from "../lib/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { 
   Save, User, Bell, Lock, Globe, LogOut, ChevronRight, 
   Moon, Sun, Languages, RefreshCw, AlertTriangle, 
-  CheckCircle2, AlertCircle, X
+  CheckCircle2, AlertCircle, X, ExternalLink, Clipboard,
+  Eye, EyeOff, Info
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useTheme } from "../context/ThemeContext";
@@ -33,12 +34,16 @@ export default function Settings() {
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
   const [activeTab, setActiveTab] = useState<'profile' | 'app' | 'notif' | 'privacy' | 'advanced'>('profile');
   
+  const [apiKeyInput, setApiKeyInput] = useState(localStorage.getItem("USER_GEMINI_KEY") || "");
+  const [showApiKey, setShowApiKey] = useState(false);
+  
   const [formData, setFormData] = useState({
     displayName: "",
     bio: "",
     denomination: "Sem denominação",
     bibleVersion: "NVI",
     isPublic: true,
+    simplifyAI: false,
     notifications: {
       dailyDevotional: true,
       prayerRequests: true,
@@ -72,6 +77,7 @@ export default function Settings() {
         denomination: localData?.denomination || user.denomination || "Sem denominação",
         bibleVersion: v,
         isPublic: localData?.isPublic ?? (user.isPublic ?? true),
+        simplifyAI: localData?.simplifyAI ?? (user.simplifyAI ?? false),
         notifications: {
           dailyDevotional: localData?.notifications?.dailyDevotional ?? (user.notifications?.dailyDevotional ?? true),
           prayerRequests: localData?.notifications?.prayerRequests ?? (user.notifications?.prayerRequests ?? true),
@@ -94,6 +100,51 @@ export default function Settings() {
 
   const handleFieldChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handlePasteAndSave = async () => {
+    try {
+      // Trying to use Clipboard API
+      let text = "";
+      try {
+        if (!navigator.clipboard) {
+          throw new Error("Clipboard API not available");
+        }
+        text = await navigator.clipboard.readText();
+      } catch (err) {
+        // Fallback or just inform the user if permission is denied
+        console.warn("Clipboard access denied", err);
+        showNotification("Permita o acesso à área de transferência ou cole manualmente.", "error");
+        return;
+      }
+
+      const val = text.trim();
+      setApiKeyInput(val);
+      
+      if (val.startsWith("AIza")) {
+        localStorage.setItem("USER_GEMINI_KEY", val);
+        showNotification("Chave configurada com sucesso!", "success");
+      } else {
+        showNotification("Chave inválida. Certifique-se de copiar a chave completa (começa com AIza).", "error");
+      }
+    } catch (err) {
+      console.error("Error with paste and save:", err);
+      showNotification("Erro ao processar chave.", "error");
+    }
+  };
+
+  const handleManualSave = (val: string) => {
+    const trimmed = val.trim();
+    setApiKeyInput(trimmed);
+    if (trimmed === "") {
+      localStorage.removeItem("USER_GEMINI_KEY");
+      showNotification("Chave removida.", "success");
+    } else if (trimmed.startsWith("AIza")) {
+      localStorage.setItem("USER_GEMINI_KEY", trimmed);
+      showNotification("Chave salva com sucesso!", "success");
+    } else {
+      showNotification("Formato de chave inválido.", "error");
+    }
   };
  
   const handleToggleSetting = (category: 'notifications' | 'privacy', field: string) => {
@@ -146,7 +197,6 @@ export default function Settings() {
         localStorage.setItem("guestSettings", JSON.stringify(updateData));
       } else if (user) {
         const userRef = doc(db, "users", user.uid);
-        const { withTimeout } = await import("../lib/firebase");
         await withTimeout(setDoc(userRef, updateData, { merge: true }), 15000);
         
         // Sync bible version locally for performance
@@ -372,40 +422,114 @@ export default function Settings() {
                          </button>
                       </div>
 
-                      <div className="p-6 bg-navy/40 border border-white/5 rounded-2xl space-y-6 shadow-md">
-                         <div className="flex items-center gap-5">
-                            <div className="w-12 h-12 rounded-2xl bg-amber/10 flex items-center justify-center text-amber shadow-inner">
-                               <RefreshCw className="w-6 h-6" />
+                      <div className="p-8 bg-navy/40 border border-white/5 rounded-3xl space-y-8 shadow-xl relative overflow-hidden group/card">
+                         <div className="absolute top-0 right-0 w-32 h-32 bg-amber/5 blur-3xl -mr-16 -mt-16 rounded-full group-hover/card:bg-amber/10 transition-colors" />
+                         
+                         <div className="flex items-center gap-5 relative">
+                            <div className="w-14 h-14 rounded-2xl bg-amber/10 flex items-center justify-center text-amber shadow-inner border border-amber/20">
+                               <RefreshCw className="w-7 h-7" />
                             </div>
                             <div>
-                               <p className="font-bold text-white tracking-tight">Personalização de IA (Gemini)</p>
-                               <p className="text-[10px] text-pearl/40 font-bold uppercase tracking-wider">Chave Privada Opcional</p>
+                               <p className="font-display font-bold text-xl text-white tracking-tight">Personalização de IA (Gemini)</p>
+                               <p className="text-[10px] text-pearl/40 font-bold uppercase tracking-widest pl-0.5">Potencialize seus devocionais</p>
                             </div>
                          </div>
-                         
-                         <div className="space-y-3">
-                           <input 
-                              type="password"
-                              placeholder="Cole sua API Key (AIzaSy...)"
-                              defaultValue={localStorage.getItem("USER_GEMINI_KEY") || ""}
-                              onChange={(e) => {
-                                 const val = e.target.value.trim();
-                                 if(val) localStorage.setItem("USER_GEMINI_KEY", val);
-                                 else localStorage.removeItem("USER_GEMINI_KEY");
-                              }}
-                              className="w-full bg-navy border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-amber transition-all text-xs font-mono tracking-wider shadow-inner"
-                           />
-                           <div className="flex items-start gap-2 bg-amber/5 p-3 rounded-xl border border-amber/10">
-                              <AlertTriangle className="w-4 h-4 text-amber/60 mt-0.5" />
-                              <p className="text-[10px] text-amber/60 leading-relaxed font-medium">
-                                Usar sua própria chave do Google AI Studio oferece maior estabilidade e prioridade no processamento dos seus devocionais.
-                              </p>
-                           </div>
+
+                         <div className="space-y-6 relative">
+                            <div className="space-y-4">
+                               <p className="text-sm text-pearl/60 font-medium leading-relaxed">
+                                 Para maior estabilidade e respostas mais rápidas, conecte sua própria chave do Google AI Studio. É gratuito e garante que você sempre tenha acesso à IA.
+                               </p>
+                               
+                               <div className="flex items-center justify-between p-5 bg-navy/60 border border-white/5 rounded-2xl group transition-all hover:border-amber/20 shadow-inner">
+                                 <div className="flex items-center gap-5">
+                                    <div className="w-12 h-12 rounded-2xl bg-amber/10 flex items-center justify-center text-amber">
+                                       <RefreshCw className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                       <p className="font-bold text-white tracking-tight">Linguagem Simplificada</p>
+                                       <p className="text-[10px] text-pearl/40 font-bold uppercase tracking-wider">Respostas curtas, diretas e fáceis de entender.</p>
+                                    </div>
+                                 </div>
+                                 <button 
+                                   onClick={() => handleFieldChange("simplifyAI", !formData.simplifyAI)}
+                                   className={cn(
+                                     "w-14 h-7 rounded-full transition-all relative p-1.5",
+                                     formData.simplifyAI ? "bg-amber" : "bg-white/10"
+                                   )}
+                                 >
+                                    <motion.div 
+                                      animate={{ x: formData.simplifyAI ? 26 : 0 }}
+                                      className="w-4 h-4 rounded-full bg-white shadow-sm" 
+                                    />
+                                 </button>
+                               </div>
+                               
+                               <div className="flex flex-col gap-4">
+                                  {/* Step 1 */}
+                                  <div className="space-y-2">
+                                     <p className="text-[10px] font-black text-amber/60 uppercase tracking-widest flex items-center gap-2">
+                                       <span className="w-4 h-4 rounded-full bg-amber/20 flex items-center justify-center text-[8px]">1</span>
+                                       Obter a Chave
+                                     </p>
+                                     <a 
+                                       href="https://aistudio.google.com/app/apikey" 
+                                       target="_blank" 
+                                       rel="noopener noreferrer"
+                                       className="flex items-center justify-center gap-3 w-full bg-amber/10 hover:bg-amber/20 text-amber font-bold py-4 rounded-2xl border border-amber/20 transition-all group"
+                                     >
+                                        Passo 1: Gerar chave no Google AI Studio
+                                        <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                                     </a>
+                                  </div>
+
+                                  {/* Step 2 */}
+                                  <div className="space-y-2">
+                                     <p className="text-[10px] font-black text-amber/60 uppercase tracking-widest flex items-center gap-2">
+                                       <span className="w-4 h-4 rounded-full bg-amber/20 flex items-center justify-center text-[8px]">2</span>
+                                       Inserir e Salvar
+                                     </p>
+                                     <div className="flex items-center gap-2">
+                                        <div className="relative flex-1 group/input">
+                                           <input 
+                                              type={showApiKey ? "text" : "password"}
+                                              value={apiKeyInput}
+                                              onChange={(e) => setApiKeyInput(e.target.value)}
+                                              onBlur={(e) => handleManualSave(e.target.value)}
+                                              placeholder="Cole sua chave (AIzaSy...)"
+                                              className="w-full bg-navy/60 border border-white/10 rounded-2xl px-6 py-4 pr-12 outline-none focus:border-amber transition-all text-xs font-mono tracking-wider shadow-inner text-white group-hover/input:border-white/20"
+                                           />
+                                           <button 
+                                             onClick={() => setShowApiKey(!showApiKey)}
+                                             className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-pearl/30 hover:text-amber transition-colors"
+                                           >
+                                              {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                           </button>
+                                        </div>
+                                        <button 
+                                          onClick={handlePasteAndSave}
+                                          title="Colar da área de transferência e Salvar"
+                                          className="bg-amber text-navy p-4 rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-lg shadow-amber/20 flex items-center gap-2 group"
+                                        >
+                                           <Clipboard className="w-5 h-5" />
+                                           <span className="hidden sm:inline font-bold text-sm">Colar e Salvar</span>
+                                        </button>
+                                     </div>
+                                  </div>
+                               </div>
+                            </div>
+
+                            <div className="flex items-start gap-3 bg-white/[0.02] p-4 rounded-2xl border border-white/5">
+                               <Info className="w-5 h-5 text-amber/40 mt-0.5 shrink-0" />
+                               <p className="text-[11px] text-pearl/40 leading-relaxed font-medium">
+                                 Sua chave é armazenada apenas no seu dispositivo. Ela permite que você use os recursos de IA sem as filas do servidor gratuito.
+                               </p>
+                            </div>
                          </div>
                       </div>
                     </div>
+                    {renderFooter()}
                   </div>
-                  {renderFooter()}
                 </section>
               )}
 

@@ -1,75 +1,78 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
-let genAI: GoogleGenerativeAI | null = null;
+let aiInstance: GoogleGenAI | null = null;
 let currentKey: string | null = null;
 
 export interface GeminiPayload {
   prompt?: string;
-  contents?: any[];
+  contents?: any; // Updated to match new SDK expectations if needed, but keeping it flexible
   model?: string;
   responseMimeType?: string;
   systemInstruction?: string;
 }
 
+const getAIClient = (key: string) => {
+  if (!aiInstance || currentKey !== key) {
+    aiInstance = new GoogleGenAI({ apiKey: key });
+    currentKey = key;
+  }
+  return aiInstance;
+};
+
 export const callGeminiProxy = async (payload: GeminiPayload) => {
   const rawLocalKey = localStorage.getItem("USER_GEMINI_KEY");
   const localKey = (rawLocalKey && rawLocalKey.trim().startsWith("AIza")) ? rawLocalKey.trim() : null;
   
-  // Use local key if user provided one in Settings
-  if (localKey) {
-    if (!genAI || currentKey !== localKey) {
-      genAI = new GoogleGenerativeAI(localKey);
-      currentKey = localKey;
-    }
-    const model = genAI.getGenerativeModel({ 
-      model: payload.model || "gemini-1.5-flash",
-      ...(payload.systemInstruction ? { systemInstruction: payload.systemInstruction } : {})
-    });
+  // Use local key if provided, otherwise use system key
+  const keyToUse = localKey || process.env.GEMINI_API_KEY;
 
-    let result;
-    try {
-      if (payload.contents) {
-        const chat = model.startChat({ history: payload.contents.slice(0, -1) });
-        result = await chat.sendMessage(payload.contents[payload.contents.length - 1].parts[0].text);
-      } else {
-        result = await model.generateContent({
-          contents: [{ role: "user", parts: [{ text: payload.prompt || "" }] }],
-          generationConfig: { 
-            responseMimeType: payload.responseMimeType || "text/plain" 
-          }
-        });
-      }
-      return result.response.text();
-    } catch (error: any) {
-      console.error("Local Gemini Error:", error);
-      if (error.message?.includes("API key not valid")) {
-        throw new Error("Sua chave API personalizada (salva nas Configurações) é inválida. Por favor, corrija-a ou remova-a para usar a chave padrão do sistema.");
-      }
-      throw error;
-    }
+  if (!keyToUse || keyToUse === "YOUR_GEMINI_API_KEY") {
+    throw new Error("A chave de API Gemini não está configurada. Por favor, verifique as configurações.");
   }
 
-  // Otherwise use the server-side proxy which has the environment API KEY
-  const response = await fetch("/api/ai/generate", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      ...payload,
-      model: payload.model || "gemini-1.5-flash"
-    }),
-  });
+  const ai = getAIClient(keyToUse);
+  const modelName = payload.model === "gemini-1.5-flash" || !payload.model ? "gemini-flash-latest" : payload.model;
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    let msg = errorData.error || "Falha na comunicação com a inteligência artificial.";
+  try {
+    let response;
+
+    if (payload.contents) {
+      // In @google/genai, generateContent handles chat-like contents too
+      response = await ai.models.generateContent({
+        model: modelName,
+        contents: payload.contents,
+        config: {
+          systemInstruction: payload.systemInstruction,
+          responseMimeType: payload.responseMimeType || "text/plain"
+        }
+      });
+    } else {
+      response = await ai.models.generateContent({
+        model: modelName,
+        contents: [{ role: "user", parts: [{ text: payload.prompt || "" }] }],
+        config: {
+          systemInstruction: payload.systemInstruction,
+          responseMimeType: payload.responseMimeType || "text/plain"
+        }
+      });
+    }
+
+    return response.text || "";
+  } catch (error: any) {
+    console.error("Gemini Error:", error);
     
-    if (msg.includes("API key not valid")) {
-      msg = "A chave de API configurada no servidor parece ser inválida. Se você for o administrador, verifique se a variável GEMINI_API_KEY no ambiente do Google AI Studio está correta. Se você for um usuário e adicionou sua própria chave nas configurações, tente removê-la ou atualizá-la.";
+    let msg = error.message || "Erro ao processar IA.";
+    
+    if (msg.includes("API key not valid") || msg.includes("401") || msg.includes("403")) {
+      if (localKey) {
+        msg = "Sua chave API personalizada é inválida. Verifique em Configurações ou remova-a para usar a do sistema.";
+      } else {
+        msg = "Erro de autenticação com a IA do sistema. O desenvolvedor precisa verificar a GEMINI_API_KEY.";
+      }
+    } else if (msg.includes("404")) {
+      msg = `O modelo '${modelName}' não foi encontrado ou não está disponível para esta chave.`;
     }
     
     throw new Error(msg);
   }
-
-  const data = await response.json();
-  return data.text;
 };
