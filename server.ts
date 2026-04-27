@@ -5,7 +5,6 @@ import path from "path";
 import fs from "fs";
 import os from "os";
 import { EdgeTTS } from "node-edge-tts";
-import { GoogleGenAI } from "@google/genai";
 
 async function startServer() {
   const app = express();
@@ -28,59 +27,12 @@ async function startServer() {
 
   // ----- GEMINI PROXY (SECURE) -----
   app.post("/api/ai/proxy", async (req, res) => {
-    try {
-      const { prompt, contents, model, responseMimeType, systemInstruction, simplify } = req.body;
-      
-      const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-      if (!key || key === "YOUR_GEMINI_API_KEY") {
-        return res.status(500).json({ error: "Chave de API do sistema não configurada." });
-      }
-
-      const ai = new GoogleGenAI({ apiKey: key });
-      const modelName = model === "gemini-1.5-flash" ? "gemini-3-flash-preview" : (model || "gemini-3-flash-preview");
-
-      // Prepare system instruction
-      let finalSystemInstruction = systemInstruction || "";
-      if (simplify) {
-        const simplifyInstruction = "Responda de forma extremamente direta, curta e com linguagem simples. Evite textos longos, termos difíceis ou explicações complexas.";
-        finalSystemInstruction = finalSystemInstruction 
-          ? `${finalSystemInstruction}\n\n${simplifyInstruction}`
-          : simplifyInstruction;
-      }
-
-      let response;
-      if (contents) {
-        response = await ai.models.generateContent({
-          model: modelName,
-          contents: contents,
-          config: {
-            systemInstruction: finalSystemInstruction || undefined,
-            responseMimeType: responseMimeType || "text/plain"
-          }
-        });
-      } else if (prompt) {
-        response = await ai.models.generateContent({
-          model: modelName,
-          contents: prompt,
-          config: {
-            systemInstruction: finalSystemInstruction || undefined,
-            responseMimeType: responseMimeType || "text/plain"
-          }
-        });
-      } else {
-        return res.status(400).json({ error: "Nenhum prompt ou conteúdo fornecido." });
-      }
-
-      const text = response.text;
-      res.json({ text });
-
-    } catch (error: any) {
-      console.error("Erro no Proxy Gemini:", error);
-      res.status(500).json({ 
-        error: "Falha na comunicação com a IA.", 
-        details: error.message 
-      });
-    }
+    // Import logic dynamically or redirect to our modular function
+    // For this environment, we'll keep the handler logic but modularized
+    const mod = await import("./api/ai/proxy");
+    const handler = mod.default;
+    // Adapt Express (req, res) to Vercel-like handler
+    return handler(req as any, res as any);
   });
 
   // ----- EDGE TTS API (FREE AZURE NEURAL) -----
