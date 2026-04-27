@@ -1,33 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { MessageSquare, Send, Sparkles, User, ShieldCheck, Heart, Info, RefreshCw, Trash2, Plus, Menu, X, ChevronRight, MessageCircle } from "lucide-react";
+import { Sparkles, Save, Share2, RefreshCw, Bookmark, BookmarkCheck, Send, CheckCircle, Heart, User, ShieldCheck, Info, Trash2, Plus, Menu, X, ChevronRight, MessageCircle } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { callGeminiProxy } from "../services/aiUtils";
 import ReactMarkdown from "react-markdown";
 import { cn } from "../lib/utils";
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, limit, writeBatch, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
-
-let genAI: GoogleGenerativeAI | null = null;
-let currentKey: string | null = null;
-
-const getAiModel = (modelName: string = "gemini-3-flash-preview", systemInstruction?: string) => {
-  const localKey = localStorage.getItem("USER_GEMINI_KEY");
-  const fallbackKey = "AIzaSyCIphL2465bVZN0fNpw-oe6PsDA2caLjIE"; // Placeholder key
-  const envKey = typeof process !== 'undefined' && process.env ? process.env.GEMINI_API_KEY : null;
-  const importedMetaKey = (import.meta as any).env ? (import.meta as any).env.VITE_GEMINI_API_KEY : null;
-  
-  const key = localKey || importedMetaKey || envKey || fallbackKey;
-  
-  if (!genAI || currentKey !== key) {
-    genAI = new GoogleGenerativeAI(key || "");
-    currentKey = key;
-  }
-  return genAI.getGenerativeModel({ 
-    model: modelName,
-    ...(systemInstruction ? { systemInstruction } : {})
-  });
-};
 
 export default function Assistant() {
   const { user, loading: authLoading } = useAuth();
@@ -216,11 +195,9 @@ export default function Assistant() {
       Não dê conselhos médicos ou financeiros complexos, foque na sabedoria espiritual.
       Use Markdown para formatar as citações bíblicas.`;
 
-      const model = getAiModel("gemini-3-flash-preview", systemInstruction);
-
       const chatHistory = messages
         .filter(m => m.role === 'user' || m.role === 'assistant')
-        .slice(-10) // More context
+        .slice(-10) 
         .map(m => ({
           role: m.role === 'assistant' ? 'model' : 'user',
           parts: [{ text: m.content?.trim() ? m.content : "(mensagem vazia)" }]
@@ -246,17 +223,17 @@ export default function Assistant() {
         normalizedHistory.shift();
       }
 
-      // O histórico deve terminar com 'model' para o próximo sendMessage dar certo (que será 'user')
-      if (normalizedHistory.length > 0 && normalizedHistory[normalizedHistory.length - 1].role === 'user') {
-        normalizedHistory.pop();
-      }
-
-      const chat = model.startChat({
-        history: normalizedHistory
+      // Adiciona a mensagem atual se ainda não estiver no histórico
+      normalizedHistory.push({
+        role: "user",
+        parts: [{ text: userMessage }]
       });
 
-      const response = await chat.sendMessage(userMessage);
-      const assistantMessage = response.response.text();
+      const assistantMessage = await callGeminiProxy({
+        contents: normalizedHistory,
+        model: "gemini-1.5-flash",
+        systemInstruction
+      });
       
       if (!user) {
         setMessages(prev => [...prev, { role: "assistant", content: assistantMessage }]);
@@ -276,10 +253,15 @@ export default function Assistant() {
       }
       } catch (error: any) {
         console.error("Error in assistant chat:", error);
-        let errorMessage = error.message === "TIMEOUT_FIREBASE" 
-          ? "A conexão com o servidor de dados expirou." 
-          : (error.message || "Desconhecido");
-        setMessages(prev => [...prev, { role: "assistant", content: `Erro: ${errorMessage}. Verifique sua rede e tente novamente.` }]);
+        let errorMsg = error.message;
+
+        if (errorMsg?.includes("reported as leaked") || errorMsg?.includes("403")) {
+          errorMsg = "Sua Chave API do Gemini foi desativada pelo Google por vazamento. Por favor, gere uma NOVA chave no Google AI Studio e atualize nas Configurações.";
+        } else if (errorMsg === "TIMEOUT_FIREBASE") {
+          errorMsg = "A conexão com o servidor de dados expirou.";
+        }
+
+        setMessages(prev => [...prev, { role: "assistant", content: `Erro: ${errorMsg}. Verifique sua rede e tente novamente.` }]);
       } finally {
       setLoading(false);
     }
@@ -506,7 +488,7 @@ export default function Assistant() {
                 <span className="w-1.5 h-1.5 bg-white/5 rounded-full" />
                 <span>Histórico protegido na sua conta</span>
                 <span className="w-1.5 h-1.5 bg-white/5 rounded-full" />
-                <span className="text-amber/40">Gemini 3.0 Experimental</span>
+                <span className="text-amber/40">Gemini 1.5 Flash</span>
                </div>
             </div>
           </form>

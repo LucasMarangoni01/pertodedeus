@@ -1,25 +1,6 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-let genAI: GoogleGenerativeAI | null = null;
-let currentKey: string | null = null;
-
-const getAiModel = (modelName: string = "gemini-3-flash-preview") => {
-  const localKey = localStorage.getItem("USER_GEMINI_KEY");
-  const fallbackKey = "AIzaSyCIphL2465bVZN0fNpw-oe6PsDA2caLjIE"; // Placeholder key
-  const envKey = typeof process !== 'undefined' && process.env ? process.env.GEMINI_API_KEY : null;
-  const importedMetaKey = (import.meta as any).env ? (import.meta as any).env.VITE_GEMINI_API_KEY : null;
-  
-  const key = localKey || importedMetaKey || envKey || fallbackKey;
-  
-  if (!genAI || currentKey !== key) {
-    genAI = new GoogleGenerativeAI(key || "");
-    currentKey = key;
-  }
-  return genAI.getGenerativeModel({ model: modelName });
-};
+import { callGeminiProxy } from "./aiUtils";
 
 export const generateDevotional = async (userProfile: any, passage?: string, simplify?: boolean) => {
-  const model = getAiModel("gemini-3-flash-preview");
   const baseInstructions = `Gere um devocional cristão personalizado para hoje.
   Dados do Usuário:
   - Nome: ${userProfile.displayName}
@@ -49,37 +30,45 @@ export const generateDevotional = async (userProfile: any, passage?: string, sim
   Sempre baseie-se estritamente na Bíblia.`;
 
   try {
-    const response = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        responseMimeType: "application/json",
-      },
-    });
-
-    const text = response.response.text();
+    const text = await callGeminiProxy({ prompt, model: "gemini-1.5-flash", responseMimeType: "application/json" });
     return JSON.parse(text);
   } catch (error: any) {
     console.error("Error generating devotional:", error);
-    let errorMessage = error.message;
+    // ... rest of error handling
+    throw error;
+  }
+};
 
-    try {
-        if (errorMessage?.includes('{"error":')) {
-            const parsed = JSON.parse(errorMessage.substring(errorMessage.indexOf('{')));
-            if (parsed?.error?.status === "NOT_FOUND" || parsed?.error?.code === 404) {
-               throw new Error("O modelo de IA não foi encontrado. Adicione sua chave de API correta nas configurações ou tente novamente mais tarde.");
-            } else if (parsed?.error?.status === "RESOURCE_EXHAUSTED" || parsed?.error?.code === 429) {
-               throw new Error("A inteligência artificial atingiu o limite de acessos. Por favor, aguarde alguns minutos ou adicione sua própria Chave API.");
-            }
-        }
-    } catch (e: any) {
-        if (e.message && e.message !== error.message && e.message.includes("O modelo de IA")) {
-            throw e;
-        }
-    }
+export const explainPassage = async (passage: string, reference: string, userProfile?: any) => {
+  const prompt = `Você é um erudito bíblico e mentor espiritual. Explique o seguinte trecho da Bíblia de forma clara, profunda e aplicável.
+  
+  Referência: ${reference}
+  Texto: "${passage}"
+  
+  Contexto do Usuário (se disponível):
+  - Denominação: ${userProfile?.denomination || "Cristão"}
+  - Desafios: ${userProfile?.challenges?.join(", ") || "Nenhum especificado"}
+  
+  Sua explicação deve incluir:
+  1. Contexto histórico/literário breve.
+  2. Significado central do trecho.
+  3. Como aplicar isso na vida cotidiana hoje.
+  
+  Responda em formato JSON:
+  {
+    "context": "breve contexto",
+    "meaning": "significado central",
+    "application": "aplicação prática",
+    "reflection": "uma frase curta de reflexão final"
+  }
+  
+  Use um tom acolhedor e encorajador.`;
 
-    if (error?.status === 429 || error?.message?.includes("RESOURCE_EXHAUSTED") || error?.message?.includes("429")) {
-      throw new Error("O Google Gemini está com tráfego muito alto neste momento (Cota Excedida). Por favor, aguarde alguns minutos, ou adicione sua chave própria nas configurações.");
-    }
+  try {
+    const text = await callGeminiProxy({ prompt, model: "gemini-1.5-flash", responseMimeType: "application/json" });
+    return JSON.parse(text);
+  } catch (error: any) {
+    console.error("Error explaining passage:", error);
     throw error;
   }
 };

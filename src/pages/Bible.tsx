@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Search, Book, ChevronRight, Settings2, Share2, Copy, Highlighter, FileText, X, Star, Volume2, Square, PlayCircle } from "lucide-react";
+import { Search, Book, ChevronRight, Settings2, Share2, Copy, Highlighter, FileText, X, Star, Volume2, Square, PlayCircle, Sparkles, Brain, Lightbulb, Compass, MessageSquareQuote } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useAuth } from "../context/AuthContext";
 import { bibleBooks } from "../constants/bibleData";
@@ -10,6 +10,7 @@ import { db } from "../lib/firebase";
 import { getBibleBooks, getBibleChapter, searchBible } from "../lib/bibleApi";
 import { getChapterTitle } from "../services/bibleService";
 import { trackSpiritualAction } from "../services/userService";
+import { explainPassage } from "../services/geminiService";
 
 const translations = [
   { id: "ARA", name: "ARA - Almeida Revista e Atualizada" },
@@ -48,6 +49,8 @@ export default function Bible() {
   const [searchingGlobal, setSearchingGlobal] = useState(false);
   const [showGlobalResults, setShowGlobalResults] = useState(false);
   const [chapterTitle, setChapterTitle] = useState<string | null>(null);
+  const [aiExplanation, setAiExplanation] = useState<any | null>(null);
+  const [loadingAi, setLoadingAi] = useState(false);
   const lastSavedVerse = useRef<number | null>(null);
   const lastTrackedChapter = useRef<string>("");
   
@@ -386,6 +389,31 @@ export default function Bible() {
     }
   };
 
+  const handleUnderstandWithAi = async (passageText?: string, specificReference?: string) => {
+    let textToExplain = passageText;
+    let ref = specificReference;
+
+    if (!textToExplain) {
+      // Use selected verses
+      const selected = verses.filter(v => selectedVerses.includes(v.v));
+      if (selected.length === 0) return;
+      textToExplain = selected.map(v => v.t).join(" ");
+      ref = `${selectedBook} ${selectedChapter}:${selectedVerses.sort((a,b) => a-b).join(",")}`;
+    }
+
+    if (!textToExplain || !ref) return;
+
+    setLoadingAi(true);
+    try {
+      const result = await explainPassage(textToExplain, ref, user);
+      setAiExplanation({ ...result, reference: ref });
+    } catch (error: any) {
+      showNotification(error.message || "Erro ao consultar a IA.");
+    } finally {
+      setLoadingAi(false);
+    }
+  };
+
   useEffect(() => {
     if (selectedBook && selectedChapter) {
       const fetchVerses = async () => {
@@ -671,7 +699,15 @@ export default function Bible() {
                  </button>
                  <div>
                    <h2 className="text-xl md:text-2xl font-display font-bold">{selectedBook} {selectedChapter}</h2>
-                   <p className="text-[10px] text-amber font-bold tracking-widest">{currentVersionName}</p>
+                   <p className="text-[10px] text-amber font-bold tracking-widest">
+                     {currentVersionName} • 
+                     <button 
+                       onClick={() => handleUnderstandWithAi(verses.map(v => v.t).join(" "), `${selectedBook} ${selectedChapter}`)}
+                       className="hover:text-pearl transition-colors inline-flex items-center gap-1 cursor-pointer"
+                     >
+                       <Sparkles className="w-3 h-3" /> Entender com IA
+                     </button>
+                   </p>
                  </div>
                </div>
                <div className="flex items-center gap-1 md:gap-2">
@@ -792,7 +828,6 @@ export default function Bible() {
                      )}
                    </AnimatePresence>
                  </div>
-                 
                </div>
             </header>
 
@@ -853,6 +888,18 @@ export default function Bible() {
                    <p className="text-xs font-bold text-amber">{selectedVerses.length} selecionado(s)</p>
                    <div className="h-4 w-px bg-white/10" />
                    <div className="flex items-center gap-4">
+                     <button 
+                       onClick={() => handleUnderstandWithAi()}
+                       disabled={loadingAi}
+                       className="flex items-center gap-2 bg-amber text-navy px-4 py-2 rounded-xl text-xs font-bold hover:bg-amber/80 transition-colors disabled:opacity-50"
+                     >
+                       {loadingAi ? (
+                         <div className="w-3 h-3 border-2 border-navy border-t-transparent rounded-full animate-spin" />
+                       ) : (
+                         <Sparkles className="w-4 h-4" />
+                       )}
+                       IA
+                     </button>
                      <button onClick={() => showNotification("Marcado!")} className="p-2 text-pearl/60 hover:text-amber transition-colors"><Highlighter className="w-5 h-5" /></button>
                      <button onClick={() => showNotification("Nota salva!")} className="p-2 text-pearl/60 hover:text-amber transition-colors"><FileText className="w-5 h-5" /></button>
                      <button 
@@ -873,6 +920,89 @@ export default function Bible() {
             </AnimatePresence>
           </>
         )}
+         <AnimatePresence>
+            {aiExplanation && (
+              <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 text-pearl">
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setAiExplanation(null)}
+                  className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                />
+                <motion.div 
+                  initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                  className="relative w-full max-w-2xl bg-[#0B1221] border border-amber/20 rounded-[2rem] overflow-hidden shadow-2xl"
+                >
+                  <div className="p-6 md:p-10 space-y-8 max-h-[85vh] overflow-y-auto custom-scrollbar">
+                    <header className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 bg-amber/10 rounded-2xl">
+                          <Sparkles className="w-8 h-8 text-amber" />
+                        </div>
+                        <div>
+                           <h3 className="text-2xl font-bold font-display text-white">Insight da IA</h3>
+                           <p className="text-xs text-amber font-bold tracking-widest uppercase opacity-60">{aiExplanation.reference}</p>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => setAiExplanation(null)}
+                        className="p-3 hover:bg-white/5 rounded-full transition-colors group"
+                      >
+                        <X className="w-6 h-6 text-pearl/40 group-hover:text-amber" />
+                      </button>
+                    </header>
+
+                    <div className="space-y-6 text-left">
+                       <section className="bg-white/5 p-6 rounded-3xl border border-white/5 group hover:border-amber/10 transition-colors">
+                          <div className="flex items-center gap-3 mb-4 text-amber">
+                             <Brain className="w-4 h-4" />
+                             <h4 className="text-[10px] font-bold uppercase tracking-widest">Contexto de Fé</h4>
+                          </div>
+                          <p className="text-base text-pearl/80 leading-relaxed font-serif italic">
+                            {aiExplanation.context}
+                          </p>
+                       </section>
+
+                       <section className="bg-white/5 p-6 rounded-3xl border border-white/5 group hover:border-amber/10 transition-colors">
+                          <div className="flex items-center gap-3 mb-4 text-amber">
+                             <Lightbulb className="w-4 h-4" />
+                             <h4 className="text-[10px] font-bold uppercase tracking-widest">Entendimento Profundo</h4>
+                          </div>
+                          <p className="text-base text-pearl leading-relaxed">
+                            {aiExplanation.meaning}
+                          </p>
+                       </section>
+
+                       <section className="bg-white/5 p-6 rounded-3xl border border-white/5 group hover:border-amber/10 transition-colors">
+                          <div className="flex items-center gap-3 mb-4 text-amber">
+                             <Compass className="w-4 h-4" />
+                             <h4 className="text-[10px] font-bold uppercase tracking-widest">Passos Práticos</h4>
+                          </div>
+                          <p className="text-base text-pearl/80 leading-relaxed">
+                            {aiExplanation.application}
+                          </p>
+                       </section>
+
+                       <div className="pt-6 flex items-start gap-4 text-amber/40 italic text-sm border-t border-white/5">
+                          <MessageSquareQuote className="w-5 h-5 mt-1 shrink-0" />
+                          <p className="leading-relaxed">"{aiExplanation.reflection}"</p>
+                       </div>
+                    </div>
+
+                    <button 
+                      onClick={() => setAiExplanation(null)}
+                      className="w-full bg-amber text-navy font-bold py-5 rounded-2xl hover:bg-amber/90 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-amber/10 text-lg"
+                    >
+                       Amém, recebo essa palavra!
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+         </AnimatePresence>
       </main>
     </div>
   );
