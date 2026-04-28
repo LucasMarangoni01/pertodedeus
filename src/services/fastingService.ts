@@ -32,7 +32,7 @@ export async function generateFastingPlan(input: FastingInput, type: string): Pr
 
     const text = await callGeminiProxy({
       prompt,
-      model: "gemini-1.5-flash",
+      model: "gemini-3-flash-preview",
       responseMimeType: "application/json",
       systemInstruction: "Você é um mentor cristão sábio e atencioso. Sua missão é guiar pessoas em seus jejuns espirituais, fornecendo orientações práticas e espirituais. Responda sempre em Português (Brasil) em formato JSON estruturado."
     });

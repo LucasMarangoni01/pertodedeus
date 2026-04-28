@@ -243,6 +243,34 @@
       },
       "required": ["userId", "title", "startTime", "date", "category"]
     },
+    "BibleMarker": {
+      "title": "Bible Verse Marker",
+      "description": "Marked/Highlight verses in the Bible",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "book": { "type": "string" },
+        "chapter": { "type": "integer" },
+        "verse": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "book", "chapter", "verse", "createdAt"]
+    },
+    "BibleNote": {
+      "title": "Bible Verse Note",
+      "description": "Personal notes for specific Bible verses",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "book": { "type": "string" },
+        "chapter": { "type": "integer" },
+        "verse": { "type": "integer" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "book", "chapter", "verse", "text", "createdAt"]
+    },
     "Announcement": {
       "title": "Global Announcement",
       "description": "Message from admins to all users",
@@ -305,6 +333,14 @@
     "/users/{userId}/calendar_events/{eventId}": {
       "schema": "CalendarEvent",
       "description": "User's personal spiritual agenda"
+    },
+    "/users/{userId}/marcadores/{markerId}": {
+      "schema": "BibleMarker",
+      "description": "Marked verses for highlighting"
+    },
+    "/users/{userId}/notas/{noteId}": {
+      "schema": "BibleNote",
+      "description": "User notes on specific verses"
     },
     "/global_announcements/{announcementId}": {
       "schema": "Announcement",

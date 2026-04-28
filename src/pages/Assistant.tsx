@@ -233,7 +233,7 @@ export default function Assistant() {
 
       const assistantMessage = await callGeminiProxy({
         contents: normalizedHistory,
-        model: "gemini-flash-latest",
+        model: "gemini-3-flash-preview",
         systemInstruction
       });
       
@@ -272,7 +272,7 @@ export default function Assistant() {
   if (authLoading) return null;
 
   return (
-    <div className="h-[calc(100vh-140px)] flex bg-navy/30 border border-white/5 rounded-[2.5rem] overflow-hidden backdrop-blur-sm relative">
+    <div className="h-auto md:h-[calc(100vh-140px)] flex bg-navy/30 border border-white/5 rounded-2xl md:rounded-[2.5rem] overflow-hidden backdrop-blur-sm relative">
       
       {/* Sidebar Mobile Toggle */}
       <button 
@@ -440,7 +440,7 @@ export default function Assistant() {
                 </div>
                 
                 <div className={cn(
-                  "p-5 md:p-7 rounded-[2rem] text-sm md:text-lg leading-relaxed font-serif prose prose-invert prose-amber max-w-none shadow-md",
+                  "p-4 md:p-7 rounded-2xl md:rounded-[2rem] text-sm md:text-lg leading-relaxed font-serif prose prose-invert prose-amber max-w-none shadow-md",
                   m.role === "user" 
                     ? "bg-amber/10 border border-amber/20 rounded-tr-none text-pearl/90" 
                     : "bg-white/[0.03] border border-white/5 rounded-tl-none text-pearl/80"
@@ -466,22 +466,22 @@ export default function Assistant() {
         </div>
 
         {/* Input Barra */}
-        <div className="p-6 md:p-10 bg-gradient-to-t from-navy/80 to-transparent">
+        <div className="p-4 md:p-10 bg-gradient-to-t from-navy/80 to-transparent">
           <form onSubmit={handleSend} className="relative max-w-4xl mx-auto">
             <div className="absolute inset-0 bg-amber/5 blur-[40px] rounded-full pointer-events-none" />
-            <div className="relative flex items-center gap-3 bg-navy/90 border border-white/10 rounded-[2.5rem] p-3 pl-8 shadow-2xl group focus-within:border-amber/40 transition-colors">
+            <div className="relative flex items-center gap-2 bg-navy/90 border border-white/10 rounded-2xl md:rounded-[2.5rem] p-2 md:p-3 pl-4 md:pl-8 shadow-2xl group focus-within:border-amber/40 transition-colors">
               <input 
                  value={input}
                  onChange={e => setInput(e.target.value)}
-                 placeholder="Digite sua dúvida ou versículo..."
-                 className="flex-1 bg-transparent py-4 text-white outline-none font-serif text-lg md:text-xl placeholder:text-pearl/20"
+                 placeholder="Digite sua dúvida..."
+                 className="flex-1 bg-transparent py-3 md:py-4 text-white outline-none font-serif text-base md:text-xl placeholder:text-pearl/20"
               />
               <button 
                 type="submit"
                 disabled={!input.trim() || loading}
-                className="w-16 h-16 bg-amber text-navy rounded-full flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:scale-100"
+                className="w-12 h-12 md:w-16 md:h-16 bg-amber text-navy rounded-full flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:scale-100"
               >
-                  <Send className={cn("w-7 h-7 transform transition-transform", loading ? "animate-pulse" : "-rotate-12")} />
+                  <Send className={cn("w-5 h-5 md:w-7 md:h-7 transform transition-transform", loading ? "animate-pulse" : "-rotate-12")} />
               </button>
             </div>
             <div className="mt-4 flex flex-wrap justify-center gap-6 text-[9px] md:text-[10px] text-pearl/20 uppercase font-black tracking-widest">

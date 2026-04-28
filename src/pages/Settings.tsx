@@ -260,9 +260,9 @@ export default function Settings() {
         <h1 className="text-4xl md:text-5xl font-display font-black tracking-tight">Configurações</h1>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 px-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-10 px-4">
         {/* Navigation Sidebar */}
-        <aside className="lg:col-span-4 space-y-3">
+        <aside className="lg:col-span-4 flex lg:flex-col overflow-x-auto lg:overflow-x-visible pb-4 lg:pb-0 gap-2 md:gap-3 scrollbar-none snap-x h-min">
           {[
             { id: 'profile', label: 'Meu Perfil', icon: User },
             { id: 'app', label: 'Aplicativo', icon: Globe },
@@ -274,26 +274,26 @@ export default function Settings() {
               key={item.id}
               onClick={() => setActiveTab(item.id as any)}
               className={cn(
-                "w-full flex items-center justify-between p-4 rounded-2xl transition-all font-bold text-sm group",
+                "flex items-center justify-between p-3 md:p-4 rounded-xl md:rounded-2xl transition-all font-bold text-xs md:text-sm group whitespace-nowrap snap-start shrink-0 lg:shrink",
                 item.id === activeTab 
-                  ? "bg-amber text-navy shadow-xl shadow-amber/10 translate-x-1" 
+                  ? "bg-amber text-navy shadow-xl shadow-amber/10 lg:translate-x-1" 
                   : "hover:bg-white/5 text-pearl/40 hover:text-pearl/70"
               )}
             >
-              <div className="flex items-center gap-3">
-                 <item.icon className={cn("w-5 h-5 transition-transform group-hover:scale-110", item.id === activeTab ? "text-navy" : "text-amber/40")} />
+              <div className="flex items-center gap-2 md:gap-3">
+                 <item.icon className={cn("w-4 h-4 md:w-5 md:h-5 transition-transform group-hover:scale-110", item.id === activeTab ? "text-navy" : "text-amber/40")} />
                  {item.label}
               </div>
-              <ChevronRight className={cn("w-4 h-4 transition-transform", activeTab === item.id ? "rotate-90 opacity-100" : "opacity-0")} />
+              <ChevronRight className={cn("hidden lg:block w-4 h-4 transition-transform", activeTab === item.id ? "rotate-90 opacity-100" : "opacity-0")} />
             </button>
           ))}
           
           <button 
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 p-4 rounded-2xl text-red-400 hover:bg-red-400/10 transition-all font-bold text-sm mt-10 border border-red-400/20 shadow-lg shadow-red-400/5 group"
+            className="lg:w-full flex items-center gap-2 md:gap-3 p-3 md:p-4 rounded-xl md:rounded-2xl text-red-400 hover:bg-red-400/10 transition-all font-bold text-xs md:text-sm lg:mt-10 border border-red-400/20 shadow-lg shadow-red-400/5 group whitespace-nowrap snap-start shrink-0 lg:shrink"
           >
-             <LogOut className="w-5 h-5 transition-transform group-hover:-translate-x-1" /> 
-             Sair da Conta
+             <LogOut className="w-4 h-4 md:w-5 md:h-5 transition-transform group-hover:-translate-x-1" /> 
+              Sair
           </button>
         </aside>
 

@@ -30,7 +30,7 @@ export const generateDevotional = async (userProfile: any, passage?: string, sim
   Sempre baseie-se estritamente na Bíblia.`;
 
   try {
-    const text = await callGeminiProxy({ prompt, model: "gemini-flash-latest", responseMimeType: "application/json", simplify });
+    const text = await callGeminiProxy({ prompt, model: "gemini-3-flash-preview", responseMimeType: "application/json", simplify });
     return JSON.parse(text);
   } catch (error: any) {
     console.error("Error generating devotional:", error);
@@ -47,7 +47,7 @@ export const summarizeVerse = async (verseText: string) => {
   Saída: (apenas a frase do resumo, sem formatação adicional)`;
 
   try {
-    const text = await callGeminiProxy({ prompt, model: "gemini-flash-latest", simplify: true });
+    const text = await callGeminiProxy({ prompt, model: "gemini-3-flash-preview", simplify: true });
     return text.trim();
   } catch (error) {
     console.error("Error summarizing verse:", error);
@@ -64,7 +64,7 @@ export const summarizeChapter = async (chapterText: string) => {
   Saída: (apenas o resumo, sem formatação adicional)`;
 
   try {
-    const text = await callGeminiProxy({ prompt, model: "gemini-flash-latest", simplify: true });
+    const text = await callGeminiProxy({ prompt, model: "gemini-3-flash-preview", simplify: true });
     return text.trim();
   } catch (error) {
     console.error("Error summarizing chapter:", error);
@@ -101,7 +101,7 @@ export const explainPassage = async (passage: string, reference: string, userPro
   Use um tom acolhedor e encorajador.`;
 
   try {
-    const text = await callGeminiProxy({ prompt, model: "gemini-flash-latest", responseMimeType: "application/json", simplify });
+    const text = await callGeminiProxy({ prompt, model: "gemini-3-flash-preview", responseMimeType: "application/json", simplify });
     return JSON.parse(text);
   } catch (error: any) {
     console.error("Error explaining passage:", error);

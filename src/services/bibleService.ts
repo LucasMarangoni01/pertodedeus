@@ -15,7 +15,7 @@ export async function getChapterTitle(book: string, chapter: number, version: st
     - Salmos 23: "O Descanso no Pastor"
     Return ONLY the title string, no extra words, no quotes. Use at most 4-5 words.`;
 
-    const title = await callGeminiProxy({ prompt, model: "gemini-1.5-flash" });
+    const title = await callGeminiProxy({ prompt, model: "gemini-3-flash-preview" });
     
     if (title) titleCache[cacheKey] = title;
     return title;

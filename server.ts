@@ -25,15 +25,12 @@ async function startServer() {
     });
   });
 
-  // ----- GEMINI PROXY (SECURE) -----
-  app.post("/api/ai/proxy", async (req, res) => {
-    // Import logic dynamically or redirect to our modular function
-    // For this environment, we'll keep the handler logic but modularized
-    const mod = await import("./api/ai/proxy");
-    const handler = mod.default;
-    // Adapt Express (req, res) to Vercel-like handler
-    return handler(req as any, res as any);
-  });
+  const startupKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  console.log("-----------------------------------------");
+  console.log("Server status:");
+  console.log(`Port: 3000`);
+  console.log(`Node Env: ${process.env.NODE_ENV}`);
+  console.log("-----------------------------------------");
 
   // ----- EDGE TTS API (FREE AZURE NEURAL) -----
   app.post("/api/tts", async (req, res) => {

@@ -1,3 +1,5 @@
+import { GoogleGenAI, GenerateContentParameters } from "@google/genai";
+
 export interface GeminiPayload {
   prompt?: string;
   contents?: any;
@@ -7,44 +9,63 @@ export interface GeminiPayload {
   simplify?: boolean;
 }
 
+// Lazy initialization of the SDK
+let aiClient: GoogleGenAI | null = null;
+
+const getAiClient = () => {
+  if (!aiClient) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey === "YOUR_GEMINI_API_KEY") {
+      throw new Error("Chave de API do Gemini não configurada. Por favor, adicione sua chave nas configurações do projeto.");
+    }
+    aiClient = new GoogleGenAI({ apiKey });
+  }
+  return aiClient;
+};
+
 export const callGeminiProxy = async (payload: GeminiPayload): Promise<string> => {
   try {
-    const response = await fetch("/api/ai/proxy", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const contentType = response.headers.get("content-type");
+    const ai = getAiClient();
     
-    if (!response.ok) {
-      // Try to parse error as JSON if content-type matches, otherwise use statusText
-      let errorMessage = `Erro do servidor: ${response.status} ${response.statusText}`;
-      if (contentType && contentType.includes("application/json")) {
-        try {
-          const errData = await response.json();
-          errorMessage = errData.error || errData.message || errorMessage;
-        } catch (e) {
-          // Fallback if JSON parse fails
-        }
+    // Choose model based on skill guidelines
+    let modelName = payload.model || "gemini-3-flash-preview";
+    
+    // Safety check for legacy/deprecated names
+    if (modelName === "gemini-1.5-flash" || modelName === "gemini-flash-latest") {
+      modelName = "gemini-3-flash-preview";
+    }
+
+    // Handle system instruction and simplification
+    let finalSystemInstruction = payload.systemInstruction || "";
+    if (payload.simplify) {
+      const simplifyInstruction = "Responda de forma extremamente direta, curta e com linguagem simples. Evite textos longos.";
+      finalSystemInstruction = finalSystemInstruction 
+        ? `${finalSystemInstruction}\n\n${simplifyInstruction}`
+        : simplifyInstruction;
+    }
+
+    const params: GenerateContentParameters = {
+      model: modelName,
+      contents: payload.contents || payload.prompt || "",
+      config: {
+        systemInstruction: finalSystemInstruction || undefined,
+        responseMimeType: (payload.responseMimeType as any) || "text/plain",
       }
-      throw new Error(errorMessage);
-    }
+    };
 
-    if (!contentType || !contentType.includes("application/json")) {
-      throw new Error("Resposta inválida do servidor (não é JSON). Verifique se a rota da API está configurada corretamente.");
-    }
+    const response = await ai.models.generateContent(params);
+    
+    // SDK v2: access .text property directly
+    return response.text || "";
 
-    const data = await response.json();
-    return data.text || "";
   } catch (error: any) {
-    console.error("Gemini Proxy Error:", error);
-    // Return a friendly message instead of technical details when possible
-    if (error.message.includes("Unexpected token") || error.message.includes("is not valid JSON")) {
-      throw new Error("O servidor retornou um formato inesperado. Isso geralmente acontece quando o endpoint da API não é encontrado.");
+    console.error("Gemini Error:", error);
+    
+    const message = error.message || "";
+    if (message.includes("API key not valid") || message.includes("403")) {
+      throw new Error("Chave de API do Gemini inválida ou desativada. Verifique suas configurações.");
     }
-    throw new Error(error.message || "Erro ao conectar com o servidor de IA.");
+    
+    throw new Error(message || "Erro ao comunicar com a inteligência artificial.");
   }
 };

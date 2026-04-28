@@ -194,6 +194,40 @@ service cloud.firestore {
             && data.get('category', 'Oração') in ['Oração', 'Compromisso', 'Evento', 'Jejum', 'Ministério'];
         }
       }
+
+      // --- Bible Markers ---
+      match /marcadores/{markerId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidMarker(incoming()) && incoming().createdAt == request.time;
+        allow delete: if isOwner(userId);
+
+        function isValidMarker(data) {
+          return data.get('userId', '') == userId
+            && data.book is string && data.book.size() <= 100
+            && data.chapter is int && data.chapter > 0
+            && data.verse is int && data.verse > 0;
+        }
+      }
+
+      // --- Bible Notes ---
+      match /notas/{noteId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidNote(incoming()) && incoming().createdAt == request.time;
+        allow update: if isOwner(userId) && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['text', 'updatedAt'])
+          && (incoming().get('updatedAt', null) == request.time)
+          && (incoming().text is string && incoming().text.size() <= 10000)
+        ) || isAdmin();
+        allow delete: if isOwner(userId);
+
+        function isValidNote(data) {
+          return data.get('userId', '') == userId
+            && data.book is string && data.book.size() <= 100
+            && data.chapter is int && data.chapter > 0
+            && data.verse is int && data.verse > 0
+            && data.text is string && data.text.size() <= 10000;
+        }
+      }
     }
 
     // --- Prayer Requests (Global/Shared) ---

@@ -309,15 +309,15 @@ export default function MainLayout() {
       </AnimatePresence>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-x-hidden">
-        <div className="container mx-auto px-4 py-6 md:py-10 max-w-5xl pb-24 md:pb-10">
+      <main className="flex-1 overflow-x-hidden min-h-screen">
+        <div className="container mx-auto px-4 pt-4 md:pt-10 pb-32 md:pb-10 max-w-5xl">
           <Outlet context={{ openSearch: () => setIsSearchModalOpen(true) }} />
         </div>
         <NotificationManager />
       </main>
 
       {/* Mobile Bottom Navigation (Streamlined) */}
-      <nav className="md:hidden fixed bottom-4 left-4 right-4 h-16 bg-navy/90 backdrop-blur-xl border border-amber/20 rounded-2xl flex items-center justify-around px-2 z-50 shadow-2xl">
+      <nav className="md:hidden fixed bottom-6 left-4 right-4 h-16 bg-navy/90 backdrop-blur-xl border border-amber/20 rounded-2xl flex items-center justify-around px-2 z-50 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
         {[
           { path: "/", icon: LayoutGrid, label: "Painel" },
           { path: "/bible", icon: BookOpen, label: "Bíblia" },

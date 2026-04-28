@@ -96,28 +96,28 @@ export default function Dashboard() {
   }, [user, isGuest]);
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6 md:space-y-10">
       {announcement && dismissedAnnounce !== announcement.id && (
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className={cn(
-            "p-6 rounded-3xl border shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center gap-6",
+            "p-5 md:p-6 rounded-2xl md:rounded-3xl border shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center gap-4 md:gap-6",
             announcement.type === 'alert' ? "bg-amber/10 border-amber/30 text-amber" : 
             announcement.type === 'welcome' ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" :
             "bg-blue-500/10 border-blue-500/30 text-blue-400"
           )}
         >
           <div className={cn(
-            "p-4 rounded-2xl shrink-0",
+            "p-3 md:p-4 rounded-xl md:rounded-2xl shrink-0",
             announcement.type === 'alert' ? "bg-amber/20" : 
             announcement.type === 'welcome' ? "bg-emerald-500/20" : "bg-blue-500/20"
           )}>
-            <Megaphone className="w-8 h-8" />
+            <Megaphone className="w-6 h-6 md:w-8 md:h-8" />
           </div>
           <div className="flex-1 text-center md:text-left">
-            <h4 className="text-xl font-display font-bold mb-1">{announcement.title}</h4>
-            <p className="text-sm opacity-80 leading-relaxed">{announcement.content}</p>
+            <h4 className="text-lg md:text-xl font-display font-bold mb-1">{announcement.title}</h4>
+            <p className="text-xs md:text-sm opacity-80 leading-relaxed">{announcement.content}</p>
           </div>
           <button 
             onClick={() => setDismissedAnnounce(announcement.id)}
@@ -146,20 +146,20 @@ export default function Dashboard() {
           </button>
         </motion.div>
       )}
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div className="space-y-2">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6">
+        <div className="space-y-1 md:space-y-2">
           <motion.div 
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="flex items-center gap-2 mb-2"
+            className="flex items-center gap-2 mb-1"
           >
-            <div className="h-[1px] w-6 bg-amber/30" />
-            <span className="text-[10px] font-black text-amber uppercase tracking-[0.3em]">Lucas Marangoni Edition</span>
+            <div className="h-[1px] w-4 md:w-6 bg-amber/30" />
+            <span className="text-[9px] md:text-[10px] font-black text-amber uppercase tracking-[0.3em]">Lucas Marangoni Edition</span>
           </motion.div>
           <motion.p 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-amber font-medium tracking-widest uppercase text-xs"
+            className="text-amber font-medium tracking-widest uppercase text-[10px] md:xs"
           >
             {isGuest ? "Bem-vindo ao Perto de Deus" : "Bom dia em Cristo"}
           </motion.p>
@@ -167,7 +167,7 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-4xl md:text-5xl font-display font-bold leading-tight"
+            className="text-3xl md:text-5xl font-display font-bold leading-tight"
           >
             Olá, {user?.displayName?.split(' ')[0] || "Visitante"}
           </motion.h1>
