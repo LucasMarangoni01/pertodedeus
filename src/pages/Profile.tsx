@@ -5,7 +5,7 @@ import {
   Zap, Award, Book, Heart, MessageSquare, Edit2, 
   Share2, Settings, Save, X, Camera, CheckCircle2, 
   AlertCircle, ChevronRight, MapPin, Calendar, BookOpen,
-  Globe, HelpCircle, Trophy, Star, ArrowRight, MousePointer2
+  Globe, HelpCircle, Trophy, Star, ArrowRight, MousePointer2, Trash2
 } from "lucide-react";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from "recharts";
 import { cn } from "../lib/utils";
@@ -14,6 +14,9 @@ import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { handleFirestoreError, OperationType } from "../lib/firestoreErrorHandler";
 import { getLevelInfo } from "../services/userService";
+import { carregarTodosFavoritos, BibleFavorite, favoritarVersiculo } from "../services/bibleActions";
+import { getBibleChapter } from "../lib/bibleApi";
+import { bibleBooks } from "../constants/bibleData";
 
 const BIBLE_VERSIONS = [
   { id: "ARA", name: "ARA - Almeida Revista e Atualizada" },
@@ -34,6 +37,8 @@ export default function Profile() {
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(0);
+  const [favorites, setFavorites] = useState<(BibleFavorite & { text?: string })[]>([]);
+  const [loadingFavorites, setLoadingFavorites] = useState(true);
   
   // Edit Form State
   const [formData, setFormData] = useState({
@@ -56,8 +61,52 @@ export default function Profile() {
         bibleVersion: user.bibleVersion || "NVI",
         isPublic: user.isPublic ?? true,
       });
+
+      // Load favorites
+      loadFavorites();
     }
   }, [user]);
+
+  const loadFavorites = async () => {
+    if (!user) return;
+    setLoadingFavorites(true);
+    try {
+      const allFavs = await carregarTodosFavoritos(user.uid);
+      
+      // Try to fetch text for the first few favorites for better UI
+      const version = user.bibleVersion || "NVI";
+      const favsWithText = await Promise.all(allFavs.map(async (fav) => {
+        try {
+          const book = bibleBooks.find(b => b.name === fav.book);
+          if (book) {
+            const chapterData = await getBibleChapter(version, book.bollsId, fav.chapter);
+            const verse = chapterData.find((v: any) => v.v === fav.verse);
+            return { ...fav, text: verse?.t };
+          }
+        } catch (err) {
+          console.error("Error fetching verse text:", err);
+        }
+        return fav;
+      }));
+
+      setFavorites(favsWithText);
+    } catch (err) {
+      console.error("Error loading favorites:", err);
+    } finally {
+      setLoadingFavorites(false);
+    }
+  };
+
+  const handleRemoveFavorite = async (fav: BibleFavorite) => {
+    if (!user) return;
+    try {
+      await favoritarVersiculo(user.uid, fav.book, fav.chapter, fav.verse);
+      setFavorites(prev => prev.filter(f => !(f.book === fav.book && f.chapter === fav.chapter && f.verse === fav.verse)));
+      showNotification("Versículo removido dos favoritos", "success");
+    } catch (err) {
+      showNotification("Erro ao remover favorito", "error");
+    }
+  };
 
   const xp = user?.experience || 0;
   const { currentLevel, nextLevel, progress } = getLevelInfo(xp);
@@ -73,9 +122,9 @@ export default function Profile() {
 
   const dashboardStats = [
     { label: "Dias de Fé", val: user?.totalFaithDays || 0, icon: Zap, color: "text-amber" },
+    { label: "Favoritos", val: favorites.length, icon: Star, color: "text-amber/60" },
     { label: "Capítulos", val: user?.totalChaptersRead || 0, icon: BookOpen, color: "text-pearl/60" },
-    { label: "Orações", val: user?.totalPrayers || 0, icon: Heart, color: "text-red-400/60" },
-    { label: "Devocionais", val: user?.totalDevotionals || 0, icon: Book, color: "text-blue-400/60" }
+    { label: "Orações", val: user?.totalPrayers || 0, icon: Heart, color: "text-red-400/60" }
   ];
 
   const showNotification = (message: string, type: 'success' | 'error') => {
@@ -469,6 +518,81 @@ export default function Profile() {
                 </RadarChart>
               </ResponsiveContainer>
             </div>
+          </section>
+
+          {/* Favorites Section */}
+          <section className="bg-white/5 border border-white/5 rounded-3xl p-8 space-y-6">
+             <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-amber/10 rounded-xl text-amber">
+                    <Star className="w-5 h-5 fill-amber" />
+                  </div>
+                  <h3 className="text-lg font-display font-bold">Versículos Favoritos</h3>
+                </div>
+                <span className="text-[10px] font-bold text-pearl/40 uppercase tracking-widest">{favorites.length} salvos</span>
+             </div>
+
+             {loadingFavorites ? (
+               <div className="space-y-4">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="h-24 bg-white/5 rounded-2xl animate-pulse" />
+                  ))}
+               </div>
+             ) : favorites.length > 0 ? (
+               <div className="grid grid-cols-1 gap-4">
+                  {favorites.map((fav, i) => (
+                    <motion.div 
+                      key={`${fav.book}-${fav.chapter}-${fav.verse}`}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      className="group bg-navy/40 border border-white/5 rounded-2xl p-5 hover:border-amber/20 transition-all relative overflow-hidden"
+                    >
+                      <div className="flex justify-between items-start mb-2 relative z-10">
+                        <p className="text-xs font-bold text-amber uppercase tracking-wider">
+                          {fav.book} {fav.chapter}:{fav.verse}
+                        </p>
+                        <button 
+                          onClick={() => handleRemoveFavorite(fav)}
+                          className="p-1 text-pearl/20 hover:text-red-400 transition-colors"
+                          title="Remover"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      
+                      {fav.text && (
+                        <p className="text-sm text-pearl/80 font-serif italic line-clamp-3 leading-relaxed relative z-10">
+                          "{fav.text}"
+                        </p>
+                      )}
+
+                      <button 
+                        onClick={() => {
+                          // Navigate to bible and open this verse
+                          navigate("/bible", { state: { book: fav.book, chapter: fav.chapter, verse: fav.verse } });
+                        }}
+                        className="mt-4 text-[10px] font-bold uppercase text-amber/40 hover:text-amber transition-colors flex items-center gap-1.5"
+                      >
+                         Ler contexto <ArrowRight className="w-3 h-3" />
+                      </button>
+
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-amber/5 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </motion.div>
+                  ))}
+               </div>
+             ) : (
+               <div className="text-center py-12 bg-white/2 rounded-2xl border border-dashed border-white/10">
+                  <Star className="w-10 h-10 text-pearl/10 mx-auto mb-4" />
+                  <p className="text-pearl/40 text-sm">Você ainda não favoritou nenhum versículo.</p>
+                  <button 
+                    onClick={() => navigate("/bible")}
+                    className="mt-4 text-amber text-xs font-bold uppercase hover:underline"
+                  >
+                    Ir para a Bíblia
+                  </button>
+               </div>
+             )}
           </section>
 
           {/* Preferences / Bible Version */}

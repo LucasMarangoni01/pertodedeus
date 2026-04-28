@@ -5,6 +5,7 @@ import path from "path";
 import fs from "fs";
 import os from "os";
 import { EdgeTTS } from "node-edge-tts";
+import aiProxyHandler from "./api/ai/proxy";
 
 async function startServer() {
   const app = express();
@@ -13,6 +14,11 @@ async function startServer() {
   // Add JSON body parser
   app.use(express.json());
   
+  // ----- AI PROXY -----
+  app.post("/api/ai/proxy", (req, res) => {
+    aiProxyHandler(req, res);
+  });
+
   // ----- DEBUG ENDPOINT -----
   app.get("/api/ai/health", (req, res) => {
     const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;

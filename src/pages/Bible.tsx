@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { useLocation } from "react-router-dom";
 import { Search, Book, ChevronRight, ChevronLeft, Settings2, Share2, Copy, Highlighter, FileText, X, Star, Volume2, Square, PlayCircle, Sparkles, Brain, Lightbulb, Compass, MessageSquareQuote, Save, Trash2 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useAuth } from "../context/AuthContext";
@@ -14,10 +15,13 @@ import { trackSpiritualAction } from "../services/userService";
 import { explainPassage, summarizeVerse, summarizeChapter } from "../services/geminiService";
 import { 
   marcarVersiculo, 
+  favoritarVersiculo,
   salvarNota, 
   carregarMarcadores, 
+  carregarFavoritos,
   carregarNotas, 
   BibleMarker, 
+  BibleFavorite,
   BibleNote,
   deleteNoteAction 
 } from "../services/bibleActions";
@@ -34,6 +38,7 @@ const translations = [
 
 export default function Bible() {
   const { user, isGuest } = useAuth();
+  const location = useLocation();
   const { preferences, togglePreference } = usePreference();
   const showNotes = preferences.showNotes;
   const [selectedBook, setSelectedBook] = useState<string | null>(null);
@@ -68,6 +73,7 @@ export default function Bible() {
   const [loadingChapterSummary, setLoadingChapterSummary] = useState(false);
   const [chapterSummary, setChapterSummary] = useState<string | null>(null);
   const [chapterMarkers, setChapterMarkers] = useState<BibleMarker[]>([]);
+  const [chapterFavorites, setChapterFavorites] = useState<BibleFavorite[]>([]);
   const [chapterNotes, setChapterNotes] = useState<BibleNote[]>([]);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [currentNoteText, setCurrentNoteText] = useState("");
@@ -134,6 +140,20 @@ export default function Bible() {
 
   useEffect(() => {
     if (!selectedBook && !loadingBooks) {
+      // Check if we have navigation state from another page (like Profile favorites)
+      const navState = location.state as { book: string, chapter: number, verse: number } | null;
+      if (navState) {
+        const book = bibleBooks.find(b => b.name === navState.book);
+        if (book) {
+          setSelectedBook(navState.book);
+          setSelectedBookId(book.bollsId);
+          setSelectedChapter(navState.chapter);
+          lastSavedVerse.current = navState.verse;
+          showNotification(`Abrindo em ${navState.book} ${navState.chapter}:${navState.verse}`);
+          return;
+        }
+      }
+      
       continueReading();
     }
   }, [loadingBooks]);
@@ -483,6 +503,38 @@ export default function Bible() {
     }
   };
 
+  const handleFavorite = async () => {
+    if (selectedVerses.length === 0) return;
+    
+    const sortedSelected = [...selectedVerses].sort((a, b) => a - b);
+    const firstVerse = sortedSelected[0];
+    const isAlreadyFavorited = chapterFavorites.some(f => f.verse === firstVerse);
+    
+    setSavingAction(true);
+    try {
+      for (const vNum of sortedSelected) {
+        await favoritarVersiculo(user?.uid || null, selectedBook!, selectedChapter!, vNum);
+      }
+      
+      const actionMsg = sortedSelected.length > 1 
+        ? "Favoritos atualizados!" 
+        : (isAlreadyFavorited ? "Removido dos favoritos!" : "Adicionado aos favoritos!");
+        
+      showNotification(actionMsg);
+      
+      const updatedFavorites = await carregarFavoritos(user?.uid || null, selectedBook!, selectedChapter!);
+      setChapterFavorites(updatedFavorites);
+      setSelectedVerses([]);
+    } catch (err) {
+      console.error(err);
+      showNotification("Erro ao sincronizar favoritos.");
+      const favorites = await carregarFavoritos(user?.uid || null, selectedBook!, selectedChapter!);
+      setChapterFavorites(favorites);
+    } finally {
+      setSavingAction(false);
+    }
+  };
+
   const handleOpenNoteModal = () => {
     if (selectedVerses.length === 0) return;
     
@@ -608,13 +660,22 @@ export default function Bible() {
         setError(null);
         setChapterTitle(null);
         try {
-          const bookData = books.find(b => b.name === selectedBook);
-          if (!bookData) throw new Error("Livro não encontrado.");
+          // Robust book lookup checking both name and bollsId
+          const bookData = books.find(b => b.bollsId === selectedBookId || b.name === selectedBook);
+          
+          if (!bookData) {
+            console.error("Livro não encontrado:", { selectedBook, selectedBookId, availableCount: books.length });
+            throw new Error("Livro não encontrado.");
+          }
 
           // Carregar marcadores e notas em paralelo com os versículos
           carregarMarcadores(user?.uid || null, selectedBook!, selectedChapter!).then(markers => {
             setChapterMarkers(markers);
           }).catch(err => console.error("Erro ao carregar marcadores:", err));
+
+          carregarFavoritos(user?.uid || null, selectedBook!, selectedChapter!).then(favorites => {
+            setChapterFavorites(favorites);
+          }).catch(err => console.error("Erro ao carregar favoritos:", err));
 
           carregarNotas(user?.uid || null, selectedBook!, selectedChapter!).then(notes => {
             setChapterNotes(notes);
@@ -838,7 +899,10 @@ export default function Bible() {
                          <p className="text-[11px] text-pearl/60 line-clamp-2 leading-relaxed" dangerouslySetInnerHTML={{ __html: result.text }} />
                       </button>
                    ))}
-            ) : (
+                 </div>
+              )}
+           </div>
+        ) : (
           <div className="space-y-6">
             <button 
               onClick={() => { setSelectedBook(null); setSelectedBookId(null); setSelectedChapter(null); }}
@@ -927,8 +991,6 @@ export default function Bible() {
                     )}
                     <span className="hidden sm:inline">{audioStatus === "playing" ? "Parar" : "Ouvir"}</span>
                   </button>
-                    )}
-                 </button>
                  <div className="relative">
                    <button 
                      onClick={() => setShowSettings(!showSettings)}
@@ -1091,6 +1153,7 @@ export default function Bible() {
                    {verses.map(v => {
                       const verseId = `${selectedBook}_${selectedChapter}_${v.v}`;
                       const isMarked = chapterMarkers.some(m => m.id === verseId || (m.book === selectedBook && m.chapter === selectedChapter && m.verse === v.v));
+                      const isFavorited = chapterFavorites.some(f => f.id === verseId || (f.book === selectedBook && f.chapter === selectedChapter && f.verse === v.v));
                       const hasNote = chapterNotes.some(n => n.id === verseId || (n.book === selectedBook && n.chapter === selectedChapter && n.verse === v.v));
                       
                       return (
@@ -1104,17 +1167,20 @@ export default function Bible() {
                             "font-serif leading-relaxed transition-all p-2 rounded-lg cursor-pointer border-l-2",
                             selectedVerses.includes(v.v) 
                               ? "bg-amber/10 text-amber border-amber" 
-                              : isMarked 
-                                ? "text-pearl/90 border-amber/40 shadow-sm" 
-                                : "hover:bg-white/5 text-pearl/80 border-transparent"
+                              : isFavorited
+                                ? "bg-amber/5 text-pearl/90 border-amber shadow-sm shadow-amber/10"
+                                : isMarked 
+                                  ? "text-pearl/90 border-amber/40 shadow-sm" 
+                                  : "hover:bg-white/5 text-pearl/80 border-transparent"
                           )}
                           style={{ 
                             fontSize: `${fontSize}px`,
-                            backgroundColor: isMarked && !selectedVerses.includes(v.v) ? 'rgba(255, 215, 0, 0.15)' : undefined
+                            backgroundColor: isMarked && !selectedVerses.includes(v.v) && !isFavorited ? 'rgba(255, 215, 0, 0.15)' : undefined
                           }}
                         >
                           <sup className="text-[10px] mr-2 text-amber font-bold flex items-center gap-1 inline-flex">
                             {v.v}
+                            {isFavorited && <Star className="w-2.5 h-2.5 fill-amber" />}
                             {hasNote && <FileText className="w-2.5 h-2.5 opacity-60" />}
                           </sup>
                           {v.t}
@@ -1185,6 +1251,21 @@ export default function Bible() {
                        )}
                        Resumir
                     </button>
+                    <button 
+                       onClick={handleFavorite}
+                       disabled={savingAction}
+                       title="Favoritar Versículo"
+                       className={cn(
+                         "p-2 transition-colors",
+                         chapterFavorites.some(f => f.verse === selectedVerses[0]) ? "text-amber" : "text-pearl/60 hover:text-amber"
+                       )}
+                     >
+                       {savingAction ? (
+                          <div className="w-4 h-4 border-2 border-amber border-t-transparent rounded-full animate-spin" />
+                       ) : (
+                          <Star className={cn("w-5 h-5", chapterFavorites.some(f => f.verse === selectedVerses[0]) && "fill-amber")} />
+                       )}
+                     </button>
                      <button 
                         onClick={handleMark}
                         disabled={savingAction}

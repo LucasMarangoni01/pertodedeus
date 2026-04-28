@@ -256,6 +256,19 @@
       },
       "required": ["userId", "book", "chapter", "verse", "createdAt"]
     },
+    "BibleFavorite": {
+      "title": "Favorite Bible Verse",
+      "description": "User's favorite Bible verses",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "book": { "type": "string" },
+        "chapter": { "type": "integer" },
+        "verse": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "book", "chapter", "verse", "createdAt"]
+    },
     "BibleNote": {
       "title": "Bible Verse Note",
       "description": "Personal notes for specific Bible verses",
@@ -337,6 +350,10 @@
     "/users/{userId}/marcadores/{markerId}": {
       "schema": "BibleMarker",
       "description": "Marked verses for highlighting"
+    },
+    "/users/{userId}/favoritos/{favoriteId}": {
+      "schema": "BibleFavorite",
+      "description": "User's favorite Bible verses"
     },
     "/users/{userId}/notas/{noteId}": {
       "schema": "BibleNote",

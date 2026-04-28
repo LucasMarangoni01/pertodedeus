@@ -22,6 +22,15 @@ export interface BibleMarker {
   createdAt: any;
 }
 
+export interface BibleFavorite {
+  id?: string;
+  userId: string;
+  book: string;
+  chapter: number;
+  verse: number;
+  createdAt: any;
+}
+
 export interface BibleNote {
   id?: string;
   userId: string;
@@ -39,11 +48,52 @@ export interface BibleNote {
  */
 
 const LOCAL_STORAGE_MARKERS = 'perto_de_deus_marcadores';
+const LOCAL_STORAGE_FAVORITES = 'perto_de_deus_favoritos';
 const LOCAL_STORAGE_NOTES = 'perto_de_deus_notas';
 
 // Helpers para LocalStorage
 const getLocal = (key: string) => JSON.parse(localStorage.getItem(key) || '[]');
 const setLocal = (key: string, data: any) => localStorage.setItem(key, JSON.stringify(data));
+
+/**
+ * Alterna um favorito em um versículo.
+ */
+export const favoritarVersiculo = async (userId: string | null, book: string, chapter: number, verse: number) => {
+  const favoriteId = `${book}_${chapter}_${verse}`;
+
+  if (!userId) {
+    const favorites = getLocal(LOCAL_STORAGE_FAVORITES);
+    const index = favorites.findIndex((f: any) => f.id === favoriteId);
+    
+    if (index > -1) {
+      favorites.splice(index, 1);
+      setLocal(LOCAL_STORAGE_FAVORITES, favorites);
+      return { action: 'removed' };
+    } else {
+      favorites.push({ id: favoriteId, book, chapter, verse, createdAt: new Date().toISOString() });
+      setLocal(LOCAL_STORAGE_FAVORITES, favorites);
+      return { action: 'added' };
+    }
+  }
+
+  const favoriteRef = doc(db, `users/${userId}/favoritos`, favoriteId);
+  const snapshot = await getDoc(favoriteRef);
+
+  if (snapshot.exists()) {
+    await deleteDoc(favoriteRef);
+    return { action: 'removed', id: favoriteId };
+  } else {
+    const newFavorite: BibleFavorite = {
+      userId,
+      book,
+      chapter,
+      verse,
+      createdAt: serverTimestamp()
+    };
+    await setDoc(favoriteRef, newFavorite);
+    return { action: 'added', id: favoriteId };
+  }
+};
 
 /**
  * Alterna um marcador em um versículo.
@@ -151,6 +201,44 @@ export const carregarMarcadores = async (userId: string | null, book: string, ch
 
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BibleMarker));
+};
+
+/**
+ * Carrega todos os favoritos de um capítulo específico.
+ */
+export const carregarFavoritos = async (userId: string | null, book: string, chapter: number) => {
+  if (!userId) {
+    const favorites = getLocal(LOCAL_STORAGE_FAVORITES);
+    return favorites.filter((f: any) => f.book === book && f.chapter === chapter) as BibleFavorite[];
+  }
+
+  const favoritePath = `users/${userId}/favoritos`;
+  const q = query(
+    collection(db, favoritePath),
+    where("book", "==", book),
+    where("chapter", "==", chapter)
+  );
+
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BibleFavorite));
+};
+
+/**
+ * Carrega TODOS os favoritos de um usuário.
+ */
+export const carregarTodosFavoritos = async (userId: string | null) => {
+  if (!userId) {
+    return getLocal(LOCAL_STORAGE_FAVORITES) as BibleFavorite[];
+  }
+
+  const favoritePath = `users/${userId}/favoritos`;
+  const q = query(
+    collection(db, favoritePath),
+    orderBy("createdAt", "desc")
+  );
+
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BibleFavorite));
 };
 
 /**

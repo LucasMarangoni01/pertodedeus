@@ -25,47 +25,35 @@ const getAiClient = () => {
 
 export const callGeminiProxy = async (payload: GeminiPayload): Promise<string> => {
   try {
-    const ai = getAiClient();
-    
-    // Choose model based on skill guidelines
-    let modelName = payload.model || "gemini-3-flash-preview";
-    
-    // Safety check for legacy/deprecated names
-    if (modelName === "gemini-1.5-flash" || modelName === "gemini-flash-latest") {
-      modelName = "gemini-3-flash-preview";
+    // Determine the model - ensure it's a modern one
+    let modelName = payload.model || "gemini-1.5-flash";
+    if (modelName === "gemini-3-flash-preview") {
+      modelName = "gemini-2.0-flash-exp"; // Fallback to a stable high-performance model if preview is used
     }
 
-    // Handle system instruction and simplification
-    let finalSystemInstruction = payload.systemInstruction || "";
-    if (payload.simplify) {
-      const simplifyInstruction = "Responda de forma extremamente direta, curta e com linguagem simples. Evite textos longos.";
-      finalSystemInstruction = finalSystemInstruction 
-        ? `${finalSystemInstruction}\n\n${simplifyInstruction}`
-        : simplifyInstruction;
+    const response = await fetch("/api/ai/proxy", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        prompt: payload.contents || payload.prompt,
+        model: modelName,
+        systemInstruction: payload.systemInstruction || (payload.simplify ? "Responda de forma extremamente direta, curta e com linguagem simples. Evite textos longos." : undefined),
+        responseMimeType: payload.responseMimeType || "text/plain",
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro no servidor: ${response.status}`);
     }
 
-    const params: GenerateContentParameters = {
-      model: modelName,
-      contents: payload.contents || payload.prompt || "",
-      config: {
-        systemInstruction: finalSystemInstruction || undefined,
-        responseMimeType: (payload.responseMimeType as any) || "text/plain",
-      }
-    };
-
-    const response = await ai.models.generateContent(params);
-    
-    // SDK v2: access .text property directly
-    return response.text || "";
+    const data = await response.json();
+    return data.text || "";
 
   } catch (error: any) {
-    console.error("Gemini Error:", error);
-    
-    const message = error.message || "";
-    if (message.includes("API key not valid") || message.includes("403")) {
-      throw new Error("Chave de API do Gemini inválida ou desativada. Verifique suas configurações.");
-    }
-    
-    throw new Error(message || "Erro ao comunicar com a inteligência artificial.");
+    console.error("Gemini Proxy Error:", error);
+    throw new Error(error.message || "Erro ao comunicar com a inteligência artificial.");
   }
 };
