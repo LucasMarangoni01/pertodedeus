@@ -5,6 +5,8 @@ import path from "path";
 import fs from "fs";
 import os from "os";
 import { EdgeTTS } from "node-edge-tts";
+import { GoogleGenAI } from "@google/genai";
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -12,6 +14,51 @@ async function startServer() {
   // Add JSON body parser
   app.use(express.json());
   
+  // ----- AI CHAT PROXY (SECURE) -----
+  app.post("/api/ai/chat", async (req, res) => {
+    try {
+      const { prompt, contents, model = "gemini-3-flash-preview", isSimpleMode, responseMimeType = "text/plain" } = req.body;
+      
+      const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+      
+      if (!apiKey || apiKey === "YOUR_GEMINI_API_KEY") {
+        console.error("ERRO: Chave de API não configurada no servidor.");
+        return res.status(500).json({ error: "Configuração de IA incompleta no servidor." });
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
+      
+      // Resolve model (ensure it's modern)
+      let modelName = model;
+      if (modelName.includes("gemini-3") || modelName.includes("gemini-1.5") || modelName === "gemini-flash") {
+        modelName = "gemini-3-flash-preview";
+      }
+
+      // Logic for system instruction based on mode
+      const systemInstruction = isSimpleMode 
+        ? "Responda de forma extremamente direta, curta e com linguagem simples. Use termos do dia a dia. Evite parágrafos longos ou termos teológicos complexos."
+        : "Responda de forma pastoral, acolhedora e inspiradora.";
+
+      const response = await ai.models.generateContent({
+        model: modelName,
+        contents: contents || prompt,
+        config: {
+          systemInstruction,
+          responseMimeType,
+        },
+      });
+
+      res.json({ text: response.text });
+      
+    } catch (error: any) {
+      console.error("Erro no Proxy de IA:", error);
+      res.status(500).json({ 
+        error: "Falha na comunicação com a IA",
+        details: error.message 
+      });
+    }
+  });
+
   // ----- DEBUG ENDPOINT -----
   app.get("/api/ai/health", (req, res) => {
     const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
