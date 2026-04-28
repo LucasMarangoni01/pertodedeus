@@ -1,5 +1,6 @@
-import { GoogleGenAI, GenerateContentParameters } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 
+// Payload for the AI proxy (kept for interface compatibility)
 export interface GeminiPayload {
   prompt?: string;
   contents?: any;
@@ -9,51 +10,47 @@ export interface GeminiPayload {
   simplify?: boolean;
 }
 
-// Lazy initialization of the SDK
-let aiClient: GoogleGenAI | null = null;
-
-const getAiClient = () => {
-  if (!aiClient) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey || apiKey === "YOUR_GEMINI_API_KEY") {
-      throw new Error("Chave de API do Gemini não configurada. Por favor, adicione sua chave nas configurações do projeto.");
-    }
-    aiClient = new GoogleGenAI({ apiKey });
+// Model alias handler based on gemini-api skill
+const resolveModel = (name?: string) => {
+  if (!name) return "gemini-3-flash-preview";
+  if (name.includes("gemini-3") || name.includes("gemini-1.5") || name === "gemini-flash") {
+    return "gemini-3-flash-preview";
   }
-  return aiClient;
+  return name;
 };
 
 export const callGeminiProxy = async (payload: GeminiPayload): Promise<string> => {
   try {
-    // Determine the model - ensure it's a modern one
-    let modelName = payload.model || "gemini-1.5-flash";
-    if (modelName === "gemini-3-flash-preview") {
-      modelName = "gemini-2.0-flash-exp"; // Fallback to a stable high-performance model if preview is used
+    const apiKey = process.env.GEMINI_API_KEY;
+    
+    if (!apiKey || apiKey === "YOUR_GEMINI_API_KEY") {
+      throw new Error("Chave de API do Gemini não configurada. Por favor, adicione sua chave nas configurações do projeto.");
     }
 
-    const response = await fetch("/api/ai/proxy", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        prompt: payload.contents || payload.prompt,
-        model: modelName,
+    const ai = new GoogleGenAI({ apiKey });
+    
+    const modelName = resolveModel(payload.model);
+    const contents = payload.contents || payload.prompt;
+    
+    const response = await ai.models.generateContent({
+      model: modelName,
+      contents: contents,
+      config: {
         systemInstruction: payload.systemInstruction || (payload.simplify ? "Responda de forma extremamente direta, curta e com linguagem simples. Evite textos longos." : undefined),
         responseMimeType: payload.responseMimeType || "text/plain",
-      }),
+      },
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Erro no servidor: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.text || "";
+    return response.text || "";
 
   } catch (error: any) {
-    console.error("Gemini Proxy Error:", error);
+    console.error("Gemini Error:", error);
+    
+    // Check if it's a key error
+    if (error.message?.includes("API key not valid") || error.message?.includes("400")) {
+      throw new Error("A chave de API do Google é inválida ou não tem permissão para este modelo. Verifique as configurações do projeto.");
+    }
+    
     throw new Error(error.message || "Erro ao comunicar com a inteligência artificial.");
   }
 };

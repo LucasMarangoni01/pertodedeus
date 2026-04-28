@@ -95,12 +95,16 @@ export default function Onboarding() {
                 value={formData.displayName}
                 onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
                 className="w-full bg-white/5 border border-amber/20 rounded-2xl px-6 py-4 text-pearl focus:outline-none focus:border-amber transition-colors"
-                placeholder="Seu nome"
+                placeholder="Seu nome (Opcional)"
               />
               <button 
-                onClick={handleNext}
-                disabled={!formData.displayName.trim()}
-                className="w-full flex items-center justify-center gap-2 bg-amber text-navy font-bold py-4 rounded-2xl shadow-lg disabled:opacity-50"
+                onClick={() => {
+                  if (!formData.displayName.trim()) {
+                    setFormData({ ...formData, displayName: "Visitante" });
+                  }
+                  handleNext();
+                }}
+                className="w-full flex items-center justify-center gap-2 bg-amber text-navy font-bold py-4 rounded-2xl shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-transform"
               >
                 Continuar <ChevronRight className="w-5 h-5" />
               </button>

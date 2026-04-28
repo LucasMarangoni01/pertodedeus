@@ -5,12 +5,16 @@ import {
   getDocs, 
   getDoc,
   query, 
-  where, 
+  where,
+  orderBy as firestoreOrderBy, 
   deleteDoc, 
   serverTimestamp,
   addDoc,
   updateDoc
 } from "firebase/firestore";
+
+// Re-export or use as local alias to ensure it's defined
+const orderBy = firestoreOrderBy;
 import { db } from "../lib/firebase";
 
 export interface BibleMarker {

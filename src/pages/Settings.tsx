@@ -179,9 +179,11 @@ export default function Settings() {
   const handleSave = async () => {
     if ((!user && !isGuest) || loading) return;
     
-    if (!formData.displayName || !formData.displayName.trim()) {
-      showNotification("O nome de exibição não pode estar vazio.", "error");
-      return;
+    // Allow empty name, but fallback to "Visitante" or original
+    let finalName = formData.displayName.trim();
+    if (!finalName) {
+      finalName = isGuest ? "Visitante" : (user?.displayName || "Discípulo");
+      setFormData(prev => ({ ...prev, displayName: finalName }));
     }
 
     setLoading(true);
@@ -189,7 +191,7 @@ export default function Settings() {
     try {
       const updateData = {
         ...formData,
-        displayName: formData.displayName.trim(),
+        displayName: finalName,
         updatedAt: isGuest ? new Date().toISOString() : serverTimestamp(),
       };
 

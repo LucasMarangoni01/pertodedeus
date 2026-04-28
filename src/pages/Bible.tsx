@@ -654,17 +654,36 @@ export default function Bible() {
   };
 
   useEffect(() => {
-    if (selectedBook && selectedChapter) {
+    if (selectedBook && selectedChapter && books.length > 0) {
       const fetchVerses = async () => {
         setLoading(true);
         setError(null);
         setChapterTitle(null);
         try {
-          // Robust book lookup checking both name and bollsId
-          const bookData = books.find(b => b.bollsId === selectedBookId || b.name === selectedBook);
+          const searchName = selectedBook?.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          
+          const bookData = books.find(b => {
+            const bName = b.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            return (selectedBookId && b.bollsId === selectedBookId) || 
+                   bName === searchName ||
+                   bName.includes(searchName) ||
+                   searchName.includes(bName);
+          });
           
           if (!bookData) {
-            console.error("Livro não encontrado:", { selectedBook, selectedBookId, availableCount: books.length });
+            console.error("Livro não encontrado:", { 
+              selectedBook, 
+              selectedBookId, 
+              availableCount: books.length
+            });
+            // Tenta o primeiro livro como fallback para não quebrar a UI
+            if (books.length > 0) {
+              const fallback = books[0];
+              setSelectedBook(fallback.name);
+              setSelectedBookId(fallback.bollsId);
+              setSelectedChapter(1);
+              return;
+            }
             throw new Error("Livro não encontrado.");
           }
 

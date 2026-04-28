@@ -160,11 +160,18 @@ export default function Profile() {
   const handleSave = async () => {
     if (!user?.uid) return;
     
+    let finalName = formData.displayName.trim();
+    if (!finalName) {
+      finalName = user.displayName || "Discípulo";
+      setFormData(prev => ({ ...prev, displayName: finalName }));
+    }
+
     setIsSaving(true);
     try {
       const userRef = doc(db, "users", user.uid);
       await updateDoc(userRef, {
         ...formData,
+        displayName: finalName,
         updatedAt: serverTimestamp()
       });
       
