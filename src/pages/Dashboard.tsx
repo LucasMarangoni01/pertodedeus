@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { Sparkles, Zap, Heart, BookOpen, MessageSquare, Plus, ChevronRight, MapPin, HelpCircle, Flame, Calendar as CalendarIcon, ShieldAlert, Search, Megaphone, X as CloseIcon } from "lucide-react";
+import { Sparkles, Zap, Heart, BookOpen, MessageSquare, Plus, ChevronRight, MapPin, HelpCircle, Flame, Calendar as CalendarIcon, ShieldAlert, Search, Megaphone, X as CloseIcon, Clock, Cross } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../lib/firebase";
 import { collection, query, where, limit, onSnapshot, orderBy } from "firebase/firestore";
@@ -330,8 +330,10 @@ export default function Dashboard() {
         </div>
 
         {/* Action Shortcuts */}
-        <div className="lg:col-span-2 grid grid-cols-2 md:grid-cols-6 gap-4">
+        <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-3">
            {[
+             { label: "Cronômetro", icon: Clock, path: "/cronometro", color: "bg-amber/25 text-amber" },
+             { label: "Catolicismo", icon: Cross, path: "/catolicismo", color: "bg-amber/20 text-pearl" },
              { label: "Agenda", icon: CalendarIcon, path: "/agenda", color: "bg-amber/20 text-amber" },
              { label: "Lutas", icon: Flame, path: "/struggles", color: "bg-grape/20 text-grape" },
              { label: "Jejum", icon: Flame, path: "/jejum", color: "bg-amber/10 text-amber" },

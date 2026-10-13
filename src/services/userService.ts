@@ -1,5 +1,5 @@
-import { doc, updateDoc, increment, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { doc, updateDoc, increment, getDoc, serverTimestamp, setDoc, collection, addDoc } from "firebase/firestore";
+import { db, withTimeout } from "../lib/firebase";
 
 export type SpiritualAction = "bibleRead" | "prayer" | "devotional" | "login" | "charity" | "fasting" | "worship";
 
@@ -108,4 +108,109 @@ export async function checkDailyFaith(userId: string) {
   }
   
   return { firstTimeToday: false };
+}
+
+export interface ReadingSessionData {
+  book: string;
+  chapter: number;
+  startVerse: number;
+  endVerse: number;
+  bibleType: "fisica" | "digital";
+  plannedVersesCount: number;
+  durationSeconds?: number;
+  completed?: boolean;
+}
+
+/**
+ * Salva as estatísticas no momento exato em que o usuário inicia o cronômetro
+ */
+export async function recordTimerStart(userId: string, data: ReadingSessionData): Promise<string | null> {
+  if (!userId) return null;
+  const userRef = doc(db, "users", userId);
+  const now = new Date();
+
+  // Salva no localStorage como cache e fallback imediato
+  const localStats = JSON.parse(localStorage.getItem("timerReadingStats") || "{}");
+  localStats.totalStarts = (localStats.totalStarts || 0) + 1;
+  localStats.lastSession = { ...data, startedAt: now.toISOString() };
+  localStorage.setItem("timerReadingStats", JSON.stringify(localStats));
+
+  try {
+    // 1. Atualiza contador geral e último início no perfil do usuário
+    const updatePromise = updateDoc(userRef, {
+      "timerStats.totalStarts": increment(1),
+      "timerStats.lastStartedAt": serverTimestamp(),
+      "timerStats.lastBook": data.book,
+      "timerStats.lastChapter": data.chapter,
+      "timerStats.lastStartVerse": data.startVerse,
+      "timerStats.lastEndVerse": data.endVerse,
+      "timerStats.lastBibleType": data.bibleType,
+      "timerStats.lastPlannedCount": data.plannedVersesCount,
+      "lastCheckIn": serverTimestamp(),
+      experience: increment(5) // Pequeno estímulo de fé ao abrir as escrituras
+    });
+    await withTimeout(updatePromise, 7000);
+
+    // 2. Registra na subcoleção de sessões para histórico completo
+    const sessionRef = collection(db, "users", userId, "reading_sessions");
+    const docRef = await withTimeout(addDoc(sessionRef, {
+      ...data,
+      status: "iniciado",
+      startedAt: serverTimestamp(),
+      createdAt: serverTimestamp()
+    }), 7000);
+
+    return docRef.id;
+  } catch (error) {
+    console.warn("[TimerStats] Could not sync start to firestore immediately (using offline cache):", error);
+    return null;
+  }
+}
+
+/**
+ * Salva a conclusão da sessão do cronômetro quando finalizada
+ */
+export async function recordTimerComplete(userId: string, sessionId: string | null, data: {
+  book: string;
+  chapter: number;
+  startVerse: number;
+  endVerse: number;
+  bibleType: "fisica" | "digital";
+  durationSeconds: number;
+  versesRead: number;
+}) {
+  if (!userId) return;
+  const userRef = doc(db, "users", userId);
+
+  // Fallback local
+  const localStats = JSON.parse(localStorage.getItem("timerReadingStats") || "{}");
+  localStats.totalSeconds = (localStats.totalSeconds || 0) + data.durationSeconds;
+  localStats.totalVersesRead = (localStats.totalVersesRead || 0) + data.versesRead;
+  localStats.completedSessions = (localStats.completedSessions || 0) + 1;
+  localStorage.setItem("timerReadingStats", JSON.stringify(localStats));
+
+  try {
+    const updatePromise = updateDoc(userRef, {
+      "timerStats.totalSeconds": increment(data.durationSeconds),
+      "timerStats.totalVersesRead": increment(data.versesRead),
+      "timerStats.completedSessions": increment(1),
+      "totalChaptersRead": increment(1),
+      "ministerialBalance.palavra": increment(1),
+      experience: increment(15),
+      lastCheckIn: serverTimestamp()
+    });
+    await withTimeout(updatePromise, 7000);
+
+    if (sessionId) {
+      const sessionDocRef = doc(db, "users", userId, "reading_sessions", sessionId);
+      await withTimeout(updateDoc(sessionDocRef, {
+        durationSeconds: data.durationSeconds,
+        versesRead: data.versesRead,
+        status: "concluido",
+        completedAt: serverTimestamp()
+      }), 7000);
+    }
+  } catch (error) {
+    console.warn("[TimerStats] Could not sync completion to firestore:", error);
+  }
 }

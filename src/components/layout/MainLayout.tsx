@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate, Navigate, useOutletContext } from "react-router-dom";
-import { BookOpen, MessageSquare, Heart, User, LogOut, Search, PenTool, GraduationCap, Users, Bot, MapPin, HelpCircle, ShieldAlert, Calculator, Flame, LayoutGrid, Menu, X, Settings as SettingsIcon, Calendar as CalendarIcon, Shield } from "lucide-react";
+import { BookOpen, MessageSquare, Heart, User, LogOut, Search, PenTool, GraduationCap, Users, Bot, MapPin, HelpCircle, ShieldAlert, Calculator, Flame, LayoutGrid, Menu, X, Settings as SettingsIcon, Calendar as CalendarIcon, Shield, Clock, Cross } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { NotificationManager } from "../NotificationManager";
@@ -21,6 +21,8 @@ const navigationGroups = [
     title: "Espiritualidade",
     items: [
       { path: "/bible", icon: BookOpen, label: "Bíblia Sagrada" },
+      { path: "/cronometro", icon: Clock, label: "Cronômetro & Bíblia Física" },
+      { path: "/catolicismo", icon: Cross, label: "Catolicismo" },
       { path: "/jejum", icon: Flame, label: "Jejum Espiritual" },
       { path: "/prayer", icon: MessageSquare, label: "Meus Pedidos" },
       { path: "/devotional", icon: Heart, label: "Devocional IA" },

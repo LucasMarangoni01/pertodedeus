@@ -61,6 +61,18 @@ interface AppUser {
     version: string;
     updatedAt: any;
   };
+  timerStats?: {
+    totalStarts?: number;
+    totalSeconds?: number;
+    totalVersesRead?: number;
+    completedSessions?: number;
+    lastBook?: string;
+    lastChapter?: number;
+    lastStartVerse?: number;
+    lastEndVerse?: number;
+    lastBibleType?: "fisica" | "digital";
+    lastStartedAt?: any;
+  };
 }
 
 interface AuthContextType {

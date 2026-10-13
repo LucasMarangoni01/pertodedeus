@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { useLocation } from "react-router-dom";
-import { Search, Book, ChevronRight, ChevronLeft, Settings2, Share2, Copy, Highlighter, FileText, X, Star, Volume2, Square, PlayCircle, Sparkles, Brain, Lightbulb, Compass, MessageSquareQuote, Save, Trash2 } from "lucide-react";
+import { useLocation, Link } from "react-router-dom";
+import { Search, Book, ChevronRight, ChevronLeft, Settings2, Share2, Copy, Highlighter, FileText, X, Star, Volume2, Square, PlayCircle, Sparkles, Brain, Lightbulb, Compass, MessageSquareQuote, Save, Trash2, Clock } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useAuth } from "../context/AuthContext";
 import { usePreference } from "../contexts/PreferenceContext";
@@ -1010,7 +1010,17 @@ export default function Bible() {
                     )}
                     <span className="hidden sm:inline">{audioStatus === "playing" ? "Parar" : "Ouvir"}</span>
                   </button>
-                 <div className="relative">
+
+                  <Link
+                    to="/cronometro"
+                    title="Cronômetro & Bíblia Física"
+                    className="flex items-center gap-1.5 px-3 py-2 bg-amber/10 hover:bg-amber hover:text-navy text-amber rounded-xl text-xs font-bold transition-all border border-amber/20"
+                  >
+                    <Clock className="w-4 h-4" />
+                    <span className="hidden sm:inline">Cronômetro</span>
+                  </Link>
+
+                  <div className="relative">
                    <button 
                      onClick={() => setShowSettings(!showSettings)}
                      className={cn(

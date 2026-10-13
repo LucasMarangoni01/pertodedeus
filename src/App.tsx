@@ -28,6 +28,8 @@ const StruggleTracker = lazy(() => import("./pages/StruggleTracker"));
 const Fasting = lazy(() => import("./pages/Fasting"));
 const Agenda = lazy(() => import("./pages/Agenda"));
 const Admin = lazy(() => import("./pages/Admin"));
+const Cronometro = lazy(() => import("./pages/Cronometro"));
+const Catolicismo = lazy(() => import("./pages/Catolicismo"));
 
 const PageLoader = () => (
   <div className="min-h-screen bg-navy flex items-center justify-center">
@@ -52,6 +54,8 @@ export default function App() {
                   <Route path="jejum" element={<Fasting />} />
                   <Route path="agenda" element={<Agenda />} />
                   <Route path="bible" element={<Bible />} />
+                  <Route path="cronometro" element={<Cronometro />} />
+                  <Route path="catolicismo" element={<Catolicismo />} />
                   <Route path="plans" element={<ReadingPlans />} />
                   <Route path="calculator" element={<Calculator />} />
                   <Route path="prayer" element={<Prayer />} />

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Plus, MessageCircle, CheckCircle2, History, Timer, Info, Send, Heart, BookOpen, Trash2, Search, X } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Plus, MessageCircle, CheckCircle2, History, Timer, Info, Send, Heart, BookOpen, Trash2, Search, X, Cross } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { db, withTimeout } from "../lib/firebase";
 import { collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, updateDoc, doc, deleteDoc } from "firebase/firestore";
@@ -184,6 +185,25 @@ export default function Prayer() {
           ))}
         </div>
       </header>
+
+      {/* Catholic Section Quick Link */}
+      <div className="bg-gradient-to-r from-amber/15 via-white/5 to-transparent border border-amber/20 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-amber/20 text-amber flex items-center justify-center shrink-0">
+            <Cross className="w-4 h-4" />
+          </div>
+          <div>
+            <span className="font-bold text-pearl block">Categoria Separada: Catolicismo</span>
+            <span className="text-pearl/60">Orações milenares (Pai Nosso litúrgico, Ave Maria, Salve Rainha), Santo Terço e Sacramentos.</span>
+          </div>
+        </div>
+        <Link 
+          to="/catolicismo" 
+          className="px-4 py-2 bg-amber text-navy font-bold rounded-xl hover:scale-105 transition-all shrink-0 text-[11px]"
+        >
+          Explorar Catolicismo →
+        </Link>
+      </div>
 
       <AnimatePresence mode="wait">
         {activeTab === "requests" && (
@@ -408,7 +428,7 @@ export default function Prayer() {
                     onChange={e => setNewRequest({...newRequest, category: e.target.value})}
                     className="w-full bg-navy border border-amber/10 rounded-xl px-4 py-3 focus:border-amber outline-none"
                   >
-                    {["Família", "Saúde", "Trabalho", "Finanças", "Cura Emocional", "Intercessão", "Ministério", "Outros"].map(c => <option key={c}>{c}</option>)}
+                    {["Família", "Saúde", "Trabalho", "Finanças", "Cura Emocional", "Intercessão", "Ministério", "Catolicismo", "Outros"].map(c => <option key={c}>{c}</option>)}
                   </select>
                 </div>
                 <div className="space-y-2">

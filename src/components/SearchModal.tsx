@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Search, X, BookOpen, MessageSquare, Heart, User, LayoutGrid, ShieldAlert, Calendar, Calculator, Flame, Users, Bot, MapPin, HelpCircle, Settings } from "lucide-react";
+import { Search, X, BookOpen, MessageSquare, Heart, User, LayoutGrid, ShieldAlert, Calendar, Calculator, Flame, Users, Bot, MapPin, HelpCircle, Settings, Clock, Cross } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "../lib/utils";
 
@@ -9,6 +9,8 @@ const navigationItems = [
   { path: "/profile", icon: User, label: "Meu Perfil", category: "Essencial" },
   { path: "/sos", icon: ShieldAlert, label: "S.O.S (Ajuda)", category: "Essencial" },
   { path: "/bible", icon: BookOpen, label: "Bíblia Sagrada", category: "Espiritualidade" },
+  { path: "/cronometro", icon: Clock, label: "Cronômetro & Bíblia Física", category: "Espiritualidade" },
+  { path: "/catolicismo", icon: Cross, label: "Catolicismo (Orações e Terço)", category: "Espiritualidade" },
   { path: "/prayer", icon: MessageSquare, label: "Meus Pedidos", category: "Espiritualidade" },
   { path: "/devotional", icon: Heart, label: "Devocional IA", category: "Espiritualidade" },
   { path: "/study", icon: GraduationCap, label: "Estudos", category: "Espiritualidade" },
