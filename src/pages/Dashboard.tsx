@@ -329,6 +329,46 @@ export default function Dashboard() {
            </div>
         </div>
 
+        {/* Categoria Católica - Destaque */}
+        <div className="lg:col-span-2 glow-card p-6 md:p-8 rounded-3xl border-amber/30 bg-gradient-to-r from-amber/15 via-navy to-navy flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
+          <div className="absolute right-0 top-0 bottom-0 w-1/4 opacity-10 flex items-center justify-center pointer-events-none">
+            <Cross className="w-48 h-48 text-amber" />
+          </div>
+          <div className="space-y-2 z-10 max-w-xl">
+            <div className="flex items-center gap-2 text-amber text-[10px] font-bold uppercase tracking-widest">
+              <Cross className="w-3.5 h-3.5" /> Categoria Católica
+            </div>
+            <h3 className="text-xl md:text-2xl font-display font-bold text-pearl">
+              Tradição, Devoção & Bíblia de 73 Livros
+            </h3>
+            <p className="text-xs text-pearl/60 leading-relaxed">
+              Acesse o Santo Terço interativo, os 7 livros deuterocanônicos, orações tradicionais (Pai Nosso, Ave Maria, Salve Rainha), sacramentos e ensinamentos dos Santos.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2.5 z-10 shrink-0">
+            <button
+              onClick={() => navigate("/catolicismo?tab=biblia-catolica")}
+              className="px-4 py-2.5 rounded-xl bg-amber/20 hover:bg-amber text-pearl hover:text-navy text-xs font-bold transition-all border border-amber/30 flex items-center gap-2"
+            >
+              <BookOpen className="w-4 h-4" />
+              Bíblia (73 Livros)
+            </button>
+            <button
+              onClick={() => navigate("/catolicismo?tab=terco")}
+              className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-amber/20 text-pearl/80 hover:text-amber text-xs font-bold transition-all border border-white/10 flex items-center gap-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              Santo Terço
+            </button>
+            <button
+              onClick={() => navigate("/catolicismo")}
+              className="px-4 py-2.5 rounded-xl bg-amber text-navy hover:bg-amber/90 text-xs font-bold transition-all shadow-lg flex items-center gap-2"
+            >
+              Ver Categoria <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
         {/* Action Shortcuts */}
         <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-3">
            {[

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Search, X, BookOpen, MessageSquare, Heart, User, LayoutGrid, ShieldAlert, Calendar, Calculator, Flame, Users, Bot, MapPin, HelpCircle, Settings, Clock, Cross } from "lucide-react";
+import { Search, X, BookOpen, MessageSquare, Heart, User, LayoutGrid, ShieldAlert, Calendar, Calculator, Flame, Users, Bot, MapPin, HelpCircle, Settings, Clock, Cross, Sparkles, Layers, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "../lib/utils";
 
@@ -10,11 +10,17 @@ const navigationItems = [
   { path: "/sos", icon: ShieldAlert, label: "S.O.S (Ajuda)", category: "Essencial" },
   { path: "/bible", icon: BookOpen, label: "Bíblia Sagrada", category: "Espiritualidade" },
   { path: "/cronometro", icon: Clock, label: "Cronômetro & Bíblia Física", category: "Espiritualidade" },
-  { path: "/catolicismo", icon: Cross, label: "Catolicismo (Orações e Terço)", category: "Espiritualidade" },
+  { path: "/jejum", icon: Flame, label: "Jejum Espiritual", category: "Espiritualidade" },
   { path: "/prayer", icon: MessageSquare, label: "Meus Pedidos", category: "Espiritualidade" },
   { path: "/devotional", icon: Heart, label: "Devocional IA", category: "Espiritualidade" },
   { path: "/study", icon: GraduationCap, label: "Estudos", category: "Espiritualidade" },
   { path: "/plans", icon: BookOpen, label: "Planos de Leitura", category: "Espiritualidade" },
+  { path: "/catolicismo", icon: Cross, label: "Portal Católico (Orações e Devoções)", category: "Catolicismo" },
+  { path: "/catolicismo?tab=biblia-catolica", icon: BookOpen, label: "Bíblia Católica (73 Livros - CNBB e Matos Soares)", category: "Catolicismo" },
+  { path: "/catolicismo?tab=terco", icon: Sparkles, label: "Santo Terço & Mistérios do Rosário", category: "Catolicismo" },
+  { path: "/catolicismo?tab=oracoes", icon: Heart, label: "Orações Tradicionais da Igreja", category: "Catolicismo" },
+  { path: "/catolicismo?tab=sacramentos", icon: Layers, label: "Os 7 Sacramentos da Igreja Católica", category: "Catolicismo" },
+  { path: "/catolicismo?tab=santos", icon: Star, label: "Santos & Doutores da Igreja Católica", category: "Catolicismo" },
   { path: "/struggles", icon: Flame, label: "Caminho de Liberdade", category: "Vida & Liberdade" },
   { path: "/diary", icon: PenTool, label: "Diário Espiritual", category: "Vida & Liberdade" },
   { path: "/agenda", icon: Calendar, label: "Minha Agenda", category: "Vida & Liberdade" },

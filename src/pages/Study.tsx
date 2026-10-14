@@ -64,6 +64,29 @@ const courses = [
         content: "Uma das formas mais poderosas de orar é concordar com o que Deus já disse. Quando você transformar versículos em oração (ex: 'Senhor, tu és o meu Pastor e nada me faltará'), você ora a própria vontade de Deus. Isso fortalece a fé e direciona a mente para verdades eternas."
       }
     ]
+  },
+  { 
+    id: "catolicismo-doutrina",
+    title: "Tradição & Fé Católica", 
+    level: "Teologia", 
+    modules: 3, 
+    time: "3h",
+    desc: "A Tradição Apostólica, os 7 Sacramentos e a riqueza do Cânon de 73 Livros.",
+    image: "https://picsum.photos/seed/catolico/400/200",
+    lessons: [
+      {
+        title: "A Tradição Apostólica e o Magistério",
+        content: "Para a Igreja Católica, a Revelação divina nos chega por duas fontes inseparáveis que brotam da mesma fonte divina: a Sagrada Escritura e a Sagrada Tradição Apostólica, interpretadas autenticamente pelo Magistério vivo da Igreja (Concílio Vaticano II, Dei Verbum §9-10). Isso preserva a fidelidade doutrinária transmitida pelos Apóstolos e pelos Santos Padres ao longo dos séculos."
+      },
+      {
+        title: "Os Sete Sacramentos: Graça Visível",
+        content: "Os Sacramentos foram instituídos por Nosso Senhor Jesus Cristo como canais e sinais eficazes da graça divina: Batismo, Crisma, Eucaristia, Penitência (Confissão), Unção dos Enfermos, Ordem e Matrimônio. O Catecismo ensina que a Santíssima Eucaristia é a 'fonte e ápice de toda a vida cristã', onde Cristo está real e substancialmente presente em Corpo, Sangue, Alma e Divindade."
+      },
+      {
+        title: "O Cânon Bíblico dos 73 Livros",
+        content: "O Cânon Católico é composto por 46 livros no Antigo Testamento e 27 no Novo Testamento, totalizando 73 livros sagrados. A Igreja, no tempo apostólico, usava a tradução grega da Septuaginta (LXX), que continha os livros deuterocanônicos: Tobias, Judite, Sabedoria, Eclesiástico, Baruque, 1 e 2 Macabeus. Confirmado nos Concílios de Hipona (393), Cartago (397) e Trento (1546), esse cânon preserva toda a herança da fé da Igreja primitiva."
+      }
+    ]
   }
 ];
 

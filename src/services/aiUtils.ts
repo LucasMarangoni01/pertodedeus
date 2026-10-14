@@ -21,6 +21,7 @@ export const callGeminiProxy = async (payload: GeminiPayload): Promise<string> =
         model: payload.model,
         isSimpleMode: payload.simplify, // Map simplify to backend's isSimpleMode
         responseMimeType: payload.responseMimeType || "text/plain",
+        systemInstruction: payload.systemInstruction,
       }),
     });
 

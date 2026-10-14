@@ -4,24 +4,30 @@ Uma plataforma cristã completa e moderna para uma vida espiritual profunda — 
 
 ---
 
-## 🌟 O Que Há de Novo na Versão 1.1.0
+## 🌟 O Que Há de Novo na Versão 1.2.0
 
-1. **📖 Suporte a Bíblia Física no Cronômetro:**
-   - Modo exclusivo para quem lê a Bíblia impressa/física, com interface em papiro dourado e marcador de página espiritual.
+1. **✝️ Bíblia Sagrada Católica Completa (Cânon de 73 Livros):**
+   - Suporte integral ao cânon católico com os **7 Livros Deuterocanônicos**: Tobias, Judite, Sabedoria, Eclesiástico (Sirácida), Baruque, 1 Macabeus e 2 Macabeus.
+   - Versões católicas integradas: **Bíblia da CNBB (Conferência Nacional dos Bispos do Brasil)** e **Matos Soares (Tradicional Católica)**.
+   - Aba rápida no leitor bíblico para alternar entre Antigo Testamento, Novo Testamento e Livros Católicos/Deuterocanônicos.
+   - Selo distintivo "Católico" em cada livro deuterocanônico.
+
+2. **📖 Suporte a Bíblia Física no Cronômetro:**
+   - Modo exclusivo para quem lê a Bíblia impressa/física (católica ou tradicional), com interface em papiro dourado e marcador de página espiritual.
    - Memorização do seu último marcador físico para continuar exatamente de onde parou.
 
-2. **🎯 Seleção de Versículos (De ... Até):**
-   - Escolha o versículo inicial e o versículo final da leitura (ex: Gênesis 1:1 até 1:31).
+3. **🎯 Seleção de Versículos (De ... Até):**
+   - Escolha o versículo inicial e o versículo final da leitura (ex: Tobias 1:1 até 1:25).
    - Cálculo automático do total de versículos planejados e lidos.
    - Pré-visualização do trecho selecionado para inspiração.
 
-3. **📊 Registro Automático nas Estatísticas da Conta:**
+4. **📊 Registro Automático nas Estatísticas da Conta:**
    - **Ao clicar em Começar o Cronômetro:** O início da sessão é imediatamente registrado no Firebase Firestore, incrementando o contador de inícios de leitura e salvando a passagem planejada.
    - **Ao concluir:** Salva tempo total, versículos lidos, progresso da meta diária e ganho de pontos de fé (XP).
    - Histórico completo acessível na aba Histórico e no Perfil do usuário.
 
-4. **✝️ Categoria Separada "Catolicismo" / Orações:**
-   - Seção dedicada para orações católicas tradicionais, devoções marianas, orações aos santos e terço.
+5. **🙏 Espaço de Devoção "Catolicismo":**
+   - Seção dedicada para orações católicas tradicionais, Santo Terço com mistérios meditados, os 7 Sacramentos e aprofundamento bíblico.
 
 ---
 

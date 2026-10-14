@@ -28,6 +28,13 @@ const plans = [
     desc: "30 dias de louvor e conforto no livro de Salmos.",
     duration: 30,
     image: "https://picsum.photos/seed/psalms/400/200"
+  },
+  {
+    id: "deuterocanonicos-21",
+    title: "Livros Deuterocanônicos em 21 Dias",
+    desc: "Plano católico imersivo em Tobias, Judite, Sabedoria, Eclesiástico, Baruque e Macabeus.",
+    duration: 21,
+    image: "https://picsum.photos/seed/catholicbible/400/200"
   }
 ];
 

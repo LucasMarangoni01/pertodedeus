@@ -17,7 +17,14 @@ async function startServer() {
   // ----- AI CHAT PROXY (SECURE) -----
   app.post("/api/ai/chat", async (req, res) => {
     try {
-      const { prompt, contents, model = "gemini-3-flash-preview", isSimpleMode, responseMimeType = "text/plain" } = req.body;
+      const { 
+        prompt, 
+        contents, 
+        model = "gemini-3.8-flash", 
+        isSimpleMode, 
+        responseMimeType = "text/plain",
+        systemInstruction: customSystemInstruction 
+      } = req.body;
       
       const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
       
@@ -26,18 +33,26 @@ async function startServer() {
         return res.status(500).json({ error: "Configuração de IA incompleta no servidor." });
       }
 
-      const ai = new GoogleGenAI({ apiKey });
+      const ai = new GoogleGenAI({ 
+        apiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          }
+        }
+      });
       
-      // Resolve model (ensure it's modern)
+      // Resolve model (ensure it's modern gemini-3.8-flash)
       let modelName = model;
-      if (modelName.includes("gemini-3") || modelName.includes("gemini-1.5") || modelName === "gemini-flash") {
-        modelName = "gemini-3-flash-preview";
+      if (!modelName || modelName.includes("gemini-3-flash-preview") || modelName.includes("gemini-1.5") || modelName === "gemini-flash") {
+        modelName = "gemini-3.8-flash";
       }
 
-      // Logic for system instruction based on mode
-      const systemInstruction = isSimpleMode 
+      // Logic for system instruction based on mode or custom instruction
+      const defaultInstruction = isSimpleMode 
         ? "Responda de forma extremamente direta, curta e com linguagem simples. Use termos do dia a dia. Evite parágrafos longos ou termos teológicos complexos."
         : "Responda de forma pastoral, acolhedora e inspiradora.";
+      const systemInstruction = customSystemInstruction || defaultInstruction;
 
       const response = await ai.models.generateContent({
         model: modelName,

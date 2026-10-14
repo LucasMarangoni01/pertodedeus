@@ -27,6 +27,8 @@ import {
 } from "../services/bibleActions";
 
 const translations = [
+  { id: "CNBB", name: "CNBB - Bíblia Oficial Católica", badge: "Católica", alias: "CNBB" },
+  { id: "MATOS", name: "Matos Soares - Bíblia Católica Tradicional (73 Livros)", badge: "Católica", alias: "MATOS" },
   { id: "ARA", name: "ARA - Almeida Revista e Atualizada" },
   { id: "NVIPT", name: "NVI - Nova Versão Internacional", alias: "NVI" },
   { id: "NTLH", name: "NTLH - Nova Tradução na Linguagem de Hoje" },
@@ -61,7 +63,7 @@ export default function Bible() {
   const [fontSize, setFontSize] = useState(18);
   const [audioSpeed, setAudioSpeed] = useState(1);
   const [selectedVerses, setSelectedVerses] = useState<number[]>([]);
-  const [activeTestament, setActiveTestament] = useState<'Velho' | 'Novo'>('Velho');
+  const [activeTestament, setActiveTestament] = useState<'Velho' | 'Novo' | 'Deutero'>('Velho');
   const [globalResults, setGlobalResults] = useState<any[]>([]);
   const [searchingGlobal, setSearchingGlobal] = useState(false);
   const [showGlobalResults, setShowGlobalResults] = useState(false);
@@ -318,15 +320,18 @@ export default function Bible() {
     fetchBooks();
   }, [selectedVersion]);
 
-  // Livros formatados para a UI com informação de testamento
+  // Livros formatados para a UI com informação de testamento e cânon
   const books = useMemo(() => {
     return dynamicBooks.map(b => {
       const staticInfo = bibleBooks.find(sb => sb.bollsId === b.bookid);
+      const isDeutero = Boolean(staticInfo?.isDeuterocanonical || [68, 69, 70, 71, 73, 74, 75].includes(b.bookid));
       return {
         name: b.name,
         chapters: b.chapters,
         bollsId: b.bookid,
-        testament: staticInfo?.testament || (b.bookid <= 39 ? 'Velho' : 'Novo')
+        testament: staticInfo?.testament || (b.bookid <= 39 || isDeutero ? 'Velho' : 'Novo'),
+        isDeuterocanonical: isDeutero,
+        category: staticInfo?.category
       };
     });
   }, [dynamicBooks]);
@@ -810,11 +815,11 @@ export default function Bible() {
                <ChevronRight className="w-5 h-5 opacity-40 group-hover:translate-x-1 transition-transform" />
             </motion.button>
 
-            <div className="flex p-1 bg-white/5 rounded-xl border border-amber/10">
+            <div className="flex p-1 bg-white/5 rounded-xl border border-amber/10 gap-1">
                <button 
                  onClick={() => setActiveTestament('Velho')}
                  className={cn(
-                   "flex-1 py-3 md:py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all",
+                   "flex-1 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all",
                    activeTestament === 'Velho' ? "bg-amber text-navy shadow-lg" : "text-pearl/40 hover:text-pearl/60"
                  )}
                >
@@ -823,11 +828,22 @@ export default function Bible() {
                <button 
                  onClick={() => setActiveTestament('Novo')}
                  className={cn(
-                   "flex-1 py-3 md:py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all",
+                   "flex-1 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all",
                    activeTestament === 'Novo' ? "bg-amber text-navy shadow-lg" : "text-pearl/40 hover:text-pearl/60"
                  )}
                >
                  Novo
+               </button>
+               <button 
+                 onClick={() => setActiveTestament('Deutero')}
+                 className={cn(
+                   "flex-1 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-1",
+                   activeTestament === 'Deutero' ? "bg-amber text-navy shadow-lg" : "text-pearl/40 hover:text-amber/80"
+                 )}
+                 title="Livros Deuterocanônicos da Bíblia Católica"
+               >
+                 <span>Católico</span>
+                 <span className="text-[9px] px-1 py-0.5 rounded bg-black/20 text-current font-bold">73</span>
                </button>
             </div>
 
@@ -837,6 +853,8 @@ export default function Bible() {
                    <span className="animate-pulse">Sincronizando...</span>
                  ) : searchQuery ? (
                    "Busca Global"
+                 ) : activeTestament === 'Deutero' ? (
+                   "Cânon Católico (Deuterocanônicos)"
                  ) : (
                    `${activeTestament === 'Velho' ? 'Antigo' : 'Novo'} Testamento`
                  )}
@@ -845,7 +863,7 @@ export default function Bible() {
                  <span className="text-[9px] text-pearl/30 font-medium">
                    {searchQuery 
                      ? `${books.filter(b => b.name.toLowerCase().includes(searchQuery.toLowerCase())).length} resultados`
-                     : `${books.filter(b => b.testament === activeTestament).length} Livros`
+                     : `${books.filter(b => activeTestament === 'Deutero' ? b.isDeuterocanonical : b.testament === activeTestament).length} Livros`
                    }
                  </span>
                )}
@@ -856,7 +874,11 @@ export default function Bible() {
         {!selectedBook && !showGlobalResults ? (
           <div className="grid grid-cols-2 md:grid-cols-1 gap-3">
             {books
-              .filter(b => searchQuery ? true : b.testament === activeTestament)
+              .filter(b => {
+                if (searchQuery) return true;
+                if (activeTestament === 'Deutero') return b.isDeuterocanonical;
+                return b.testament === activeTestament;
+              })
               .filter(b => b.name.toLowerCase().includes(searchQuery.toLowerCase()))
               .map(book => (
                 <button 
@@ -870,7 +892,14 @@ export default function Bible() {
                 >
                   <div className="flex items-center gap-3">
                      <Book className="w-5 h-5 md:w-4 md:h-4 text-amber/40 group-hover:text-amber transition-colors" />
-                     <span className="font-bold md:font-medium text-sm md:text-xs text-pearl/90 group-hover:text-pearl transition-colors">{book.name}</span>
+                     <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                       <span className="font-bold md:font-medium text-sm md:text-xs text-pearl/90 group-hover:text-pearl transition-colors">{book.name}</span>
+                       {book.isDeuterocanonical && (
+                         <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber/20 text-amber border border-amber/30 inline-block w-fit">
+                           Católico
+                         </span>
+                       )}
+                     </div>
                   </div>
                   <ChevronRight className="w-4 h-4 text-pearl/20 group-hover:text-amber transition-transform group-hover:translate-x-1" />
                 </button>
@@ -1048,11 +1077,16 @@ export default function Bible() {
                                      key={v.id}
                                      onClick={() => handleVersionChange(v.id)}
                                      className={cn(
-                                       "w-full text-left px-3 py-2 rounded-lg text-xs transition-colors",
+                                       "w-full text-left px-3 py-2 rounded-lg text-xs transition-colors flex items-center justify-between gap-2",
                                        selectedVersion === v.id ? "bg-amber/20 text-amber font-bold" : "hover:bg-white/5 text-pearl/60"
                                      )}
                                    >
-                                     {v.name}
+                                     <span className="truncate">{v.name}</span>
+                                     {(v as any).badge && (
+                                       <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber/20 text-amber border border-amber/30 shrink-0">
+                                         {(v as any).badge}
+                                       </span>
+                                     )}
                                    </button>
                                  ))}
                                </div>

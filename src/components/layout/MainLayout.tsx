@@ -1,5 +1,5 @@
-import { Outlet, NavLink, useNavigate, Navigate, useOutletContext } from "react-router-dom";
-import { BookOpen, MessageSquare, Heart, User, LogOut, Search, PenTool, GraduationCap, Users, Bot, MapPin, HelpCircle, ShieldAlert, Calculator, Flame, LayoutGrid, Menu, X, Settings as SettingsIcon, Calendar as CalendarIcon, Shield, Clock, Cross } from "lucide-react";
+import { Outlet, NavLink, useNavigate, Navigate, useOutletContext, useLocation } from "react-router-dom";
+import { BookOpen, MessageSquare, Heart, User, LogOut, Search, PenTool, GraduationCap, Users, Bot, MapPin, HelpCircle, ShieldAlert, Calculator, Flame, LayoutGrid, Menu, X, Settings as SettingsIcon, Calendar as CalendarIcon, Shield, Clock, Cross, Layers, Sparkles, Star, Compass } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { NotificationManager } from "../NotificationManager";
@@ -22,12 +22,23 @@ const navigationGroups = [
     items: [
       { path: "/bible", icon: BookOpen, label: "Bíblia Sagrada" },
       { path: "/cronometro", icon: Clock, label: "Cronômetro & Bíblia Física" },
-      { path: "/catolicismo", icon: Cross, label: "Catolicismo" },
       { path: "/jejum", icon: Flame, label: "Jejum Espiritual" },
       { path: "/prayer", icon: MessageSquare, label: "Meus Pedidos" },
       { path: "/devotional", icon: Heart, label: "Devocional IA" },
       { path: "/study", icon: GraduationCap, label: "Estudos" },
       { path: "/plans", icon: BookOpen, label: "Planos de Leitura" },
+    ]
+  },
+  {
+    title: "Catolicismo",
+    items: [
+      { path: "/catolicismo", icon: Cross, label: "Portal Católico", badge: "Tradição" },
+      { path: "/catolicismo?tab=plano-espiritual", icon: Compass, label: "Plano Espiritual IA", badge: "Novo" },
+      { path: "/catolicismo?tab=biblia-catolica", icon: BookOpen, label: "Bíblia (73 Livros)" },
+      { path: "/catolicismo?tab=terco", icon: Sparkles, label: "Santo Terço" },
+      { path: "/catolicismo?tab=oracoes", icon: Heart, label: "Orações Tradicionais" },
+      { path: "/catolicismo?tab=sacramentos", icon: Layers, label: "Os 7 Sacramentos" },
+      { path: "/catolicismo?tab=santos", icon: Star, label: "Santos & Doutores" },
     ]
   },
   {
@@ -60,10 +71,21 @@ const navigationGroups = [
 export default function MainLayout() {
   const { user, signOut, loading, isGuest, exitGuestMode } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   useNotificationTriggers();
+
+  const isItemActive = (targetPath: string, navLinkActive: boolean) => {
+    if (targetPath.includes("?")) {
+      return `${location.pathname}${location.search}` === targetPath;
+    }
+    if (location.pathname === targetPath && location.search) {
+      return false;
+    }
+    return navLinkActive;
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -170,21 +192,27 @@ export default function MainLayout() {
                 {group.title}
               </h3>
               <div className="space-y-1">
-                {group.items.length > 0 ? group.items.map((item) => (
+                {group.items.length > 0 ? group.items.map((item: any) => (
                   <NavLink
                     key={item.path}
                     to={item.path}
-                    className={({ isActive }) =>
-                      cn(
+                    className={({ isActive }) => {
+                      const active = isItemActive(item.path, isActive);
+                      return cn(
                         "flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-300 group",
-                        isActive 
-                          ? "bg-amber/10 text-amber" 
+                        active 
+                          ? "bg-amber/15 text-amber font-semibold shadow-sm shadow-amber/10 border border-amber/20" 
                           : "text-pearl/50 hover:text-pearl hover:bg-white/5"
-                      )
-                    }
+                      );
+                    }}
                   >
-                    <item.icon className="w-4 h-4" />
-                    <span className="text-sm font-medium">{item.label}</span>
+                    <item.icon className="w-4 h-4 shrink-0" />
+                    <span className="text-sm font-medium flex-1 truncate">{item.label}</span>
+                    {item.badge && (
+                      <span className="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-md bg-amber/20 text-amber shrink-0 border border-amber/30">
+                        {item.badge}
+                      </span>
+                    )}
                   </NavLink>
                 )) : (
                   <p className="px-4 py-2 text-[10px] text-pearl/20 font-serif italic">Nenhum resultado encontrado</p>
@@ -270,19 +298,20 @@ export default function MainLayout() {
                 <div key={group.title} className="space-y-4">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-pearl/20">{group.title}</h3>
                   <div className="grid grid-cols-2 gap-4">
-                    {group.items.length > 0 ? group.items.map((item) => (
+                    {group.items.length > 0 ? group.items.map((item: any) => (
                       <NavLink
                         key={item.path}
                         to={item.path}
                         onClick={() => setIsMobileMenuOpen(false)}
-                        className={({ isActive }) =>
-                          cn(
+                        className={({ isActive }) => {
+                          const active = isItemActive(item.path, isActive);
+                          return cn(
                             "flex flex-col items-center justify-center p-4 rounded-2xl border transition-all text-center gap-2",
-                            isActive 
-                              ? "bg-amber/10 border-amber/30 text-amber" 
+                            active 
+                              ? "bg-amber/15 border-amber/40 text-amber shadow-sm" 
                               : "bg-white/5 border-white/5 text-pearl/60"
-                          )
-                        }
+                          );
+                        }}
                       >
                         <item.icon className="w-6 h-6" />
                         <span className="text-[10px] font-bold">{item.label}</span>

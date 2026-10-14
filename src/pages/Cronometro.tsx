@@ -363,7 +363,7 @@ export default function Cronometro() {
               >
                 {bibleBooks.map((b) => (
                   <option key={b.name} value={b.name} className="bg-navy text-pearl">
-                    {b.name} ({b.testament === "Velho" ? "AT" : "NT"})
+                    {b.name} ({b.isDeuterocanonical ? "Católico / AT" : b.testament === "Velho" ? "AT" : "NT"})
                   </option>
                 ))}
               </select>
