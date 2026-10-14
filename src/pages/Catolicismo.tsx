@@ -9,6 +9,7 @@ import { cn } from "../lib/utils";
 import { deuterocanonicalBooks } from "../constants/bibleData";
 import CatholicSpiritualPlan from "../components/catolicismo/CatholicSpiritualPlan";
 import CatholicPrayersLibrary from "../components/catolicismo/CatholicPrayersLibrary";
+import CatholicStudyBible from "../components/catolicismo/CatholicStudyBible";
 
 const rosaryMysteries = [
   {
@@ -335,12 +336,15 @@ export default function Catolicismo() {
               className={cn(
                 "px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2",
                 activeTab === "biblia-catolica" 
-                  ? "bg-amber text-navy shadow-lg scale-105" 
+                  ? "bg-amber text-navy shadow-lg scale-105 font-black" 
                   : "bg-white/5 text-pearl/70 hover:bg-white/10"
               )}
             >
               <BookOpen className="w-4 h-4" />
-              Bíblia Católica (73 Livros)
+              Bíblia de Estudo (73 Livros)
+              <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase bg-navy/60 text-amber border border-amber/40">
+                Ilustrada
+              </span>
             </button>
             <button
               onClick={() => setActiveTab("sacramentos")}
@@ -470,143 +474,9 @@ export default function Catolicismo() {
         </div>
       )}
 
-      {/* TAB 3: BÍBLIA CATÓLICA */}
+      {/* TAB 3: BÍBLIA CATÓLICA DE ESTUDO ILUSTRADA */}
       {activeTab === "biblia-catolica" && (
-        <div className="space-y-8">
-          {/* Main Hero Card */}
-          <div className="glow-card p-6 md:p-8 rounded-3xl border-amber/25 bg-gradient-to-br from-amber/10 via-navy/90 to-navy space-y-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber/20 text-amber border border-amber/30">
-                    Cânon Sagrado Católico
-                  </span>
-                  <span className="text-xs text-pearl/50">46 AT + 27 NT = 73 Livros</span>
-                </div>
-                <h2 className="text-2xl md:text-3xl font-display font-bold text-pearl">
-                  A Bíblia Sagrada Católica
-                </h2>
-                <p className="text-pearl/70 text-sm max-w-2xl leading-relaxed">
-                  A tradição católica preserva com reverência os 73 livros sagrados, conservando os 
-                  7 livros <strong>deuterocanônicos</strong> do Antigo Testamento da versão grega dos Setenta (Septuaginta), 
-                  usada pelos próprios Apóstolos e confirmada nos Concílios de Hipona (393 d.C.), Cartago (397 d.C.) e Trento (1546).
-                </p>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Link
-                  to="/bible"
-                  className="px-5 py-3 rounded-2xl bg-amber text-navy font-bold text-xs flex items-center justify-center gap-2 hover:bg-amber-light transition-all shadow-lg shadow-amber/20 hover:scale-105"
-                >
-                  <BookOpen className="w-4 h-4" />
-                  Abrir na Bíblia
-                </Link>
-                <Link
-                  to="/cronometro"
-                  className="px-5 py-3 rounded-2xl bg-white/5 hover:bg-white/10 text-pearl font-bold text-xs flex items-center justify-center gap-2 border border-white/10 transition-all"
-                >
-                  <BookMarked className="w-4 h-4 text-amber" />
-                  Cronômetro Bíblico
-                </Link>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-white/10">
-              <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
-                <p className="text-xs text-amber font-bold">CNBB Oficial</p>
-                <p className="text-[11px] text-pearl/60 mt-1">Tradução oficial da Conferência Nacional dos Bispos do Brasil para o lecionário e estudo pastoral.</p>
-              </div>
-              <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
-                <p className="text-xs text-amber font-bold">Pe. Matos Soares</p>
-                <p className="text-[11px] text-pearl/60 mt-1">Tradução católica histórica e consagrada a partir da Vulgata Sisto-Clementina latina.</p>
-              </div>
-              <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
-                <p className="text-xs text-amber font-bold">Leitura Integrada</p>
-                <p className="text-[11px] text-pearl/60 mt-1">Áudio HD, anotações de estudo, marcadores de versículos e sincronização diária.</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Os 7 Livros Deuterocanônicos */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-display font-bold text-pearl flex items-center gap-2">
-                  <Star className="w-5 h-5 text-amber fill-amber/20" />
-                  Os 7 Livros Deuterocanônicos
-                </h3>
-                <p className="text-xs text-pearl/60">
-                  Presentes na Bíblia Católica e essenciais para a teologia e a história sagrada.
-                </p>
-              </div>
-              <span className="text-xs text-amber font-bold bg-amber/10 px-3 py-1 rounded-xl border border-amber/20">
-                Disponíveis no Leitor
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {deuterocanonicalBooks.map((book) => (
-                <div 
-                  key={book.name}
-                  className="glow-card p-5 rounded-3xl border-white/10 hover:border-amber/40 transition-all flex flex-col justify-between space-y-4 group"
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber/20 text-amber border border-amber/30">
-                        {book.category}
-                      </span>
-                      <span className="text-[11px] text-pearl/40 font-medium">
-                        {book.chapters} capítulos
-                      </span>
-                    </div>
-
-                    <h4 className="text-lg font-display font-bold text-pearl group-hover:text-amber transition-colors">
-                      {book.name}
-                    </h4>
-
-                    <p className="text-xs text-pearl/70 leading-relaxed">
-                      {book.description}
-                    </p>
-                  </div>
-
-                  <Link
-                    to="/bible"
-                    state={{ book: book.name, chapter: 1, verse: 1 }}
-                    className="w-full py-2.5 px-4 rounded-xl bg-white/5 hover:bg-amber hover:text-navy text-pearl/90 font-bold text-xs flex items-center justify-center gap-2 transition-all border border-white/5 hover:border-amber"
-                  >
-                    <span>Ler {book.name}</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Explicação Didática do Cânon Católico */}
-          <div className="glow-card p-6 md:p-8 rounded-3xl border-white/10 space-y-4 bg-navy/60">
-            <h3 className="text-lg font-display font-bold text-pearl flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-amber" />
-              Por que a Bíblia Católica possui 73 livros e outras possuem 66?
-            </h3>
-            
-            <div className="space-y-3 text-xs md:text-sm text-pearl/70 leading-relaxed">
-              <p>
-                No tempo de Jesus e dos Apóstolos, os judeus da diáspora que falavam grego utilizavam a 
-                <strong> Septuaginta (LXX)</strong>, versão que incluía os livros de Tobias, Judite, Sabedoria, 
-                Eclesiástico, Baruque, 1 e 2 Macabeus, além de trechos de Daniel e Ester. Os primeiros cristãos 
-                adotaram essa mesma versão grega como o Antigo Testamento da Igreja nascente.
-              </p>
-              <p>
-                No século XVI, os reformadores optaram pelo cânon hebraico restrito fixado posteriormente em Jâmnia (que excluía os livros escritos originalmente em grego ou fora da Palestina), retirando 7 livros do Antigo Testamento.
-              </p>
-              <p>
-                O <strong>Concílio de Trento (1546)</strong>, reafirmando as listas históricas de Hipona (393) e Cartago (397), 
-                declarou de forma definitiva e solene os 73 livros como inspirados pelo Espírito Santo. No nosso app, você tem 
-                acesso integral tanto à busca quanto à leitura de todos os 73 livros com áudio e reflexões.
-              </p>
-            </div>
-          </div>
-        </div>
+        <CatholicStudyBible />
       )}
 
       {/* TAB 4: OS 7 SACRAMENTOS */}
