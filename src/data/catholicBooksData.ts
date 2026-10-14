@@ -1,0 +1,337 @@
+export interface CatholicBook {
+  id: string;
+  title: string;
+  author: string;
+  category: 
+    | "Clássicos da Fé"
+    | "Deus & Trindade"
+    | "Teologia & Doutrina"
+    | "Espiritualidade & Oração"
+    | "Santos & Biografias"
+    | "Apologética & Doutrina"
+    | "Mística & Contemplação"
+    | "Bíblia & Teologia"
+    | "Vida Cristã Prática";
+  description: string;
+  whyRead: string;
+  keyQuote?: string;
+  level: "Iniciante" | "Intermediário" | "Avançado / Teológico";
+  tags: string[];
+  isAIRecommended: boolean;
+  aiHighlight?: string;
+  historicalPeriod?: string;
+  pagesEstimate?: string;
+  link?: string;
+  likes: number;
+  badge?: string;
+  addedByName: string;
+  addedByUserId?: string;
+  createdAt: string;
+}
+
+export const INITIAL_CATHOLIC_BOOKS: CatholicBook[] = [
+  {
+    id: "confissoes-agostinho",
+    title: "Confissões",
+    author: "Santo Agostinho de Hipona",
+    category: "Clássicos da Fé",
+    description: "A mais célebre autobiografia espiritual da história da humanidade. Santo Agostinho relata sua busca ardente pela Verdade, sua juventude conturbada e sua arrebatadora conversão ao Deus vivo no jardim de Milão.",
+    whyRead: "Essencial para qualquer cristão. Mostra que nenhuma distância do pecado é maior que o abraço da Graça de Deus. Uma oração contínua de louvor e maravilhamento diante da beleza divina.",
+    keyQuote: "Tarde Te amei, ó Beleza tão antiga e tão nova, tarde Te amei! Eis que habitavas dentro de mim e eu Te procurava fora... Fizeste-nos para Ti, Senhor, e o nosso coração está inquieto enquanto não descansar em Ti.",
+    level: "Intermediário",
+    tags: ["Conversão", "Graça", "Doutor da Igreja", "Filosofia", "Oração"],
+    isAIRecommended: true,
+    aiHighlight: "Considerado pela IA a maior obra de espiritualidade e psicologia cristã da Antiguidade.",
+    historicalPeriod: "Século IV (c. 397 d.C.)",
+    pagesEstimate: "~380 págs",
+    likes: 142,
+    badge: "Obra-Prima Universal",
+    addedByName: "Tradição Cristã",
+    createdAt: "2026-01-01T00:00:00Z"
+  },
+  {
+    id: "imitacao-de-cristo",
+    title: "A Imitação de Cristo",
+    author: "Tomás de Kempis",
+    category: "Espiritualidade & Oração",
+    description: "Depois da Sagrada Escritura, é o livro mais lido e traduzido de toda a história cristã. Um manual prático de humildade, desapego do mundo, amor à Eucaristia e seguimento radical aos passos de Jesus.",
+    whyRead: "Remédio direto contra a vaidade, o orgulho e as distrações do mundo. Cada capítulo é uma pílula de sabedoria celestial que purifica as intenções da alma.",
+    keyQuote: "Que te aproveita disputar sutilmente sobre a Santíssima Trindade, se não fores humilde, desagradando assim à Trindade? As palavras sublimes não fazem o homem santo, mas a vida virtuosa torna-o agradável a Deus.",
+    level: "Iniciante",
+    tags: ["Humildade", "Vida Interior", "Eucaristia", "Devoção", "Santidade"],
+    isAIRecommended: true,
+    aiHighlight: "Recomendado para meditação diária de 5 minutos antes ou depois da oração.",
+    historicalPeriod: "Século XV (c. 1418 d.C.)",
+    pagesEstimate: "~260 págs",
+    likes: 128,
+    badge: "O Mais Lido do Cristianismo",
+    addedByName: "Tradição Cristã",
+    createdAt: "2026-01-01T00:00:00Z"
+  },
+  {
+    id: "suma-teologica-aquino",
+    title: "Suma Teológica (Compêndio)",
+    author: "Santo Tomás de Aquino",
+    category: "Teologia & Doutrina",
+    description: "O monumento teológico definitivo da Igreja Católica. Santo Tomás harmoniza a fé cristã e a razão filosófica, demonstrando as cinco vias da existência de Deus, a Trindade, a Encarnação e os Sacramentos.",
+    whyRead: "Para quem deseja fundamentos sólidos, racionais e profundos sobre quem é Deus, por que Ele existe e como governa todas as coisas com bondade infinita.",
+    keyQuote: "A graça não destrói a natureza, mas a aperfeiçoa e eleva. A fé pressupõe a razão assim como a graça pressupõe a natureza.",
+    level: "Avançado / Teológico",
+    tags: ["Existência de Deus", "Tomismo", "Doutor Angélico", "Dogmática", "Filosofia"],
+    isAIRecommended: true,
+    aiHighlight: "A base intelectual do Magistério católico e da apologética católica clássica.",
+    historicalPeriod: "Século XIII (c. 1265 d.C.)",
+    pagesEstimate: "~600 págs (compêndio)",
+    likes: 95,
+    badge: "Doutor Angélico",
+    addedByName: "Tradição Cristã",
+    createdAt: "2026-01-01T00:00:00Z"
+  },
+  {
+    id: "castelo-interior-teresa",
+    title: "Castelo Interior (As Sete Moradas)",
+    author: "Santa Teresa de Ávila",
+    category: "Mística & Contemplação",
+    description: "A Doutora da Igreja compara a alma humana a um castelo de cristal e diamante onde existem muitas moradas, tendo Deus no centro mais profundo. Um roteiro de oração da meditação à união mística.",
+    whyRead: "O mapa definitivo da vida de oração. Ensina a vencer as distrações, a cultivar o recolhimento e a entender como Deus atrai a alma para a amizade íntima.",
+    keyQuote: "Nada te turbe, nada te espante, tudo passa, Deus não muda. A paciência tudo alcança; quem a Deus tem, nada lhe falta: só Deus basta.",
+    level: "Intermediário",
+    tags: ["Oração Contemplativa", "Mística", "Doutora da Igreja", "Castelo da Alma"],
+    isAIRecommended: true,
+    aiHighlight: "A maior obra-prima sobre as etapas do crescimento na oração da tradição católica.",
+    historicalPeriod: "Século XVI (1577 d.C.)",
+    pagesEstimate: "~320 págs",
+    likes: 110,
+    badge: "Doutora da Igreja",
+    addedByName: "Tradição Cristã",
+    createdAt: "2026-01-01T00:00:00Z"
+  },
+  {
+    id: "noite-escura-joao-cruz",
+    title: "A Noite Escura da Alma",
+    author: "São João da Cruz",
+    category: "Mística & Contemplação",
+    description: "Obra profunda do grande Doutor Místico que explica os períodos de aridez, silêncio divino e provações como uma purificação amorosa pela qual Deus desapega a alma dos sentidos para uni-la a Si.",
+    whyRead: "Inestimável conforto para quem sente que suas orações 'não dão fruto' ou passa por noites escuras de fé, luto ou provação interior.",
+    keyQuote: "Na noite ditosa, em segredo, que ninguém me via, nem eu olhava coisa, sem outra luz e guia senão a que no coração ardia.",
+    level: "Avançado / Teológico",
+    tags: ["Purificação", "Aridez Espiritual", "Mística Carmelita", "Amor Divino"],
+    isAIRecommended: true,
+    aiHighlight: "Fundamental para entender que a ausência aparente de consolo sensível é sinal de amadurecimento espiritual.",
+    historicalPeriod: "Século XVI (1584 d.C.)",
+    pagesEstimate: "~240 págs",
+    likes: 88,
+    badge: "Doutor Místico",
+    addedByName: "Tradição Cristã",
+    createdAt: "2026-01-01T00:00:00Z"
+  },
+  {
+    id: "cristianismo-puro-lewis",
+    title: "Cristianismo Puro e Simples",
+    author: "C.S. Lewis",
+    category: "Apologética & Doutrina",
+    description: "Uma das mais brilhantes defesas da fé no século XX. Lewis parte da Lei Moral universal impressa no coração dos homens para demonstrar a existência de Deus e a divindade de Jesus Cristo com clareza cristalina.",
+    whyRead: "Linguagem moderna, lógica irresistível e metáforas inesquecíveis. Perfeito tanto para céticos quanto para cristãos que desejam saber justificar a esperança que trazem.",
+    keyQuote: "Se encontro em mim mesmo um desejo que nenhuma experiência deste mundo pode satisfazer, a explicação mais provável é que fui feito para um outro mundo.",
+    level: "Iniciante",
+    tags: ["Apologética", "Razão e Fé", "Moralidade", "Evidências de Deus"],
+    isAIRecommended: true,
+    aiHighlight: "A melhor porta de entrada contemporânea para a coerência racional da fé cristã.",
+    historicalPeriod: "Século XX (1952)",
+    pagesEstimate: "~230 págs",
+    likes: 154,
+    badge: "Defesa Racional da Fé",
+    addedByName: "Tradição Cristã",
+    createdAt: "2026-01-01T00:00:00Z"
+  },
+  {
+    id: "ortodoxia-chesterton",
+    title: "Ortodoxia",
+    author: "G.K. Chesterton",
+    category: "Apologética & Doutrina",
+    description: "Com humor fulgurante e inteligência prodigiosa, Chesterton narra como tentou criar uma filosofia própria e descobriu, no fim, que a Igreja Católica já havia descoberto tudo antes dele e de forma muito mais bela.",
+    whyRead: "Uma celebração triunfal do bom senso, do maravilhamento diante da criação de Deus e da robustez da doutrina católica contra os modismos passageiros.",
+    keyQuote: "A Igreja Católica é a única coisa que salva o homem da degradante escravidão de ser filho de sua própria época.",
+    level: "Intermediário",
+    tags: ["Filosofia", "Bom Senso", "Alegria Cristã", "Apologética"],
+    isAIRecommended: true,
+    aiHighlight: "Revigorante antídoto contra o pessimismo, ceticismo e relativismo moral.",
+    historicalPeriod: "Século XX (1908)",
+    pagesEstimate: "~280 págs",
+    likes: 119,
+    badge: "Genialidade Cristã",
+    addedByName: "Tradição Cristã",
+    createdAt: "2026-01-01T00:00:00Z"
+  },
+  {
+    id: "tratado-verdadeira-devocao-montfort",
+    title: "Tratado da Verdadeira Devoção à Santíssima Virgem",
+    author: "São Luís Maria Grignion de Montfort",
+    category: "Espiritualidade & Oração",
+    description: "O mais influente livro mariano do catolicismo. Explica a teologia da consagração total a Jesus pelas mãos de Maria como o caminho mais rápido, suave, seguro e perfeito para chegar a Deus.",
+    whyRead: "Transformou a vida de incontáveis santos, incluindo São João Paulo II (cujo lema 'Totus Tuus' foi retirado desta obra). Enche o coração de confiança e amor filial.",
+    keyQuote: "Foi por meio da Santíssima Virgem Maria que Jesus Cristo veio ao mundo, e é também por meio d’Ela que Ele deve reinar no mundo... Maria é o caminho mais seguro e direto para chegar a Jesus.",
+    level: "Iniciante",
+    tags: ["Maria", "Consagração", "Totus Tuus", "São João Paulo II", "Cristocentrismo"],
+    isAIRecommended: true,
+    aiHighlight: "Lido e meditado por Papas e santos em todo o mundo católico.",
+    historicalPeriod: "Século XVIII (1712 d.C.)",
+    pagesEstimate: "~210 págs",
+    likes: 135,
+    badge: "Consagração Mariana",
+    addedByName: "Tradição Cristã",
+    createdAt: "2026-01-01T00:00:00Z"
+  },
+  {
+    id: "introducao-vida-devota-sales",
+    title: "Introdução à Vida Devota (Filoteia)",
+    author: "São Francisco de Sales",
+    category: "Vida Cristã Prática",
+    description: "Escrito especialmente para os leigos que vivem no trabalho, na família e no mundo social. O santo bispo de Genebra ensina com gentileza e sabedoria que a santidade é possível e necessária em qualquer vocação.",
+    whyRead: "Prático, doce e encorajador. Dissipa o mito de que a devoção cristã é melancólica ou exclusiva de monges reclusos.",
+    keyQuote: "Onde Deus nos plantou, aí devemos florescer. A verdadeira devoção não destrói nenhuma profissão justa, mas pelo contrário, aperfeiçoa todas.",
+    level: "Iniciante",
+    tags: ["Leigos", "Santidade no Cotidiano", "Mansidão", "Direção Espiritual"],
+    isAIRecommended: true,
+    aiHighlight: "Perfeito para profissionais, pais de família e jovens que buscam a Deus no dia a dia.",
+    historicalPeriod: "Século XVII (1609 d.C.)",
+    pagesEstimate: "~340 págs",
+    likes: 104,
+    badge: "Santidade no Cotidiano",
+    addedByName: "Tradição Cristã",
+    createdAt: "2026-01-01T00:00:00Z"
+  },
+  {
+    id: "jesus-de-nazare-ratzinger",
+    title: "Jesus de Nazaré (Trilogia)",
+    author: "Joseph Ratzinger (Papa Bento XVI)",
+    category: "Bíblia & Teologia",
+    description: "A obra de toda uma vida de um dos maiores teólogos do nosso tempo. Ratzinger resgata o Jesus dos Evangelhos contra as teorias céticas modernas, apresentando Cristo como o verdadeiro Deus e o verdadeiro Homem.",
+    whyRead: "Combina erudição bíblica de nível internacional com a fé orante de um pastor da Igreja. Faz as Escrituras pulsarem com autoridade viva.",
+    keyQuote: "No início do ser cristão não há uma decisão ética ou uma grande ideia, mas o encontro com um acontecimento, com uma Pessoa, que dá à vida um novo horizonte e o rumo decisivo.",
+    level: "Intermediário",
+    tags: ["Cristologia", "Bento XVI", "Evangelhos", "Exegese", "Teologia"],
+    isAIRecommended: true,
+    aiHighlight: "Considerado um divisor de águas na exegese e cristologia do século XXI.",
+    historicalPeriod: "Século XXI (2007-2012)",
+    pagesEstimate: "~420 págs (Vol. 1)",
+    likes: 112,
+    badge: "Magistério Papal",
+    addedByName: "Tradição Cristã",
+    createdAt: "2026-01-01T00:00:00Z"
+  },
+  {
+    id: "todos-caminhos-roma-hahn",
+    title: "Todos os Caminhos Levam a Roma",
+    author: "Scott e Kimberly Hahn",
+    category: "Apologética & Doutrina",
+    description: "O fascinante testemunho do pastor e biblista presbiteriano que pretendia desmascarar o catolicismo pela Bíblia, mas acabou descobrindo que a Tradição, a Eucaristia e o Magistério católicos são biblicamente incontestáveis.",
+    whyRead: "Uma leitura emocionante em ritmo de suspense investigativo. Excelente para entender com base bíblica por que a Igreja Católica é a casa construída sobre a rocha.",
+    keyQuote: "Quando percebi que os primeiros cristãos criam na Eucaristia como o verdadeiro Corpo e Sangue de Cristo, todas as minhas defesas protestantes começaram a cair por terra diante da verdade bíblica.",
+    level: "Iniciante",
+    tags: ["Conversão", "Bíblia e Tradição", "Eucaristia", "Testemunho"],
+    isAIRecommended: true,
+    aiHighlight: "O testemunho de conversão mais lido e impactante do catolicismo moderno.",
+    historicalPeriod: "Século XX (1993)",
+    pagesEstimate: "~210 págs",
+    likes: 147,
+    badge: "Testemunho Impactante",
+    addedByName: "Tradição Cristã",
+    createdAt: "2026-01-01T00:00:00Z"
+  },
+  {
+    id: "historia-uma-alma-teresinha",
+    title: "História de uma Alma",
+    author: "Santa Teresinha do Menino Jesus",
+    category: "Santos & Biografias",
+    description: "A autobiografia da mais jovem Doutora da Igreja que revolucionou a espiritualidade católica com a sua 'Pequena Via' da infância espiritual: amar a Deus nos pequenos atos, sem pretensões grandiosas.",
+    whyRead: "Mostra que a santidade está ao alcance dos fracos e pequeninos. Dissipa o medo de Deus e revela Seu Amor Misericordioso.",
+    keyQuote: "No coração da Igreja, minha Mãe, eu serei o Amor! Assim serei tudo, e meu sonho será realizado. Compreendi que o Amor encerrava todas as vocações.",
+    level: "Iniciante",
+    tags: ["Pequena Via", "Amor Misericordioso", "Santa Teresinha", "Doutora da Igreja"],
+    isAIRecommended: true,
+    aiHighlight: "A santa mais amada dos tempos modernos ensinando a confiar plenamente no Pai.",
+    historicalPeriod: "Século XIX (1898 d.C.)",
+    pagesEstimate: "~290 págs",
+    likes: 160,
+    badge: "Doutora da Pequena Via",
+    addedByName: "Tradição Cristã",
+    createdAt: "2026-01-01T00:00:00Z"
+  },
+  {
+    id: "banquete-do-cordeiro-hahn",
+    title: "O Banquete do Cordeiro",
+    author: "Scott Hahn",
+    category: "Bíblia & Teologia",
+    description: "Revela como a Santa Missa e o livro bíblico do Apocalipse se explicam mutuamente. Cada celebração eucarística na terra é, na verdade, a participação no banquete nupcial celeste diante do Trono de Deus.",
+    whyRead: "Você nunca mais assistirá à Santa Missa da mesma maneira. Abre os olhos da fé para a liturgia celeste e o sacerdócio de Cristo.",
+    keyQuote: "A Missa é o Céu na terra. Quando vamos à Missa, não estamos apenas lembrando um evento passado: estamos entrando na sala do trono do Deus Todo-Poderoso.",
+    level: "Iniciante",
+    tags: ["Santa Missa", "Apocalipse", "Liturgia", "Eucaristia", "Céu"],
+    isAIRecommended: true,
+    aiHighlight: "Essencial para viver a Santa Missa com adoração e compreensão plena.",
+    historicalPeriod: "Século XX (1999)",
+    pagesEstimate: "~190 págs",
+    likes: 125,
+    badge: "Mistério Eucarístico",
+    addedByName: "Tradição Cristã",
+    createdAt: "2026-01-01T00:00:00Z"
+  },
+  {
+    id: "diario-divina-misericordia-faustina",
+    title: "Diário: A Divina Misericórdia em Minha Alma",
+    author: "Santa Faustina Kowalska",
+    category: "Santos & Biografias",
+    description: "As revelações de Jesus Misericordioso à humilde religiosa polonesa que deram origem ao Terço da Misericórdia, à Festa da Misericórdia e à imagem de Jesus com os raios pálido e vermelho.",
+    whyRead: "Uma mensagem urgente de esperança para a nossa época: 'Antes de vir como justo Juiz, abro as portas da Minha Misericórdia'.",
+    keyQuote: "A alma que confiar na Minha Misericórdia não perecerá, porque todos os seus problemas são Meus e ela tem apenas uma coisa a fazer: confiar em Mim.",
+    level: "Iniciante",
+    tags: ["Divina Misericórdia", "Confiança", "Jesus Misericordioso", "Oração"],
+    isAIRecommended: true,
+    aiHighlight: "A base teológica e devocional da Divina Misericórdia propagada por São João Paulo II.",
+    historicalPeriod: "Século XX (1938 d.C.)",
+    pagesEstimate: "~500 págs",
+    likes: 133,
+    badge: "Revelação Privada Aprovada",
+    addedByName: "Tradição Cristã",
+    createdAt: "2026-01-01T00:00:00Z"
+  },
+  {
+    id: "catecismo-igreja-catolica",
+    title: "Catecismo da Igreja Católica (CIC)",
+    author: "Magistério da Igreja Católica",
+    category: "Teologia & Doutrina",
+    description: "O texto de referência seguro e autêntico para o ensinamento da doutrina católica. Organizado nas quatro colunas da fé: o Credo (o que cremos), a Liturgia e Sacramentos (o que celebramos), a Vida em Cristo e Mandamentos (como vivemos) e a Oração Cristã (como oramos).",
+    whyRead: "A fonte primária onde cada dogma, mandamento e oração da Igreja é explicado com clareza, fundamentação bíblica e citações patrísticas.",
+    keyQuote: "Deus, infinitamente Perfeito e Bem-aventurado em Si mesmo, por um desígnio de pura bondade, criou livremente o homem para fazê-lo participar de Sua vida bem-aventurada.",
+    level: "Intermediário",
+    tags: ["Magistério", "Doutrina Oficial", "Credo", "Sacramentos", "Moral"],
+    isAIRecommended: true,
+    aiHighlight: "A enciclopédia definitiva da fé católica que todo cristão católico deveria ter em casa.",
+    historicalPeriod: "Século XX (1992 d.C.)",
+    pagesEstimate: "~800 págs",
+    likes: 170,
+    badge: "Doutrina Oficial",
+    addedByName: "Magistério da Igreja",
+    createdAt: "2026-01-01T00:00:00Z"
+  },
+  {
+    id: "alma-todo-apostolado-chautard",
+    title: "A Alma de Todo Apostolado",
+    author: "Dom Jean-Baptiste Chautard",
+    category: "Espiritualidade & Oração",
+    description: "Um alerta profético do abade trapista contra a 'heresia das obras': a tentação do ativismo pastoral sem vida interior e sem intimidade com Cristo no sacrário.",
+    whyRead: "Quem trabalha na paróquia, na pastoral, na evangelização ou nas redes sociais precisa deste livro para não se esvaziar espiritualmente.",
+    keyQuote: "Ninguém dá o que não tem. Para transbordar a graça de Deus para os outros, é preciso primeiro ser um reservatório cheio de Deus através do silêncio e da oração.",
+    level: "Intermediário",
+    tags: ["Apostolado", "Vida Interior", "Oração", "Pastoral", "Silêncio"],
+    isAIRecommended: true,
+    aiHighlight: "Elogiado calorosamente pelos Papas São Pio X, Bento XV e Pio XII.",
+    historicalPeriod: "Século XX (1907)",
+    pagesEstimate: "~260 págs",
+    likes: 91,
+    badge: "Espiritualidade Pastoral",
+    addedByName: "Tradição Cristã",
+    createdAt: "2026-01-01T00:00:00Z"
+  }
+];

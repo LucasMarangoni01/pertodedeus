@@ -337,5 +337,31 @@ service cloud.firestore {
       allow read: if true; // Permite leitura pública para anúncios globais
       allow write: if isAdmin();
     }
+
+    // --- Community Books (Recomendações e Livros sobre Deus e Catolicismo) ---
+    match /community_books/{bookId} {
+      allow read: if true;
+      allow create: if isSignedIn() 
+                    && isValidBook(incoming()) 
+                    && incoming().createdAt == request.time;
+      allow update: if isSignedIn() && (
+        // Permite curtidas/likes por qualquer usuário autenticado
+        (incoming().diff(existing()).affectedKeys().hasOnly(['likes']) && incoming().likes == existing().likes + 1) ||
+        // Ou edição pelo autor/dono ou admin
+        (isOwner(existing().userId) &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'author', 'category', 'description', 'whyRead', 'quote', 'link', 'level', 'updatedAt']) &&
+         incoming().updatedAt == request.time)
+      );
+      allow delete: if isSignedIn() && (isOwner(existing().userId) || isAdmin());
+
+      function isValidBook(data) {
+        return data.title is string && data.title.size() > 0 && data.title.size() <= 200
+          && data.author is string && data.author.size() > 0 && data.author.size() <= 150
+          && data.category is string && data.category.size() <= 80
+          && (data.description is string && data.description.size() <= 5000)
+          && (data.whyRead is string && data.whyRead.size() <= 3000)
+          && (data.addedByName is string && data.addedByName.size() <= 100);
+      }
+    }
   }
 }

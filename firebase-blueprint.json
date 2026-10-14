@@ -296,6 +296,27 @@
         "active": { "type": "boolean" }
       },
       "required": ["title", "content", "type", "createdAt"]
+    },
+    "CommunityBook": {
+      "title": "Community and AI Recommended Book",
+      "description": "Books on God, Christian faith and Catholicism recommended by AI or shared by community members",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "author": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "whyRead": { "type": "string" },
+        "quote": { "type": "string" },
+        "link": { "type": "string" },
+        "level": { "type": "string" },
+        "addedByName": { "type": "string" },
+        "isAIRecommended": { "type": "boolean" },
+        "likes": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "author", "category", "addedByName", "createdAt"]
     }
   },
   "firestore": {
@@ -362,6 +383,10 @@
     "/global_announcements/{announcementId}": {
       "schema": "Announcement",
       "description": "Official admin communication"
+    },
+    "/community_books/{bookId}": {
+      "schema": "CommunityBook",
+      "description": "Books on God, Christian faith and Catholicism recommended by AI or shared by community members"
     }
   }
 }

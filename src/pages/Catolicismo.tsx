@@ -10,6 +10,7 @@ import { deuterocanonicalBooks } from "../constants/bibleData";
 import CatholicSpiritualPlan from "../components/catolicismo/CatholicSpiritualPlan";
 import CatholicPrayersLibrary from "../components/catolicismo/CatholicPrayersLibrary";
 import CatholicStudyBible from "../components/catolicismo/CatholicStudyBible";
+import CatholicBooksLibrary from "../components/catolicismo/CatholicBooksLibrary";
 
 const rosaryMysteries = [
   {
@@ -236,12 +237,12 @@ Alcançai-nos a graça de vivermos na santidade e na paz. Amém.`
   }
 ];
 
-type CatholicTab = "plano-espiritual" | "oracoes" | "terco" | "biblia-catolica" | "sacramentos" | "santos";
+type CatholicTab = "plano-espiritual" | "oracoes" | "terco" | "biblia-catolica" | "livros" | "sacramentos" | "santos";
 
 export default function Catolicismo() {
   const [searchParams, setSearchParams] = useSearchParams();
   const paramTab = searchParams.get("tab") as CatholicTab | null;
-  const validTabs: CatholicTab[] = ["plano-espiritual", "oracoes", "terco", "biblia-catolica", "sacramentos", "santos"];
+  const validTabs: CatholicTab[] = ["plano-espiritual", "biblia-catolica", "livros", "oracoes", "terco", "sacramentos", "santos"];
 
   const [activeTab, setActiveTabState] = useState<CatholicTab>(
     paramTab && validTabs.includes(paramTab) ? paramTab : "plano-espiritual"
@@ -344,6 +345,21 @@ export default function Catolicismo() {
               Bíblia de Estudo (73 Livros)
               <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase bg-navy/60 text-amber border border-amber/40">
                 Ilustrada
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab("livros")}
+              className={cn(
+                "px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2",
+                activeTab === "livros" 
+                  ? "bg-amber text-navy shadow-lg scale-105 font-black" 
+                  : "bg-white/5 text-pearl/70 hover:bg-white/10"
+              )}
+            >
+              <BookMarked className="w-4 h-4" />
+              Livros & Biblioteca (IA)
+              <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase bg-navy/60 text-amber border border-amber/40">
+                Novo
               </span>
             </button>
             <button
@@ -477,6 +493,11 @@ export default function Catolicismo() {
       {/* TAB 3: BÍBLIA CATÓLICA DE ESTUDO ILUSTRADA */}
       {activeTab === "biblia-catolica" && (
         <CatholicStudyBible />
+      )}
+
+      {/* TAB: LIVROS & BIBLIOTECA (IA & COMUNIDADE) */}
+      {activeTab === "livros" && (
+        <CatholicBooksLibrary />
       )}
 
       {/* TAB 4: OS 7 SACRAMENTOS */}

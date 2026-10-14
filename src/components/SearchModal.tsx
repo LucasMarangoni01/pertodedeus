@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Search, X, BookOpen, MessageSquare, Heart, User, LayoutGrid, ShieldAlert, Calendar, Calculator, Flame, Users, Bot, MapPin, HelpCircle, Settings, Clock, Cross, Sparkles, Layers, Star } from "lucide-react";
+import { Search, X, BookOpen, MessageSquare, Heart, User, LayoutGrid, ShieldAlert, Calendar, Calculator, Flame, Users, Bot, MapPin, HelpCircle, Settings, Clock, Cross, Sparkles, Layers, Star, BookMarked } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "../lib/utils";
 
@@ -16,6 +16,7 @@ const navigationItems = [
   { path: "/study", icon: GraduationCap, label: "Estudos", category: "Espiritualidade" },
   { path: "/plans", icon: BookOpen, label: "Planos de Leitura", category: "Espiritualidade" },
   { path: "/catolicismo", icon: Cross, label: "Portal Católico (Orações e Devoções)", category: "Catolicismo" },
+  { path: "/catolicismo?tab=livros", icon: BookMarked, label: "Biblioteca & Livros Recomendados pela IA (Deus e Catolicismo)", category: "Catolicismo" },
   { path: "/catolicismo?tab=biblia-catolica", icon: BookOpen, label: "Bíblia Católica (73 Livros - CNBB e Matos Soares)", category: "Catolicismo" },
   { path: "/catolicismo?tab=terco", icon: Sparkles, label: "Santo Terço & Mistérios do Rosário", category: "Catolicismo" },
   { path: "/catolicismo?tab=oracoes", icon: Heart, label: "Orações Tradicionais da Igreja", category: "Catolicismo" },
